@@ -1,4 +1,8 @@
 *.pdf
 *.sh
+*.exe
 
 client/*.sh
+client/*.exe
+Peerster.exe
+*.exe
