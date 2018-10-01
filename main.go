@@ -7,8 +7,6 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-const bufSize = 1024
-
 func openUDPChannel(s string) (*net.UDPConn, error) {
 	udpAddr, err := net.ResolveUDPAddr("udp4", s)
 	if err != nil {
@@ -32,7 +30,7 @@ func (g *Gossiper) listenUDPChannel(addr string, callback func(*net.UDPConn, *Go
 	// Program a call to close the channel when we are done
 	defer udpChannel.Close()
 
-	buf := make([]byte, bufSize)
+	buf := make([]byte, BufSize)
 
 	for {
 		if _, _, err := udpChannel.ReadFromUDP(buf); err != nil {
