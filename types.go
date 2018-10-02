@@ -5,6 +5,7 @@ import (
 	"sync"
 )
 
+// BufSize - Size of the UDP buffer
 const BufSize = 1024
 
 // CustomError -- Represents a custom error
@@ -29,16 +30,36 @@ type Client struct {
 	msg  string // Message to send
 }
 
-// SimpleMessage -- Represents a message
+// SimpleMessage -- Represents a simple user message (from client to local gossiper)
 type SimpleMessage struct {
 	originalName  string // Name of original sender
 	relayPeerAddr string // Address of last relayer
 	contents      string // Message content
 }
 
-// GossipPacket -- Represents a gossip packet
+// RumorMessage - Represents a rumor
+type RumorMessage struct {
+	origin string // Name of original sender
+	iD     uint32 // Message id (sequential)
+	text   string // Message content
+}
+
+// PeerStatus - Represent the status of a particular peer for a given gossiper
+type PeerStatus struct {
+	identifier string // Name of original sender
+	nextID     uint32 // Next expected message ID for this sender
+}
+
+// StatusPacket - Represents the status of all known peers of a given gossiper (vector clock)
+type StatusPacket struct {
+	want []PeerStatus // Vector clock
+}
+
+// GossipPacket -- Structure that is exchanged between gossipers (only one of the 3-fields is non-nil)
 type GossipPacket struct {
-	msg *SimpleMessage // A message
+	msg    *SimpleMessage // A plain message (part 1)
+	rumor  *RumorMessage  // A rumor (part 2)
+	status *StatusPacket  // A vector clock(part 2)
 }
 
 func (g *Gossiper) String() string {
@@ -47,6 +68,10 @@ func (g *Gossiper) String() string {
 		acc = acc + fmt.Sprintf("\t%v\n", x)
 	}
 	return acc
+}
+
+func (msg *SimpleMessage) String() string {
+	return fmt.Sprintf("SIMPLE MESSAGE origin %s from %s contents %s", msg.originalName, msg.relayPeerAddr, msg.contents)
 }
 
 func (e *CustomError) Error() string {
