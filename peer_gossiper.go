@@ -9,8 +9,8 @@ import (
 
 func callbackPeer(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket) {
 
-	// Print the message on standard output
-	fmt.Println()
+	// Print to the console
+	fmt.Printf("%v, %v", pkt.simpleMsg, g.peers)
 
 	// Modify the packet
 	sender := pkt.simpleMsg.relayPeerAddr

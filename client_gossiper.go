@@ -9,8 +9,8 @@ import (
 
 func callbackClient(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket) {
 
-	// Print the message on standard output
-	fmt.Println(pkt.simpleMsg)
+	// Print to the console
+	fmt.Printf("%s, %v", pkt.simpleMsg.contents, g.peers)
 
 	// Modify the packet
 	pkt.simpleMsg.originalName = g.name

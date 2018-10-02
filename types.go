@@ -99,7 +99,7 @@ func (peers *Peers) String() string {
 }
 
 func (msg *SimpleMessage) String() string {
-	return fmt.Sprintf("SIMPLE MESSAGE origin %s from %s contents %s",
+	return fmt.Sprintf("SIMPLE MESSAGE origin %s from %s contents %s\n",
 		msg.originalName, msg.relayPeerAddr, msg.contents)
 }
 
