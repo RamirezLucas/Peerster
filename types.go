@@ -9,6 +9,9 @@ import (
 // BufSize - Size of the UDP buffer
 const BufSize = 1024
 
+// TimeoutSec - Length of generic timeout
+const TimeoutSec = 1
+
 // CustomError -- Represents a custom error
 type CustomError struct {
 	fun  string // Function's name
@@ -103,19 +106,19 @@ func (msg *SimpleMessage) String() string {
 		msg.originalName, msg.relayPeerAddr, msg.contents)
 }
 
-// Print -- Prints a rumor message from a given relay address
-func (rumor *RumorMessage) Print(relayAddr string) {
-	fmt.Printf("RUMOR origin %s from %s ID %d contents %s\n",
+// ToString -- Prints a rumor message from a given relay address
+func (rumor *RumorMessage) ToString(relayAddr string) string {
+	return fmt.Sprintf("RUMOR origin %s from %s ID %d contents %s\n",
 		rumor.origin, relayAddr, rumor.id, rumor.text)
 }
 
-// Print -- Prints a status packet from a given relay address
-func (status *StatusPacket) Print(relayAddr string) {
-	fmt.Printf("STATUS from %s", relayAddr)
+// ToString -- Prints a status packet from a given relay address
+func (status *StatusPacket) ToString(relayAddr string) string {
+	s := fmt.Sprintf("STATUS from %s", relayAddr)
 	for _, peer := range status.want {
-		fmt.Printf(" peer %s nextID %d", peer.identifier, peer.nextID)
+		s = s + fmt.Sprintf(" peer %s nextID %d", peer.identifier, peer.nextID)
 	}
-	fmt.Printf("\n")
+	return s + "\n"
 }
 
 func (e *CustomError) Error() string {

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 
 	"github.com/dedis/protobuf"
@@ -23,7 +24,7 @@ func openUDPChannel(s string) (*net.UDPConn, error) {
 	return udpConn, nil
 }
 
-func (g *Gossiper) listeningUDP(addrPort string, callbackBroadcast func(*Gossiper, *net.UDPConn, *GossipPacket)) {
+func (g *Gossiper) listeningUDP(addrPort string, self bool, callbackBroadcast func(*Gossiper, *net.UDPConn, *SimpleMessage)) {
 
 	var err error
 
@@ -63,24 +64,58 @@ func (g *Gossiper) listeningUDP(addrPort string, callbackBroadcast func(*Gossipe
 			continue
 		}
 
-		// Create another thread to do the work and select the right callback
+		/* If the gossiper is operating on simple broadcast reject rumors and
+		status requests */
+		if g.simpleMode && pkt.simpleMsg == nil {
+			// Error: ignore the packet
+			continue
+		}
+
+		// Select the right callback
 		switch {
 		case pkt.simpleMsg != nil:
-			go callbackBroadcast(g, udpChannel, pkt)
+			callbackBroadcast(g, udpChannel, pkt.simpleMsg)
 		case pkt.rumor != nil:
-			go callbackRumor(g, udpChannel, pkt, sender)
+			callbackRumor(g, udpChannel, pkt.rumor, sender, self)
 		case pkt.status != nil:
-			go callbackStatus(g, udpChannel, pkt, sender)
+			callbackStatus(g, udpChannel, pkt.status, sender)
 		}
 
 	}
 }
 
-func callbackRumor(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket, sender *net.UDPAddr) {
+func callbackRumor(g *Gossiper, udpChannel *net.UDPConn, rumor *RumorMessage, sender *net.UDPAddr, self bool) {
+
+	// Print to the console
+	g.mux.Lock()
+	fmt.Printf("%s%v", rumor.ToString(fmt.Sprintf("%v", sender)), g.peers)
+
+	// TODO: Check if message is sequential or from self
+
+	// Pick random peer
+	n := rand.Intn(len(g.peers.list))
+	target := g.peers.list[n]
+	g.mux.Unlock()
+
+	// TODO: Save the message
+
+	// Create the packet
+	pkt := GossipPacket{rumor: rumor}
+	buf, err := protobuf.Encode(pkt)
+	if err != nil {
+		return
+	}
+
+	// Relay to selected target
+	if _, err = udpChannel.WriteToUDP(buf, target.udpAddr); err != nil {
+		return
+	}
+
+	// Wait for timeout
 
 }
 
-func callbackStatus(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket, sender *net.UDPAddr) {
+func callbackStatus(g *Gossiper, udpChannel *net.UDPConn, status *StatusPacket, sender *net.UDPAddr) {
 
 }
 
@@ -94,7 +129,12 @@ func main() {
 	}
 
 	// Launch 2 threads for client and peer communication
-	go gossiper.listeningUDP(gossiper.clientAddr, callbackClient)
-	go gossiper.listeningUDP(gossiper.gossipAddr, callbackPeer)
+	go gossiper.listeningUDP(gossiper.clientAddr, true, callbackClient)
+	go gossiper.listeningUDP(gossiper.gossipAddr, false, callbackPeer)
+
+	/*
+		Question: display known peers taking into account potential new one?
+		Question: message arriving not in sequence -> save or discard ?
+	*/
 
 }

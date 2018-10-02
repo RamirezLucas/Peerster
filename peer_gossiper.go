@@ -7,17 +7,20 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-func callbackPeer(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket) {
+func callbackPeer(g *Gossiper, udpChannel *net.UDPConn, simpleMsg *SimpleMessage) {
 
 	// Print to the console
-	fmt.Printf("%v, %v", pkt.simpleMsg, g.peers)
+	g.mux.Lock()
+	fmt.Printf("%v%v", simpleMsg, g.peers)
+	g.mux.Unlock()
 
 	// Modify the packet
-	sender := pkt.simpleMsg.relayPeerAddr
-	pkt.simpleMsg.relayPeerAddr = g.gossipAddr
+	sender := simpleMsg.relayPeerAddr
+	simpleMsg.relayPeerAddr = g.gossipAddr
 
 	// Create the packet
-	buf, err := protobuf.Encode(*pkt)
+	pkt := GossipPacket{simpleMsg: simpleMsg}
+	buf, err := protobuf.Encode(pkt)
 	if err != nil {
 		return
 	}
