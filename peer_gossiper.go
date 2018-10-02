@@ -7,19 +7,19 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-func callbackPeer(udpChannel *net.UDPConn, g *Gossiper, pkt *GossipPacket) error {
+func callbackPeer(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket) {
 
 	// Print the message on standard output
 	fmt.Println()
 
 	// Modify the packet
-	sender := pkt.msg.relayPeerAddr
-	pkt.msg.relayPeerAddr = g.gossipAddr
+	sender := pkt.simpleMsg.relayPeerAddr
+	pkt.simpleMsg.relayPeerAddr = g.gossipAddr
 
 	// Create the packet
 	buf, err := protobuf.Encode(*pkt)
 	if err != nil {
-		return &CustomError{"callbackPeer", "failed to encode packet"}
+		return
 	}
 
 	// Send to everyone (except the sender)
@@ -27,23 +27,21 @@ func callbackPeer(udpChannel *net.UDPConn, g *Gossiper, pkt *GossipPacket) error
 	defer g.mux.Unlock()
 
 	isPeerKnown := false
-	for _, peer := range g.peers {
-		if sender == peer {
+	for _, peer := range g.peers.list {
+		if sender == peer.rawAddr {
 			isPeerKnown = true
 		} else {
-			// TODO: remove code copy
-			udpAddr, err := net.ResolveUDPAddr("udp4", peer)
-			if err != nil {
-				return &CustomError{"callbackPeer", "unable to resolve UDP address"}
-			}
-			if _, err = udpChannel.WriteToUDP(buf, udpAddr); err != nil {
-				return &CustomError{"callbackPeer", "unable to write on UDP channel"}
+			if _, err = udpChannel.WriteToUDP(buf, peer.udpAddr); err != nil {
+				return
 			}
 		}
 	}
+
 	if !isPeerKnown { // We need to add the sender to the peers list
-		g.peers = append(g.peers, sender)
+		var newPeer Peer
+		if err := newPeer.CreatePeer(sender); err != nil {
+			g.peers.list = append(g.peers.list, newPeer)
+		}
 	}
 
-	return nil
 }

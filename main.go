@@ -23,7 +23,7 @@ func openUDPChannel(s string) (*net.UDPConn, error) {
 	return udpConn, nil
 }
 
-func (g *Gossiper) listeningUDP(addrPort string, callback func(*net.UDPConn, *Gossiper, *GossipPacket) error) {
+func (g *Gossiper) listeningUDP(addrPort string, callbackBroadcast func(*Gossiper, *net.UDPConn, *GossipPacket)) {
 
 	var err error
 
@@ -40,22 +40,48 @@ func (g *Gossiper) listeningUDP(addrPort string, callback func(*net.UDPConn, *Go
 	buf := make([]byte, BufSize)
 
 	for {
-		if _, _, err := udpChannel.ReadFromUDP(buf); err != nil {
+
+		var sender *net.UDPAddr
+		if _, sender, err = udpChannel.ReadFromUDP(buf); err != nil {
 			// Error: ignore the packet
 			continue
 		}
 
+		// Decode the packet
 		var pkt *GossipPacket
 		if err := protobuf.Decode(buf, pkt); err != nil {
 			// Error: ignore the packet
 			continue
 		}
 
-		if err := callback(udpChannel, g, pkt); err != nil {
+		// Exactly one of the field of the GossipPacket can be non-nil
+		if (pkt.simpleMsg != nil && pkt.rumor != nil) ||
+			(pkt.simpleMsg != nil && pkt.status != nil) ||
+			(pkt.rumor != nil && pkt.status != nil) ||
+			(pkt.simpleMsg == nil && pkt.rumor == nil && pkt.status == nil) {
 			// Error: ignore the packet
 			continue
 		}
+
+		// Create another thread to do the work and select the right callback
+		switch {
+		case pkt.simpleMsg != nil:
+			go callbackBroadcast(g, udpChannel, pkt)
+		case pkt.rumor != nil:
+			go callbackRumor(g, udpChannel, pkt, sender)
+		case pkt.status != nil:
+			go callbackStatus(g, udpChannel, pkt, sender)
+		}
+
 	}
+}
+
+func callbackRumor(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket, sender *net.UDPAddr) {
+
+}
+
+func callbackStatus(g *Gossiper, udpChannel *net.UDPConn, pkt *GossipPacket, sender *net.UDPAddr) {
+
 }
 
 func main() {

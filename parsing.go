@@ -40,18 +40,26 @@ func checkIPPortPair(s string) error {
 	return nil
 }
 
-func parsePeers(s string) ([]string, error) {
+func parsePeers(s string) (Peers, error) {
 
-	var pairs []string
+	var peers Peers
 
 	slices := strings.Split(s, ",")
-	for _, pair := range slices {
-		if err := checkIPPortPair(pair); err != nil {
-			return pairs, &CustomError{"parsePeers", "failed to parse peers IP/PORT pairs"}
+	for _, rawAddr := range slices {
+
+		// Check that the IP has a correct format
+		if err := checkIPPortPair(rawAddr); err != nil {
+			return peers, &CustomError{"parsePeers", "failed to parse peers IP/PORT pairs"}
 		}
-		pairs = append(pairs, pair)
+
+		var peer Peer
+		if err := peer.CreatePeer(rawAddr); err != nil {
+			return peers, &CustomError{"parsePeers", "failed to create new peer"}
+		}
+
+		peers.list = append(peers.list, peer)
 	}
-	return pairs, nil
+	return peers, nil
 }
 
 func (g *Gossiper) parseArgumentsGossiper() error {
@@ -88,7 +96,7 @@ func (g *Gossiper) parseArgumentsGossiper() error {
 			g.name = arg[6:]
 
 		case strings.HasPrefix(arg, "-peers="):
-			if len(g.peers) != 0 {
+			if len(g.peers.list) != 0 {
 				return &CustomError{"parseArgumentsGossiper", "peers defined twice"}
 			}
 			peersPairs, err := parsePeers(arg[7:])
