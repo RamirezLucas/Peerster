@@ -7,11 +7,12 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-func callbackClient(g *Gossiper, udpChannel *net.UDPConn, simpleMsg *SimpleMessage) {
+// OnBroadcastClient -
+func OnBroadcastClient(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMessage) {
 
 	// Print to the console
 	g.mux.Lock()
-	fmt.Printf("CLIENT MESSAGE %s%s", simpleMsg.contents, PeersToString(g.network.peers))
+	fmt.Printf("CLIENT MESSAGE %s\n%s\n", simpleMsg.contents, PeersToString(g.network.peers))
 	g.mux.Unlock()
 
 	// Modify the packet
@@ -30,18 +31,19 @@ func callbackClient(g *Gossiper, udpChannel *net.UDPConn, simpleMsg *SimpleMessa
 	defer g.mux.Unlock()
 
 	for _, peer := range g.network.peers {
-		if _, err = udpChannel.WriteToUDP(buf, peer.udpAddr); err != nil {
+		if _, err = channel.WriteToUDP(buf, peer.udpAddr); err != nil {
 			return
 		}
 	}
 
 }
 
-func callbackPeer(g *Gossiper, udpChannel *net.UDPConn, simpleMsg *SimpleMessage) {
+// OnBroadcastNetwork -
+func OnBroadcastNetwork(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMessage) {
 
 	// Print to the console
 	g.mux.Lock()
-	fmt.Printf("%s%s", SimpleMessageToString(simpleMsg), PeersToString(g.network.peers))
+	fmt.Printf("%s\n%s\n", SimpleMessageToString(simpleMsg), PeersToString(g.network.peers))
 	g.mux.Unlock()
 
 	// Modify the packet
@@ -64,7 +66,7 @@ func callbackPeer(g *Gossiper, udpChannel *net.UDPConn, simpleMsg *SimpleMessage
 		if sender == peer.rawAddr {
 			isPeerKnown = true
 		} else {
-			if _, err = udpChannel.WriteToUDP(buf, peer.udpAddr); err != nil {
+			if _, err = channel.WriteToUDP(buf, peer.udpAddr); err != nil {
 				return
 			}
 		}

@@ -23,18 +23,47 @@ func openUDPChannel(s string) (*net.UDPConn, error) {
 	return udpConn, nil
 }
 
-func (g *Gossiper) listeningUDP(addrPort string, self bool, callbackBroadcast func(*Gossiper, *net.UDPConn, *SimpleMessage)) {
+func isPacketValid(pkt *GossipPacket, isSimpleMode bool, isClientSide bool) bool {
+
+	// Exactly one of the field of the GossipPacket must be non-nil
+	if (pkt.simpleMsg != nil && pkt.rumor != nil) || (pkt.simpleMsg != nil && pkt.status != nil) ||
+		(pkt.rumor != nil && pkt.status != nil) || (pkt.simpleMsg == nil && pkt.rumor == nil && pkt.status == nil) {
+		return false
+	}
+
+	// If we are in simple mode then it must be a SimpleMessage
+	if isSimpleMode && pkt.simpleMsg == nil {
+		return false
+	}
+
+	/* If we are not in simple mode then it must be either a RumorMessage
+	or a StatusPacket */
+	if !isSimpleMode && pkt.simpleMsg != nil {
+		return false
+	}
+
+	/* If the packet comes from the client and we are not in simple mode
+	then it must be a RumorMessage (the client can't send a StatusPacket)*/
+	if isClientSide && !isSimpleMode && pkt.rumor == nil {
+		return false
+	}
+
+	return true
+}
+
+// UDPDispatcher --
+func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossiper, *net.UDPConn, *SimpleMessage), isClientSide bool) {
 
 	var err error
 
 	// Open an UDP connection
-	var udpChannel *net.UDPConn
-	if udpChannel, err = openUDPChannel(addrPort); err != nil {
+	var channel *net.UDPConn
+	if channel, err = openUDPChannel(addrPort); err != nil {
 		return
 	}
 
 	// Program a call to close the channel when we are done
-	defer udpChannel.Close()
+	defer channel.Close()
 
 	// Create a buffer to store arriving data
 	buf := make([]byte, BufSize)
@@ -42,7 +71,7 @@ func (g *Gossiper) listeningUDP(addrPort string, self bool, callbackBroadcast fu
 	for {
 
 		var sender *net.UDPAddr
-		if _, sender, err = udpChannel.ReadFromUDP(buf); err != nil {
+		if _, sender, err = channel.ReadFromUDP(buf); err != nil {
 			// Error: ignore the packet
 			continue
 		}
@@ -54,41 +83,27 @@ func (g *Gossiper) listeningUDP(addrPort string, self bool, callbackBroadcast fu
 			continue
 		}
 
-		// Exactly one of the field of the GossipPacket can be non-nil
-		if (pkt.simpleMsg != nil && pkt.rumor != nil) ||
-			(pkt.simpleMsg != nil && pkt.status != nil) ||
-			(pkt.rumor != nil && pkt.status != nil) ||
-			(pkt.simpleMsg == nil && pkt.rumor == nil && pkt.status == nil) {
+		// Check the packet's validity
+		if !isPacketValid(pkt, g.simpleMode, isClientSide) {
 			// Error: ignore the packet
 			continue
 		}
 
-		/* If the gossiper is operating on simple broadcast reject rumors and
-		status requests */
-		if g.simpleMode && pkt.simpleMsg == nil {
-			// Error: ignore the packet
-			continue
+		if !isClientSide {
+			// TODO: handle rumor-status-response
 		}
 
 		// Select the right callback
 		switch {
 		case pkt.simpleMsg != nil:
-			callbackBroadcast(g, udpChannel, pkt.simpleMsg)
+			OnReceiveBroadcast(g, channel, pkt.simpleMsg)
 		case pkt.rumor != nil:
-			callbackRumor(g, udpChannel, pkt.rumor, sender, self)
+			go OnReceiveRumor(g, channel, pkt.rumor, sender, nil, isClientSide)
 		case pkt.status != nil:
-			callbackStatus(g, udpChannel, pkt.status, sender)
+			go OnReceiveStatus(g, channel, pkt.status, sender)
 		}
 
 	}
-}
-
-func callbackRumor(g *Gossiper, udpChannel *net.UDPConn, rumor *RumorMessage, sender *net.UDPAddr, self bool) {
-
-}
-
-func callbackStatus(g *Gossiper, udpChannel *net.UDPConn, status *StatusPacket, sender *net.UDPAddr) {
-
 }
 
 func main() {
@@ -100,13 +115,17 @@ func main() {
 		return
 	}
 
-	// Launch 2 threads for client and peer communication
-	go gossiper.listeningUDP(gossiper.clientAddr, true, callbackClient)
-	go gossiper.listeningUDP(gossiper.gossipAddr, false, callbackPeer)
+	// Add myself to the named peer list
+	gossiper.network.AddNamedPeer(gossiper.name)
+
+	// Launch 2 threads for client-side and network-side communication
+	go gossiper.UDPDispatcher(gossiper.clientAddr, OnBroadcastClient, true)
+	go gossiper.UDPDispatcher(gossiper.gossipAddr, OnBroadcastNetwork, false)
 
 	/*
 		Question: display known peers taking into account potential new one?
 		Question: message arriving not in sequence -> save or discard ?
+		Question: print Peers on invalid message ?
 	*/
 
 }
