@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 
 	"github.com/dedis/protobuf"
@@ -85,33 +84,6 @@ func (g *Gossiper) listeningUDP(addrPort string, self bool, callbackBroadcast fu
 }
 
 func callbackRumor(g *Gossiper, udpChannel *net.UDPConn, rumor *RumorMessage, sender *net.UDPAddr, self bool) {
-
-	// Print to the console
-	g.mux.Lock()
-	fmt.Printf("%s%v", rumor.ToString(fmt.Sprintf("%v", sender)), g.peers)
-
-	// TODO: Check if message is sequential or from self
-
-	// Pick random peer
-	n := rand.Intn(len(g.peers.list))
-	target := g.peers.list[n]
-	g.mux.Unlock()
-
-	// TODO: Save the message
-
-	// Create the packet
-	pkt := GossipPacket{rumor: rumor}
-	buf, err := protobuf.Encode(pkt)
-	if err != nil {
-		return
-	}
-
-	// Relay to selected target
-	if _, err = udpChannel.WriteToUDP(buf, target.udpAddr); err != nil {
-		return
-	}
-
-	// Wait for timeout
 
 }
 

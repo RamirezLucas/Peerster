@@ -20,13 +20,12 @@ type CustomError struct {
 
 // Gossiper -- Represents a gossiper
 type Gossiper struct {
-	clientAddr string       // IP/Port on which the client talks (RO)
-	gossipAddr string       // IP/Port on which to listen to other gossips (RO)
-	name       string       // Name of that gossiper (RO)
-	simpleMode bool         // Indicate whether the gossiper operated in simple broadcast mode (RO)
-	peers      Peers        // List of known peers (Shared)
-	status     StatusPacket // Vector clock for this gossiper (Shared)
-	mux        sync.Mutex   // Mutex to manipulate the structure from different threads
+	clientAddr string        // IP/Port on which the client talks (RO)
+	gossipAddr string        // IP/Port on which to listen to other gossips (RO)
+	name       string        // Name of that gossiper (RO)
+	simpleMode bool          // Indicate whether the gossiper operated in simple broadcast mode (RO)
+	network    GossipNetwork // The gossip network (Shared)
+	mux        sync.Mutex    // Mutex to manipulate the structure from different threads
 }
 
 // Client -- Represents a gossiper
@@ -37,13 +36,16 @@ type Client struct {
 
 // Peer - Represents another peer
 type Peer struct {
-	rawAddr string       // An IP/Port pair <ip:port>
-	udpAddr *net.UDPAddr // A corresponding UDP address
+	rawAddr string         // An IP/Port pair <ip:port>
+	udpAddr *net.UDPAddr   // A corresponding UDP address
+	name    string         // The peer's name
+	msgs    []RumorMessage // The list of messages received from that peer
 }
 
-// Peers - Represents a list of peers
-type Peers struct {
-	list []Peer // A list of peers
+// GossipNetwork - Represents the known status of a gossip network
+type GossipNetwork struct {
+	peers       []Peer       // A list of peers
+	vectorClock StatusPacket // A vectorclock
 }
 
 // SimpleMessage -- Represents a simple user message (from client to local gossiper)
@@ -93,27 +95,29 @@ func (p *Peer) CreatePeer(addr string) error {
 	return nil
 }
 
-func (peers *Peers) String() string {
+// PeersToString - Returns a textual representation of a []Peer
+func PeersToString(peers []Peer) string {
 	s := "PEERS"
-	for _, peer := range peers.list {
+	for _, peer := range peers {
 		s = s + fmt.Sprintf(" %s", peer.rawAddr)
 	}
 	return s + "\n"
 }
 
-func (msg *SimpleMessage) String() string {
+// SimpleMessageToString - Returns a textual representation of a SimpleMessage
+func SimpleMessageToString(msg *SimpleMessage) string {
 	return fmt.Sprintf("SIMPLE MESSAGE origin %s from %s contents %s\n",
 		msg.originalName, msg.relayPeerAddr, msg.contents)
 }
 
-// ToString -- Prints a rumor message from a given relay address
-func (rumor *RumorMessage) ToString(relayAddr string) string {
+// RumorMessageToString -- Returns a textual representation of a RumorMessage
+func RumorMessageToString(rumor *RumorMessage, relayAddr string) string {
 	return fmt.Sprintf("RUMOR origin %s from %s ID %d contents %s\n",
 		rumor.origin, relayAddr, rumor.id, rumor.text)
 }
 
-// ToString -- Prints a status packet from a given relay address
-func (status *StatusPacket) ToString(relayAddr string) string {
+// StatusPacketToString -- Returns a textual representation of a StatusPacket
+func StatusPacketToString(status *StatusPacket, relayAddr string) string {
 	s := fmt.Sprintf("STATUS from %s", relayAddr)
 	for _, peer := range status.want {
 		s = s + fmt.Sprintf(" peer %s nextID %d", peer.identifier, peer.nextID)

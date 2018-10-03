@@ -40,26 +40,26 @@ func checkIPPortPair(s string) error {
 	return nil
 }
 
-func parsePeers(s string) (Peers, error) {
+func parsePeers(s string) (GossipNetwork, error) {
 
-	var peers Peers
+	var network GossipNetwork
 
 	slices := strings.Split(s, ",")
 	for _, rawAddr := range slices {
 
 		// Check that the IP has a correct format
 		if err := checkIPPortPair(rawAddr); err != nil {
-			return peers, &CustomError{"parsePeers", "failed to parse peers IP/PORT pairs"}
+			return network, &CustomError{"parsePeers", "failed to parse peers IP/PORT pairs"}
 		}
 
 		var peer Peer
 		if err := peer.CreatePeer(rawAddr); err != nil {
-			return peers, &CustomError{"parsePeers", "failed to create new peer"}
+			return network, &CustomError{"parsePeers", "failed to create new peer"}
 		}
 
-		peers.list = append(peers.list, peer)
+		network.peers = append(network.peers, peer)
 	}
-	return peers, nil
+	return network, nil
 }
 
 func (g *Gossiper) parseArgumentsGossiper() error {
@@ -96,14 +96,14 @@ func (g *Gossiper) parseArgumentsGossiper() error {
 			g.name = arg[6:]
 
 		case strings.HasPrefix(arg, "-peers="):
-			if len(g.peers.list) != 0 {
+			if len(g.network.peers) != 0 {
 				return &CustomError{"parseArgumentsGossiper", "peers defined twice"}
 			}
 			peersPairs, err := parsePeers(arg[7:])
 			if err != nil {
 				return &CustomError{"parseArgumentsGossiper", "unable to parse peers"}
 			}
-			g.peers = peersPairs
+			g.network = peersPairs
 
 		case strings.HasPrefix(arg, "-simple"):
 			g.simpleMode = true

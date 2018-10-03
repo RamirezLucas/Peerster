@@ -23,7 +23,7 @@ func main() {
 	pkt := GossipPacket{&simpleMsg}
 
 	// Encode the packet
-	buf, err := protobuf.Encode(pkt)
+	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		fmt.Println(err)
 		return
