@@ -17,7 +17,11 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 	/* ==== THREAD SAFE - BEGIN ==== */
 
 	// Print to the console
-	fmt.Printf("%s\n%s\n", RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), PeersToString(g.network.peers))
+	if isClientSide {
+		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.text, PeersToString(g.network.peers))
+	} else {
+		fmt.Printf("%s\n%s\n", RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), PeersToString(g.network.peers))
+	}
 
 	if isClientSide {
 		// Create the message name and ID
@@ -57,6 +61,7 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 	}
 
 	// Send the packet
+	fmt.Printf("MONGERING with %s\n", fmt.Sprintf("%s", target))
 	if _, err = channel.WriteToUDP(buf, target); err != nil {
 		return
 	}
@@ -68,7 +73,7 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 	timeouts.responses = append(timeouts.responses, TimeoutHandler{target, responseChan, false})
 	timeouts.mux.Unlock()
 
-	// Create a timeout timer (TODO: don't forget to stop)
+	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
 	var response *StatusPacket
 	stopWaiting := false
@@ -95,10 +100,11 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 		}
 		// Spread the rumor to someone else
 		// TODO: prevent resending to the same peer
+		// TODO: print flip coin
 		OnReceiveRumor(g, channel, rumor, sender, nil, timeouts, true)
 
 	} else { // We received a status response
-		OnReceiveStatus(g, channel, response, target)
+		OnReceiveStatus(g, channel, response, target, target)
 	}
 
 }

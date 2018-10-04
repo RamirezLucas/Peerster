@@ -78,6 +78,9 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 	// Program a call to close the channel when we are done
 	defer channel.Close()
 
+	// Launch the anti-entropy thread
+	go AntiEntropy(g, channel)
+
 	/* Create a structure to handle timeouts when waiting for
 	a RumorMessage response*/
 	var timeouts StatusResponseForwarder
@@ -132,7 +135,7 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 		case pkt.rumor != nil:
 			go OnReceiveRumor(g, channel, pkt.rumor, sender, nil, &timeouts, isClientSide)
 		case pkt.status != nil:
-			go OnReceiveStatus(g, channel, pkt.status, sender)
+			go OnReceiveStatus(g, channel, pkt.status, sender, nil)
 		}
 
 	}
