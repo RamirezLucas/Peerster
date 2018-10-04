@@ -2,19 +2,21 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
+	"time"
 
 	"github.com/dedis/protobuf"
 )
 
 // OnReceiveRumor -
-func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, sender *net.UDPAddr, target *net.UDPAddr, isClientSide bool) {
+func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, sender *net.UDPAddr,
+	target *net.UDPAddr, timeouts *StatusResponseForwarder, isClientSide bool) {
 
-	// Print to the console
 	g.mux.Lock()
-
 	/* ==== THREAD SAFE - BEGIN ==== */
 
+	// Print to the console
 	fmt.Printf("%s\n%s\n", RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), PeersToString(g.network.peers))
 
 	if isClientSide {
@@ -43,9 +45,9 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 			return
 		}
 	}
-	g.mux.Unlock()
 
 	/* ==== THREAD SAFE - END ==== */
+	g.mux.Unlock()
 
 	// Create the packet
 	pkt := GossipPacket{rumor: rumor}
@@ -59,6 +61,44 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 		return
 	}
 
-	// Create a timeout timer
+	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
+	to forward us the StatusPacket response */
+	responseChan := make(chan StatusPacket)
+	timeouts.mux.Lock()
+	timeouts.responses = append(timeouts.responses, TimeoutHandler{target, responseChan, false})
+	timeouts.mux.Unlock()
+
+	// Create a timeout timer (TODO: don't forget to stop)
+	timer := time.NewTicker(time.Second)
+	var response *StatusPacket
+	stopWaiting := false
+
+	for !stopWaiting {
+		select {
+		case <-timer.C: // Timeout expired
+			stopWaiting = true
+		case r := <-responseChan:
+			response = &r
+			stopWaiting = true
+		default:
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+
+	// Stop the timer
+	timer.Stop()
+	// TODO: remove the timeout handler
+
+	if response == nil { // The response did not arrive on time
+		if rand.Int()%2 == 0 { // Flip a coin
+			return // Stop the thread
+		}
+		// Spread the rumor to someone else
+		// TODO: prevent resending to the same peer
+		OnReceiveRumor(g, channel, rumor, sender, nil, timeouts, true)
+
+	} else { // We received a status response
+		OnReceiveStatus(g, channel, response, target)
+	}
 
 }

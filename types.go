@@ -52,6 +52,19 @@ type GossipNetwork struct {
 	vectorClock StatusPacket // A vector clock
 }
 
+// TimeoutHandler - Represents a StatusPacket answer to a RumorMessage
+type TimeoutHandler struct {
+	addr *net.UDPAddr      // A peer's address
+	com  chan StatusPacket // A channel to communicate the status answer between threads
+	done bool              // Indicated whether a packet was already forwarded using this handler
+}
+
+// StatusResponseForwarder - Represents the set of pending timeouts
+type StatusResponseForwarder struct {
+	responses []TimeoutHandler // An array of timeout handlers
+	mux       sync.Mutex       // Mutex to manipulate the structure from different threads
+}
+
 // SimpleMessage - Represents a simple user message (from client to local gossiper)
 type SimpleMessage struct {
 	originalName  string // Name of original sender

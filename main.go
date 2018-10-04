@@ -7,6 +7,19 @@ import (
 	"github.com/dedis/protobuf"
 )
 
+// CompareUDPAddress - Compares 2 UDP addresses
+func CompareUDPAddress(a, b *net.UDPAddr) bool {
+	if a.Port == b.Port {
+		for i := 0; i < 4; i++ {
+			if a.IP[i] != b.IP[i] {
+				return false
+			}
+		}
+		return true
+	}
+	return false
+}
+
 func openUDPChannel(s string) (*net.UDPConn, error) {
 
 	// Resolve the address
@@ -65,6 +78,10 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 	// Program a call to close the channel when we are done
 	defer channel.Close()
 
+	/* Create a structure to handle timeouts when waiting for
+	a RumorMessage response*/
+	var timeouts StatusResponseForwarder
+
 	// Create a buffer to store arriving data
 	buf := make([]byte, BufSize)
 
@@ -89,8 +106,23 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 			continue
 		}
 
-		if !isClientSide {
-			// TODO: handle rumor-status-response
+		// A client should never receive a StatusPacket
+		if !isClientSide && pkt.status != nil {
+			isPacketHandled := false
+			timeouts.mux.Lock()
+			for _, t := range timeouts.responses { // Attempt to find a handler for this response
+				if !t.done && CompareUDPAddress(t.addr, sender) { // Match !
+					t.com <- *pkt.status
+					t.done = true
+					isPacketHandled = true
+					break
+				}
+			}
+
+			timeouts.mux.Unlock()
+			if isPacketHandled {
+				continue
+			}
 		}
 
 		// Select the right callback
@@ -98,7 +130,7 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 		case pkt.simpleMsg != nil:
 			OnReceiveBroadcast(g, channel, pkt.simpleMsg)
 		case pkt.rumor != nil:
-			go OnReceiveRumor(g, channel, pkt.rumor, sender, nil, isClientSide)
+			go OnReceiveRumor(g, channel, pkt.rumor, sender, nil, &timeouts, isClientSide)
 		case pkt.status != nil:
 			go OnReceiveStatus(g, channel, pkt.status, sender)
 		}

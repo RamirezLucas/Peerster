@@ -76,7 +76,7 @@ func (network *GossipNetwork) GetLastMessageID(name string) uint32 {
 // AddPeerIfAbsent - Add a peer to the list if it is absent from it
 func (network *GossipNetwork) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 	for _, peer := range network.peers { // Iterate over the know peers
-		if peer.udpAddr == newPeerAddr { // Match !
+		if CompareUDPAddress(peer.udpAddr, newPeerAddr) { // Match !
 			return
 		}
 	}
@@ -97,7 +97,7 @@ func (network *GossipNetwork) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr
 	}
 
 	// Check that the excludeMe peer is not the only one in the list
-	if excludeMe != nil && nbPeers == 1 && excludeMe == network.peers[0].udpAddr {
+	if excludeMe != nil && nbPeers == 1 && CompareUDPAddress(excludeMe, network.peers[0].udpAddr) {
 		return nil
 	}
 
@@ -106,7 +106,7 @@ func (network *GossipNetwork) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr
 	"excludeMe" peer */
 	for {
 		randomPeer := network.peers[rand.Intn(nbPeers)].udpAddr
-		if excludeMe == nil || randomPeer != excludeMe {
+		if excludeMe == nil || !CompareUDPAddress(excludeMe, randomPeer) {
 			return randomPeer
 		}
 	}
