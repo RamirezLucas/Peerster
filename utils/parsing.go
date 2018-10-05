@@ -1,4 +1,4 @@
-package main
+package utils
 
 import (
 	"fmt"
@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-func parsePort(s string) error {
+func ParsePort(s string) error {
 	if port, err := strconv.ParseInt(s, 10, 16); err != nil || port < 1024 || port > 65535 {
 		return &CustomError{"parsePort", "failed to parse PORT number"}
 	}
 	return nil
 }
 
-func checkIPPortPair(s string) error {
+func CheckIPPortPair(s string) error {
 
 	slices := strings.Split(s, ":")
 	if len(slices) != 2 {
@@ -22,7 +22,7 @@ func checkIPPortPair(s string) error {
 	}
 
 	// Parse the port number
-	if err := parsePort(slices[1]); err != nil {
+	if err := ParsePort(slices[1]); err != nil {
 		return &CustomError{"checkIPPortPair", "failed to parse PORT number"}
 	}
 
@@ -40,115 +40,120 @@ func checkIPPortPair(s string) error {
 	return nil
 }
 
-func parsePeers(s string) ([]string, error) {
-
-	var pairs []string
+func (network *GossipNetwork) ParsePeers(s string) error {
 
 	slices := strings.Split(s, ",")
-	for _, pair := range slices {
-		if err := checkIPPortPair(pair); err != nil {
-			return pairs, &CustomError{"parsePeers", "failed to parse peers IP/PORT pairs"}
+	for _, rawAddr := range slices {
+
+		// Check that the IP has a correct format
+		if err := CheckIPPortPair(rawAddr); err != nil {
+			return &CustomError{"parsePeers", "failed to parse peers IP/PORT pairs"}
 		}
-		pairs = append(pairs, pair)
+
+		var peer Peer
+		if err := peer.CreatePeer(rawAddr); err != nil {
+			return &CustomError{"parsePeers", "failed to create new peer"}
+		}
+
+		network.Peers = append(network.Peers, peer)
 	}
-	return pairs, nil
+	return nil
 }
 
-func (g *Gossiper) parseArgumentsGossiper() error {
+func (g *Gossiper) ParseArgumentsGossiper() error {
 
 	for _, arg := range os.Args[1:] {
 		switch {
 		case strings.HasPrefix(arg, "-UIPort="):
-			if g.clientAddr != "" {
+			if g.ClientAddr != "" {
 				return &CustomError{"parseArgumentsGossiper", "UIPort defined twice"}
 			}
-			err := parsePort(arg[8:])
+			err := ParsePort(arg[8:])
 			if err != nil {
 				return &CustomError{"parseArgumentsGossiper", "unable to parse UIPort"}
 			}
-			g.clientAddr = fmt.Sprintf("127.0.0.1:%s", arg[8:])
+			g.ClientAddr = fmt.Sprintf("127.0.0.1:%s", arg[8:])
 
 		case strings.HasPrefix(arg, "-gossipAddr="):
-			if g.gossipAddr != "" {
+			if g.GossipAddr != "" {
 				return &CustomError{"parseArgumentsGossiper", "gossipAddr defined twice"}
 			}
-			err := checkIPPortPair(arg[12:])
+			err := CheckIPPortPair(arg[12:])
 			if err != nil {
 				return &CustomError{"parseArgumentsGossiper", "unable to parse gossipAddr"}
 			}
-			g.gossipAddr = arg[12:]
+			g.GossipAddr = arg[12:]
 
 		case strings.HasPrefix(arg, "-name="):
-			if g.name != "" {
+			if g.Name != "" {
 				return &CustomError{"parseArgumentsGossiper", "name defined twice"}
 			}
 			if len(arg) == 6 {
 				return &CustomError{"parseArgumentsGossiper", "name is empty"}
 			}
-			g.name = arg[6:]
+			g.Name = arg[6:]
 
 		case strings.HasPrefix(arg, "-peers="):
-			if len(g.peers) != 0 {
+			if len(g.Network.Peers) != 0 {
 				return &CustomError{"parseArgumentsGossiper", "peers defined twice"}
 			}
-			peersPairs, err := parsePeers(arg[7:])
-			if err != nil {
+
+			if err := g.Network.ParsePeers(arg[7:]); err != nil {
 				return &CustomError{"parseArgumentsGossiper", "unable to parse peers"}
 			}
-			g.peers = peersPairs
 
 		case strings.HasPrefix(arg, "-simple"):
-			g.simpleMode = true
+			g.SimpleMode = true
 		default:
 			return &CustomError{"parseArgumentsGossiper", "unknown argument"}
 		}
 	}
 
 	// The gossiper must have a name
-	if g.name == "" {
+	if g.Name == "" {
 		return &CustomError{"parseArgumentsGossiper", "the gossiper has no name"}
 	}
 
 	// Create default values for missing parameters
-	if g.clientAddr != "" {
-		g.clientAddr = "127.0.0.1:8080"
+	if g.ClientAddr != "" {
+		g.ClientAddr = "127.0.0.1:8080"
 	}
-	if g.gossipAddr != "" {
-		g.gossipAddr = "127.0.0.1:5000"
+	if g.GossipAddr != "" {
+		g.GossipAddr = "127.0.0.1:5000"
 	}
 
 	return nil
 }
 
-func (c *Client) parseArgumentsClient() error {
+func (c *Client) ParseArgumentsClient() error {
 	for _, arg := range os.Args[1:] {
 		switch {
 		case strings.HasPrefix(arg, "-UIPort="):
-			if c.addr != "" {
+			if c.Addr != "" {
 				return &CustomError{"parseArgumentsClient", "UIPort defined twice"}
 			}
-			err := parsePort(arg[8:])
+			err := ParsePort(arg[8:])
 			if err != nil {
 				return &CustomError{"parseArgumentsClient", "unable to parse UIPort"}
 			}
-			c.addr = fmt.Sprintf("127.0.0.1:%s", arg[8:])
+			c.Addr = fmt.Sprintf("127.0.0.1:%s", arg[8:])
 
 		case strings.HasPrefix(arg, "-msg"):
-			if c.msg != "" {
+			if c.Msg != "" {
 				return &CustomError{"parseArgumentsClient", "msg defined twice"}
 			}
-			c.msg = arg[4:]
+			c.Msg = arg[4:]
 		}
 	}
 
 	// The client must have a message
-	if c.msg == "" {
+	if c.Msg == "" {
 		return &CustomError{"parseArgumentsClient", "the client has no message to transmit"}
 	}
 
 	// Create default values for missing parameters
-	if c.addr != "" {
-		c.addr = "127.0.0.1:8080"
+	if c.Addr != "" {
+		c.Addr = "127.0.0.1:8080"
 	}
 
 	return nil

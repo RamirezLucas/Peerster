@@ -3,61 +3,50 @@ package main
 import (
 	"fmt"
 	"net"
-
+	"os"
+	"os/signal"
+	"Peerster/utils"
 	"github.com/dedis/protobuf"
 )
-
-// CompareUDPAddress - Compares 2 UDP addresses
-func CompareUDPAddress(a, b *net.UDPAddr) bool {
-	if a.Port == b.Port {
-		for i := 0; i < 4; i++ {
-			if a.IP[i] != b.IP[i] {
-				return false
-			}
-		}
-		return true
-	}
-	return false
-}
 
 func openUDPChannel(s string) (*net.UDPConn, error) {
 
 	// Resolve the address
 	udpAddr, err := net.ResolveUDPAddr("udp4", s)
 	if err != nil {
-		return nil, &CustomError{"openUDPChannel", "cannot resolve UDP address"}
+		return nil, &utils.CustomError{"openUDPChannel", "cannot resolve UDP address"}
 	}
 
 	// Open an UDP connection
 	udpConn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
-		return nil, &CustomError{"openUDPChannel", "cannot listen on UDP channel"}
+		return nil, &utils.CustomError{"openUDPChannel", "cannot listen on UDP channel"}
 	}
 	return udpConn, nil
 }
 
-func isPacketValid(pkt *GossipPacket, isSimpleMode bool, isClientSide bool) bool {
+func isPacketValid(pkt *utils.GossipPacket, isSimpleMode bool, isClientSide bool) bool {
 
 	// Exactly one of the field of the GossipPacket must be non-nil
-	if (pkt.simpleMsg != nil && pkt.rumor != nil) || (pkt.simpleMsg != nil && pkt.status != nil) ||
-		(pkt.rumor != nil && pkt.status != nil) || (pkt.simpleMsg == nil && pkt.rumor == nil && pkt.status == nil) {
+	if (pkt.SimpleMsg != nil && pkt.Rumor != nil) || (pkt.SimpleMsg != nil && pkt.Status != nil) ||
+		(pkt.Rumor != nil && pkt.Status != nil) || (pkt.SimpleMsg == nil && pkt.Rumor == nil && pkt.Status == nil) {
 		return false
 	}
 
 	// If we are in simple mode then it must be a SimpleMessage
-	if isSimpleMode && pkt.simpleMsg == nil {
+	if isSimpleMode && pkt.SimpleMsg == nil {
 		return false
 	}
 
 	/* If we are not in simple mode then it must be either a RumorMessage
 	or a StatusPacket */
-	if !isSimpleMode && pkt.simpleMsg != nil {
+	if !isSimpleMode && pkt.SimpleMsg != nil {
 		return false
 	}
 
 	/* If the packet comes from the client and we are not in simple mode
 	then it must be a RumorMessage (the client can't send a StatusPacket)*/
-	if isClientSide && !isSimpleMode && pkt.rumor == nil {
+	if isClientSide && !isSimpleMode && pkt.Rumor == nil {
 		return false
 	}
 
@@ -65,7 +54,7 @@ func isPacketValid(pkt *GossipPacket, isSimpleMode bool, isClientSide bool) bool
 }
 
 // UDPDispatcher --
-func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossiper, *net.UDPConn, *SimpleMessage), isClientSide bool) {
+func UDPDispatcher(g *utils.Gossiper, addrPort string, OnReceiveBroadcast func(*utils.Gossiper, *net.UDPConn, *utils.SimpleMessage), isClientSide bool) {
 
 	var err error
 
@@ -79,14 +68,10 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 	defer channel.Close()
 
 	// Launch the anti-entropy thread
-	go AntiEntropy(g, channel)
-
-	/* Create a structure to handle timeouts when waiting for
-	a RumorMessage response*/
-	var timeouts StatusResponseForwarder
+	go utils.AntiEntropy(g, channel)
 
 	// Create a buffer to store arriving data
-	buf := make([]byte, BufSize)
+	buf := make([]byte, utils.BufSize)
 
 	for {
 
@@ -97,32 +82,32 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 		}
 
 		// Decode the packet
-		var pkt *GossipPacket
+		var pkt *utils.GossipPacket
 		if err := protobuf.Decode(buf, pkt); err != nil {
 			// Error: ignore the packet
 			continue
 		}
 
 		// Check the packet's validity
-		if !isPacketValid(pkt, g.simpleMode, isClientSide) {
+		if !isPacketValid(pkt, g.SimpleMode, isClientSide) {
 			// Error: ignore the packet
 			continue
 		}
 
 		// A client should never receive a StatusPacket
-		if !isClientSide && pkt.status != nil {
+		if !isClientSide && pkt.Status != nil {
 			isPacketHandled := false
-			timeouts.mux.Lock()
-			for _, t := range timeouts.responses { // Attempt to find a handler for this response
-				if !t.done && CompareUDPAddress(t.addr, sender) { // Match !
-					t.com <- *pkt.status
-					t.done = true
+			g.Timeouts.Mux.Lock()
+			for _, t := range g.Timeouts.Responses { // Attempt to find a handler for this response
+				if !t.Done && utils.CompareUDPAddress(t.Addr, sender) { // Match !
+					t.Com <- *pkt.Status
+					t.Done = true
 					isPacketHandled = true
 					break
 				}
 			}
 
-			timeouts.mux.Unlock()
+			g.Timeouts.Mux.Unlock()
 			if isPacketHandled {
 				continue
 			}
@@ -130,12 +115,12 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 
 		// Select the right callback
 		switch {
-		case pkt.simpleMsg != nil:
-			OnReceiveBroadcast(g, channel, pkt.simpleMsg)
-		case pkt.rumor != nil:
-			go OnReceiveRumor(g, channel, pkt.rumor, sender, nil, &timeouts, isClientSide)
-		case pkt.status != nil:
-			go OnReceiveStatus(g, channel, pkt.status, sender, nil)
+		case pkt.SimpleMsg != nil:
+			OnReceiveBroadcast(g, channel, pkt.SimpleMsg)
+		case pkt.Rumor != nil:
+			go utils.OnReceiveRumor(g, channel, pkt.Rumor, sender, isClientSide)
+		case pkt.Status != nil:
+			go utils.OnReceiveStatus(g, channel, pkt.Status, sender)
 		}
 
 	}
@@ -144,18 +129,22 @@ func (g *Gossiper) UDPDispatcher(addrPort string, OnReceiveBroadcast func(*Gossi
 func main() {
 
 	// Argument parsing
-	var gossiper Gossiper
-	if err := gossiper.parseArgumentsGossiper(); err != nil {
+	var gossiper utils.Gossiper
+	if err := gossiper.ParseArgumentsGossiper(); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Add myself to the named peer list
-	gossiper.network.AddNamedPeer(gossiper.name)
+	gossiper.Network.AddNamedPeer(gossiper.Name)
 
 	// Launch 2 threads for client-side and network-side communication
-	go gossiper.UDPDispatcher(gossiper.clientAddr, OnBroadcastClient, true)
-	go gossiper.UDPDispatcher(gossiper.gossipAddr, OnBroadcastNetwork, false)
+	go UDPDispatcher(&gossiper, gossiper.ClientAddr, utils.OnBroadcastClient, true)
+	go UDPDispatcher(&gossiper, gossiper.GossipAddr, utils.OnBroadcastNetwork, false)
+
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, os.Interrupt, os.Kill)
+	<-signalChan
 
 	/*
 		Question: display known peers taking into account potential new one?
