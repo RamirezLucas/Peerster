@@ -69,6 +69,14 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) {
 	}
 }
 
+// GetLastMessageID - Get the next message expected for a given name
+func (nameIndex *NameIndex) GetLastMessageID(name string) uint32 {
+	if messages, ok := nameIndex.index[name]; ok { // We know this name
+		return uint32(len(messages.list)) + 1
+	}
+	return 0
+}
+
 // GetUnknownMessageTarget - Tries to find a message that we have but that the other doesn't
 func (nameIndex *NameIndex) GetUnknownMessageTarget(targetStatus *StatusPacket) *RumorMessage {
 	nameIndex.mux.Lock()
@@ -118,4 +126,22 @@ func (nameIndex *NameIndex) IsLocalStatusComplete(status *StatusPacket) bool {
 	}
 
 	return true
+}
+
+// GetVectorClock - Get the vector clock derived from the name index
+func (nameIndex *NameIndex) GetVectorClock() *StatusPacket {
+	nameIndex.mux.Lock()
+	defer nameIndex.mux.Unlock()
+
+	var status StatusPacket
+	status.Want = make([]PeerStatus, len(nameIndex.index))
+	i := 0
+	for name, messages := range nameIndex.index {
+		status.Want[i] = PeerStatus{
+			Identifier: name,
+			NextID:     uint32(len(messages.list)) + 1}
+		i++
+	}
+
+	return &status
 }

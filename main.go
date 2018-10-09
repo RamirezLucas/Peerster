@@ -3,8 +3,8 @@ package main
 import (
 	"Peerster/fail"
 	"Peerster/network"
+	"Peerster/parsing"
 	"Peerster/types"
-	"Peerster/utils"
 	"fmt"
 	"net"
 	"os"
@@ -59,12 +59,10 @@ func antiEntropy(g *types.Gossiper) {
 		select {
 		case <-timer.C:
 			// Pick a random target and send a StatusPacket
-			g.Network.Mux.Lock()
-			target := g.Network.GetRandomPeer(nil)
-			vectorClock := g.Network.VectorClock
-			g.Network.Mux.Unlock()
+			target := g.PeerIndex.GetRandomPeer(nil)
+			vectorClock := g.NameIndex.GetVectorClock()
 			if target != nil {
-				network.OnSendStatus(&vectorClock, g.GossipChannel, target)
+				network.OnSendStatus(vectorClock, g.GossipChannel, target)
 			}
 		}
 	}
@@ -176,14 +174,14 @@ func udpDispatcherClient(g *types.Gossiper) {
 func main() {
 
 	// Argument parsing
-	var gossiper types.Gossiper
-	if err := utils.ParseArgumentsGossiper(&gossiper); err != nil {
+	gossiper := types.NewGossiper()
+	if err := parsing.ParseArgumentsGossiper(gossiper); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Add myself to the named peer list
-	gossiper.Network.AddNamedPeer(gossiper.Name)
+	gossiper.NameIndex.AddName(gossiper.Name)
 
 	// Create 2 communication channels
 	var err error
@@ -200,9 +198,11 @@ func main() {
 
 	/* Launch 2 threads for client-side and network-side communication and one thread
 	for the Anti-Entropy protocol */
-	go udpDispatcherClient(&gossiper)
-	go udpDispatcherGossip(&gossiper)
-	go antiEntropy(&gossiper)
+	go udpDispatcherClient(gossiper)
+	go udpDispatcherGossip(gossiper)
+	if !gossiper.SimpleMode {
+		go antiEntropy(gossiper)
+	}
 
 	// Kill all goroutines before exiting
 	signalChan := make(chan os.Signal, 1)

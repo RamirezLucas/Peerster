@@ -3,7 +3,6 @@ package network
 import (
 	"Peerster/fail"
 	"Peerster/types"
-	"Peerster/utils"
 	"fmt"
 	"math/rand"
 	"net"
@@ -19,13 +18,13 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 	pkt := types.GossipPacket{Rumor: rumor}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
-		return &fail.CustomError{"OnSendRumor", "failed to encode RumorMessage"}
+		return &fail.CustomError{Fun: "OnSendRumor", Desc: "failed to encode RumorMessage"}
 	}
 
 	// Send the packet
 	fmt.Printf("MONGERING with %s\n", fmt.Sprintf("%s", target))
 	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
-		return &fail.CustomError{"OnSendRumor", "failed to send RumorMessage"}
+		return &fail.CustomError{Fun: "OnSendRumor", Desc: "failed to send RumorMessage"}
 	}
 
 	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
@@ -33,7 +32,7 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 	responseChan := make(chan types.StatusPacket)
 	hash := rand.Int()
 	g.Timeouts.Mux.Lock()
-	g.Timeouts.Responses = append(g.Timeouts.Responses, types.TimeoutHandler{target, responseChan, hash, false})
+	g.Timeouts.Responses = append(g.Timeouts.Responses, types.TimeoutHandler{Addr: target, Com: responseChan, Hash: hash, Done: false})
 	g.Timeouts.Mux.Unlock()
 
 	// Create a timeout timer
@@ -79,10 +78,7 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 			return nil // Stop the thread
 		}
 		// Spread the rumor to someone else
-		// TODO: prevent resending to the same peer
-		g.Network.Mux.Lock()
-		newTarget := g.Network.GetRandomPeer(target)
-		g.Network.Mux.Unlock()
+		newTarget := g.PeerIndex.GetRandomPeer(target)
 		fmt.Printf("FLIPPED COIN sending rumor to %s\n", fmt.Sprintf("%s", newTarget))
 		OnSendRumor(g, rumor, newTarget)
 	} else { // We received a status response
@@ -96,48 +92,43 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 // OnReceiveRumor -
 func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, isClientSide bool) {
 
-	g.Network.Mux.Lock()
-	/* ==== THREAD SAFE - BEGIN ==== */
-
 	if isClientSide {
 		// Create the message name and ID
 		rumor.Origin = g.Name
-		rumor.ID = g.Network.GetLastMessageID(g.Name)
+		rumor.ID = g.NameIndex.GetLastMessageID(g.Name)
 	} else {
 		// Attempt to add the sending peer to the list of neighbors
-		g.Network.AddPeerIfAbsent(sender)
+		g.PeerIndex.AddPeerIfAbsent(sender)
 	}
 
 	// Print to the console
 	if isClientSide {
-		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, utils.PeersToString(g.Network.Peers))
+		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, g.PeerIndex.PeersToString())
 	} else {
-		fmt.Printf("%s\n%s\n", utils.RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), utils.PeersToString(g.Network.Peers))
+		fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
 	}
 
 	// Store the new message
-	g.Network.AddMessageIfNext(rumor)
+	g.NameIndex.AddMessageIfNext(rumor)
 
 	// Reply with status message
-	vectorClock := g.Network.VectorClock
-	OnSendStatus(&vectorClock, g.GossipChannel, sender)
+	vectorClock := g.NameIndex.GetVectorClock()
+	OnSendStatus(vectorClock, g.GossipChannel, sender)
 
 	// Pick a random peer
 	var target *net.UDPAddr
 	if isClientSide {
 		// There is no risk to propagate back to ourself
-		target = g.Network.GetRandomPeer(nil)
+		target = g.PeerIndex.GetRandomPeer(nil)
 	} else {
 		// Prevent the sender from being selected
-		target = g.Network.GetRandomPeer(sender)
+		target = g.PeerIndex.GetRandomPeer(sender)
 	}
-
-	/* ==== THREAD SAFE - END ==== */
-	g.Network.Mux.Unlock()
 
 	if target == nil { // There is no one to propagate too
 		return
 	}
 
+	// Propagate rumor
 	OnSendRumor(g, rumor, target)
 }

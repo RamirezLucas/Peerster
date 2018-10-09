@@ -1,8 +1,8 @@
 package main
 
 import (
+	"Peerster/parsing"
 	"Peerster/types"
-	"Peerster/utils"
 	"fmt"
 	"net"
 
@@ -13,7 +13,7 @@ func main() {
 
 	// Initialize the client
 	var client types.Client
-	if err := utils.ParseArgumentsClient(&client); err != nil {
+	if err := parsing.ParseArgumentsClient(&client); err != nil {
 		fmt.Println(err)
 		return
 	}
