@@ -1,6 +1,9 @@
-package utils
+package network
 
 import (
+	"Peerster/fail"
+	"Peerster/types"
+	"Peerster/utils"
 	"fmt"
 	"net"
 
@@ -8,24 +11,24 @@ import (
 )
 
 // OnSendStatus -
-func OnSendStatus(vectorClock *StatusPacket, channel *net.UDPConn, target *net.UDPAddr) error {
+func OnSendStatus(vectorClock *types.StatusPacket, channel *net.UDPConn, target *net.UDPAddr) error {
 
 	// Create the packet
-	pkt := GossipPacket{Status: vectorClock}
+	pkt := types.GossipPacket{Status: vectorClock}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
-		return &CustomError{"OnSendStatus", "failed to encode GossipPacket"}
+		return &fail.CustomError{"OnSendStatus", "failed to encode GossipPacket"}
 	}
 
 	// Send the packet
 	if _, err = channel.WriteToUDP(buf, target); err != nil {
-		return &CustomError{"OnSendStatus", "failed to send StatusPacket"}
+		return &fail.CustomError{"OnSendStatus", "failed to send StatusPacket"}
 	}
 	return nil
 }
 
 // OnReceiveStatus -
-func OnReceiveStatus(g *Gossiper, status *StatusPacket, sender *net.UDPAddr) {
+func OnReceiveStatus(g *types.Gossiper, status *types.StatusPacket, sender *net.UDPAddr) {
 
 	g.Network.Mux.Lock()
 
@@ -33,7 +36,7 @@ func OnReceiveStatus(g *Gossiper, status *StatusPacket, sender *net.UDPAddr) {
 	g.Network.AddPeerIfAbsent(sender)
 
 	// Print to the console
-	fmt.Printf("%s\n%s\n", StatusPacketToString(status, fmt.Sprintf("%s", sender)), PeersToString(g.Network.Peers))
+	fmt.Printf("%s\n%s\n", utils.StatusPacketToString(status, fmt.Sprintf("%s", sender)), utils.PeersToString(g.Network.Peers))
 
 	// See if we must propagate a rumor
 	rumorToPropagate := g.Network.GetUnknownMessageTarget(status)

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Peerster/types"
 	"Peerster/utils"
 	"fmt"
 	"net"
@@ -11,15 +12,15 @@ import (
 func main() {
 
 	// Initialize the client
-	var client utils.Client
-	if err := client.ParseArgumentsClient(); err != nil {
+	var client types.Client
+	if err := utils.ParseArgumentsClient(&client); err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Create the packet
-	simpleMsg := utils.SimpleMessage{Contents: client.Msg}
-	pkt := utils.GossipPacket{SimpleMsg: &simpleMsg}
+	simpleMsg := types.SimpleMessage{Contents: client.Msg}
+	pkt := types.GossipPacket{SimpleMsg: &simpleMsg}
 
 	// Encode the packet
 	buf, err := protobuf.Encode(&pkt)

@@ -1,6 +1,9 @@
 package main
 
 import (
+	"Peerster/fail"
+	"Peerster/network"
+	"Peerster/types"
 	"Peerster/utils"
 	"fmt"
 	"net"
@@ -16,18 +19,18 @@ func openUDPChannel(s string) (*net.UDPConn, error) {
 	// Resolve the address
 	udpAddr, err := net.ResolveUDPAddr("udp4", s)
 	if err != nil {
-		return nil, &utils.CustomError{Fun: "openUDPChannel", Desc: "cannot resolve UDP address"}
+		return nil, &fail.CustomError{Fun: "openUDPChannel", Desc: "cannot resolve UDP address"}
 	}
 
 	// Open an UDP connection
 	udpConn, err := net.ListenUDP("udp4", udpAddr)
 	if err != nil {
-		return nil, &utils.CustomError{Fun: "openUDPChannel", Desc: "cannot listen on UDP channel"}
+		return nil, &fail.CustomError{Fun: "openUDPChannel", Desc: "cannot listen on UDP channel"}
 	}
 	return udpConn, nil
 }
 
-func isPacketValid(pkt *utils.GossipPacket, isClientSide bool, isSimpleMode bool) bool {
+func isPacketValid(pkt *types.GossipPacket, isClientSide bool, isSimpleMode bool) bool {
 
 	// Exactly one of the field of the GossipPacket must be non-nil
 	if (pkt.SimpleMsg != nil && pkt.Rumor != nil) || (pkt.SimpleMsg != nil && pkt.Status != nil) ||
@@ -48,7 +51,7 @@ func isPacketValid(pkt *utils.GossipPacket, isClientSide bool, isSimpleMode bool
 	return true
 }
 
-func antiEntropy(g *utils.Gossiper) {
+func antiEntropy(g *types.Gossiper) {
 
 	// Create a timeout timer
 	timer := time.NewTicker(4 * time.Second)
@@ -61,16 +64,16 @@ func antiEntropy(g *utils.Gossiper) {
 			vectorClock := g.Network.VectorClock
 			g.Network.Mux.Unlock()
 			if target != nil {
-				utils.OnSendStatus(&vectorClock, g.GossipChannel, target)
+				network.OnSendStatus(&vectorClock, g.GossipChannel, target)
 			}
 		}
 	}
 }
 
-func udpDispatcherGossip(g *utils.Gossiper) {
+func udpDispatcherGossip(g *types.Gossiper) {
 
 	// Create a buffer to store arriving data
-	buf := make([]byte, utils.BufSize)
+	buf := make([]byte, types.BufSize)
 
 	for {
 
@@ -84,7 +87,7 @@ func udpDispatcherGossip(g *utils.Gossiper) {
 		}
 
 		// Decode the packet
-		var pkt utils.GossipPacket
+		var pkt types.GossipPacket
 		if err := protobuf.Decode(buf[:n], &pkt); err != nil {
 			// Error: ignore the packet
 			continue
@@ -103,7 +106,7 @@ func udpDispatcherGossip(g *utils.Gossiper) {
 
 			g.Timeouts.Mux.Lock()
 			for _, t := range g.Timeouts.Responses { // Attempt to find a handler for this response
-				if !t.Done && utils.CompareUDPAddress(t.Addr, sender) { // Match !
+				if !t.Done && types.CompareUDPAddress(t.Addr, sender) { // Match !
 					t.Com <- *pkt.Status
 					t.Done = true
 					isPacketHandled = true
@@ -117,11 +120,11 @@ func udpDispatcherGossip(g *utils.Gossiper) {
 			// Select the right callback
 			switch {
 			case pkt.SimpleMsg != nil:
-				utils.OnBroadcastNetwork(g, pkt.SimpleMsg)
+				network.OnBroadcastNetwork(g, pkt.SimpleMsg)
 			case pkt.Rumor != nil:
-				go utils.OnReceiveRumor(g, pkt.Rumor, sender, false)
+				go network.OnReceiveRumor(g, pkt.Rumor, sender, false)
 			case pkt.Status != nil:
-				go utils.OnReceiveStatus(g, pkt.Status, sender)
+				go network.OnReceiveStatus(g, pkt.Status, sender)
 			default:
 				// Should never happen
 			}
@@ -130,10 +133,10 @@ func udpDispatcherGossip(g *utils.Gossiper) {
 	}
 }
 
-func udpDispatcherClient(g *utils.Gossiper) {
+func udpDispatcherClient(g *types.Gossiper) {
 
 	// Create a buffer to store arriving data
-	buf := make([]byte, utils.BufSize)
+	buf := make([]byte, types.BufSize)
 
 	for {
 
@@ -146,7 +149,7 @@ func udpDispatcherClient(g *utils.Gossiper) {
 		}
 
 		// Decode the packet
-		var pkt utils.GossipPacket
+		var pkt types.GossipPacket
 		if err := protobuf.Decode(buf[:n], &pkt); err != nil {
 			// Error: ignore the packet
 			continue
@@ -159,11 +162,11 @@ func udpDispatcherClient(g *utils.Gossiper) {
 		}
 
 		if g.SimpleMode { // Simple mode
-			utils.OnBroadcastClient(g, pkt.SimpleMsg)
+			network.OnBroadcastClient(g, pkt.SimpleMsg)
 		} else {
 			// Convert the message to a RumorMessage
-			rumor := utils.RumorMessage{Text: pkt.SimpleMsg.Contents}
-			go utils.OnReceiveRumor(g, &rumor, sender, true)
+			rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
+			go network.OnReceiveRumor(g, &rumor, sender, true)
 		}
 
 	}
@@ -173,8 +176,8 @@ func udpDispatcherClient(g *utils.Gossiper) {
 func main() {
 
 	// Argument parsing
-	var gossiper utils.Gossiper
-	if err := gossiper.ParseArgumentsGossiper(); err != nil {
+	var gossiper types.Gossiper
+	if err := utils.ParseArgumentsGossiper(&gossiper); err != nil {
 		fmt.Println(err)
 		return
 	}

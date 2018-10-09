@@ -1,6 +1,7 @@
-package utils
+package types
 
 import (
+	"Peerster/fail"
 	"fmt"
 	"math/rand"
 	"net"
@@ -17,7 +18,7 @@ func (p *Peer) CreatePeer(addr string) error {
 	// Resolve the address
 	udpAddr, err := net.ResolveUDPAddr("udp4", addr)
 	if err != nil {
-		return &CustomError{"CreatePeer", "cannot resolve UDP address"}
+		return &fail.CustomError{"CreatePeer", "cannot resolve UDP address"}
 	}
 
 	p.RawAddr = addr
@@ -64,10 +65,10 @@ func (network *GossipNetwork) GetMessage(name string, id uint32) (string, error)
 			if id < network.VectorClock.Want[i].NextID {
 				return namedPeer.Messages[id-1], nil
 			}
-			return "", &CustomError{"GetMessage", "index out of range"}
+			return "", &fail.CustomError{"GetMessage", "index out of range"}
 		}
 	}
-	return "", &CustomError{"GetMessage", "could not find specified peer"}
+	return "", &fail.CustomError{"GetMessage", "could not find specified peer"}
 }
 
 // GetLastMessageID - Get the next message expected IF for a given named peer

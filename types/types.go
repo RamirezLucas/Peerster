@@ -1,4 +1,4 @@
-package utils
+package types
 
 import (
 	"net"
@@ -11,11 +11,11 @@ const BufSize = 2048
 // TimeoutSec - Length of generic timeout
 const TimeoutSec = 1
 
-// CustomError - Represents a custom error
-type CustomError struct {
-	Fun  string // Function's name
-	Desc string // Error description
-}
+// PeerName - A peer's name
+type PeerName string
+
+// MessageText - A message's text
+type MessageText string
 
 // Gossiper - Represents a gossiper
 type Gossiper struct {
@@ -25,6 +25,7 @@ type Gossiper struct {
 	SimpleMode    bool                    // Indicate whether the gossiper operated in simple broadcast mode (RO)
 	ClientChannel *net.UDPConn            // UDP channel to communicate with the client (Shared, thread-safe)
 	GossipChannel *net.UDPConn            // UDP channel to communicate with the network (Shared, thread-safe)
+	nameIndex     NameIndex               // A dictionnary between peer names and received messages
 	Network       GossipNetwork           // The gossip network (Shared)
 	Timeouts      StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared)
 }
@@ -45,6 +46,12 @@ type Peer struct {
 type NamedPeer struct {
 	Name     string
 	Messages []string
+}
+
+// NameIndex - Represents a dictionnary between peer names and received messages
+type NameIndex struct {
+	index map[PeerName][]MessageText // A mapping from peer n
+	mux   sync.Mutex                 // Mutex to manipulate the structure from different threads
 }
 
 // GossipNetwork - Represents the known status of a gossip network

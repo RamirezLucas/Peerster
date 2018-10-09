@@ -1,6 +1,9 @@
-package utils
+package network
 
 import (
+	"Peerster/fail"
+	"Peerster/types"
+	"Peerster/utils"
 	"fmt"
 	"math/rand"
 	"net"
@@ -10,32 +13,32 @@ import (
 )
 
 // OnSendRumor -
-func OnSendRumor(g *Gossiper, rumor *RumorMessage, target *net.UDPAddr) error {
+func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAddr) error {
 
 	// Create the packet
-	pkt := GossipPacket{Rumor: rumor}
+	pkt := types.GossipPacket{Rumor: rumor}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
-		return &CustomError{"OnSendRumor", "failed to encode RumorMessage"}
+		return &fail.CustomError{"OnSendRumor", "failed to encode RumorMessage"}
 	}
 
 	// Send the packet
 	fmt.Printf("MONGERING with %s\n", fmt.Sprintf("%s", target))
 	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
-		return &CustomError{"OnSendRumor", "failed to send RumorMessage"}
+		return &fail.CustomError{"OnSendRumor", "failed to send RumorMessage"}
 	}
 
 	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
 	to forward us the StatusPacket response */
-	responseChan := make(chan StatusPacket)
+	responseChan := make(chan types.StatusPacket)
 	hash := rand.Int()
 	g.Timeouts.Mux.Lock()
-	g.Timeouts.Responses = append(g.Timeouts.Responses, TimeoutHandler{target, responseChan, hash, false})
+	g.Timeouts.Responses = append(g.Timeouts.Responses, types.TimeoutHandler{target, responseChan, hash, false})
 	g.Timeouts.Mux.Unlock()
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
-	var response *StatusPacket
+	var response *types.StatusPacket
 	stop := false
 
 	// Wait for an answer or a timeout, whichever is first
@@ -91,7 +94,7 @@ func OnSendRumor(g *Gossiper, rumor *RumorMessage, target *net.UDPAddr) error {
 }
 
 // OnReceiveRumor -
-func OnReceiveRumor(g *Gossiper, rumor *RumorMessage, sender *net.UDPAddr, isClientSide bool) {
+func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, isClientSide bool) {
 
 	g.Network.Mux.Lock()
 	/* ==== THREAD SAFE - BEGIN ==== */
@@ -107,9 +110,9 @@ func OnReceiveRumor(g *Gossiper, rumor *RumorMessage, sender *net.UDPAddr, isCli
 
 	// Print to the console
 	if isClientSide {
-		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, PeersToString(g.Network.Peers))
+		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, utils.PeersToString(g.Network.Peers))
 	} else {
-		fmt.Printf("%s\n%s\n", RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), PeersToString(g.Network.Peers))
+		fmt.Printf("%s\n%s\n", utils.RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), utils.PeersToString(g.Network.Peers))
 	}
 
 	// Store the new message

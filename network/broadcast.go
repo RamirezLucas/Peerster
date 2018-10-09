@@ -1,6 +1,8 @@
-package utils
+package network
 
 import (
+	"Peerster/types"
+	"Peerster/utils"
 	"fmt"
 	"net"
 
@@ -8,11 +10,11 @@ import (
 )
 
 // OnBroadcastClient -
-func OnBroadcastClient(g *Gossiper, simpleMsg *SimpleMessage) {
+func OnBroadcastClient(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 
 	// Print to the console
 	g.Network.Mux.Lock()
-	fmt.Printf("CLIENT MESSAGE %s\n%s\n", simpleMsg.Contents, PeersToString(g.Network.Peers))
+	fmt.Printf("CLIENT MESSAGE %s\n%s\n", simpleMsg.Contents, utils.PeersToString(g.Network.Peers))
 	g.Network.Mux.Unlock()
 
 	// Modify the packet
@@ -20,7 +22,7 @@ func OnBroadcastClient(g *Gossiper, simpleMsg *SimpleMessage) {
 	simpleMsg.RelayPeerAddr = g.GossipAddr
 
 	// Create the packet
-	pkt := GossipPacket{SimpleMsg: simpleMsg}
+	pkt := types.GossipPacket{SimpleMsg: simpleMsg}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return
@@ -39,7 +41,7 @@ func OnBroadcastClient(g *Gossiper, simpleMsg *SimpleMessage) {
 }
 
 // OnBroadcastNetwork -
-func OnBroadcastNetwork(g *Gossiper, simpleMsg *SimpleMessage) {
+func OnBroadcastNetwork(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 
 	// Print to the console
 	g.Network.Mux.Lock()
@@ -51,7 +53,7 @@ func OnBroadcastNetwork(g *Gossiper, simpleMsg *SimpleMessage) {
 	}
 	g.Network.AddPeerIfAbsent(udpAddr)
 
-	fmt.Printf("%s\n%s\n", SimpleMessageToString(simpleMsg), PeersToString(g.Network.Peers))
+	fmt.Printf("%s\n%s\n", utils.SimpleMessageToString(simpleMsg), utils.PeersToString(g.Network.Peers))
 	g.Network.Mux.Unlock()
 
 	// Modify the packet
@@ -59,7 +61,7 @@ func OnBroadcastNetwork(g *Gossiper, simpleMsg *SimpleMessage) {
 	simpleMsg.RelayPeerAddr = g.GossipAddr
 
 	// Create the packet
-	pkt := GossipPacket{SimpleMsg: simpleMsg}
+	pkt := types.GossipPacket{SimpleMsg: simpleMsg}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return
