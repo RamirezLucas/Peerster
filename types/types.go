@@ -11,12 +11,6 @@ const BufSize = 2048
 // TimeoutSec - Length of generic timeout
 const TimeoutSec = 1
 
-// PeerName - A peer's name
-type PeerName string
-
-// MessageText - A message's text
-type MessageText string
-
 // Gossiper - Represents a gossiper
 type Gossiper struct {
 	ClientAddr    string                  // IP/Port on which the client talks (RO)
@@ -46,12 +40,6 @@ type Peer struct {
 type NamedPeer struct {
 	Name     string
 	Messages []string
-}
-
-// NameIndex - Represents a dictionnary between peer names and received messages
-type NameIndex struct {
-	index map[PeerName][]MessageText // A mapping from peer n
-	mux   sync.Mutex                 // Mutex to manipulate the structure from different threads
 }
 
 // GossipNetwork - Represents the known status of a gossip network

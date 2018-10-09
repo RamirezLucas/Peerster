@@ -1,8 +1,6 @@
 *.pdf
-*.sh
 *.exe
+*.out
 
-client/*.sh
 client/*.exe
-Peerster.exe
-*.exe
+Peerster
