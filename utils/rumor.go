@@ -10,7 +10,7 @@ import (
 )
 
 // OnSendRumor -
-func OnSendRumor(g *Gossiper, rumor *RumorMessage, channel *net.UDPConn, target *net.UDPAddr) error {
+func OnSendRumor(g *Gossiper, rumor *RumorMessage, target *net.UDPAddr) error {
 
 	// Create the packet
 	pkt := GossipPacket{Rumor: rumor}
@@ -21,7 +21,7 @@ func OnSendRumor(g *Gossiper, rumor *RumorMessage, channel *net.UDPConn, target 
 
 	// Send the packet
 	fmt.Printf("MONGERING with %s\n", fmt.Sprintf("%s", target))
-	if _, err = channel.WriteToUDP(buf, target); err != nil {
+	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
 		return &CustomError{"OnSendRumor", "failed to send RumorMessage"}
 	}
 
@@ -46,9 +46,6 @@ func OnSendRumor(g *Gossiper, rumor *RumorMessage, channel *net.UDPConn, target 
 		case r := <-responseChan:
 			response = &r
 			stop = true
-		default:
-			// Avoid busy waiting
-			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
@@ -83,10 +80,10 @@ func OnSendRumor(g *Gossiper, rumor *RumorMessage, channel *net.UDPConn, target 
 		g.Network.Mux.Lock()
 		newTarget := g.Network.GetRandomPeer(target)
 		g.Network.Mux.Unlock()
-		fmt.Printf("FLIPPED COIN sending rumor to %s", fmt.Sprintf("%s", newTarget))
-		OnSendRumor(g, rumor, channel, newTarget)
+		fmt.Printf("FLIPPED COIN sending rumor to %s\n", fmt.Sprintf("%s", newTarget))
+		OnSendRumor(g, rumor, newTarget)
 	} else { // We received a status response
-		OnReceiveStatus(g, channel, response, target)
+		OnReceiveStatus(g, response, target)
 	}
 
 	return nil
@@ -94,17 +91,10 @@ func OnSendRumor(g *Gossiper, rumor *RumorMessage, channel *net.UDPConn, target 
 }
 
 // OnReceiveRumor -
-func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, sender *net.UDPAddr, isClientSide bool) {
+func OnReceiveRumor(g *Gossiper, rumor *RumorMessage, sender *net.UDPAddr, isClientSide bool) {
 
 	g.Network.Mux.Lock()
 	/* ==== THREAD SAFE - BEGIN ==== */
-
-	// Print to the console
-	if isClientSide {
-		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, PeersToString(g.Network.Peers))
-	} else {
-		fmt.Printf("%s\n%s\n", RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), PeersToString(g.Network.Peers))
-	}
 
 	if isClientSide {
 		// Create the message name and ID
@@ -115,9 +105,19 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 		g.Network.AddPeerIfAbsent(sender)
 	}
 
+	// Print to the console
+	if isClientSide {
+		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, PeersToString(g.Network.Peers))
+	} else {
+		fmt.Printf("%s\n%s\n", RumorMessageToString(rumor, fmt.Sprintf("%s", sender)), PeersToString(g.Network.Peers))
+	}
+
 	// Store the new message
-	// TODO: the message might not have been added (what to do ?)
 	g.Network.AddMessageIfNext(rumor)
+
+	// Reply with status message
+	vectorClock := g.Network.VectorClock
+	OnSendStatus(&vectorClock, g.GossipChannel, sender)
 
 	// Pick a random peer
 	var target *net.UDPAddr
@@ -129,12 +129,12 @@ func OnReceiveRumor(g *Gossiper, channel *net.UDPConn, rumor *RumorMessage, send
 		target = g.Network.GetRandomPeer(sender)
 	}
 
+	/* ==== THREAD SAFE - END ==== */
+	g.Network.Mux.Unlock()
+
 	if target == nil { // There is no one to propagate too
 		return
 	}
 
-	/* ==== THREAD SAFE - END ==== */
-	g.Network.Mux.Unlock()
-
-	OnSendRumor(g, rumor, channel, target)
+	OnSendRumor(g, rumor, target)
 }

@@ -8,7 +8,7 @@ import (
 )
 
 // OnBroadcastClient -
-func OnBroadcastClient(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMessage) {
+func OnBroadcastClient(g *Gossiper, simpleMsg *SimpleMessage) {
 
 	// Print to the console
 	g.Network.Mux.Lock()
@@ -31,7 +31,7 @@ func OnBroadcastClient(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMessa
 	defer g.Network.Mux.Unlock()
 
 	for _, peer := range g.Network.Peers {
-		if _, err = channel.WriteToUDP(buf, peer.UdpAddr); err != nil {
+		if _, err = g.GossipChannel.WriteToUDP(buf, peer.UDPAddr); err != nil {
 			return
 		}
 	}
@@ -39,7 +39,7 @@ func OnBroadcastClient(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMessa
 }
 
 // OnBroadcastNetwork -
-func OnBroadcastNetwork(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMessage) {
+func OnBroadcastNetwork(g *Gossiper, simpleMsg *SimpleMessage) {
 
 	// Print to the console
 	g.Network.Mux.Lock()
@@ -69,7 +69,7 @@ func OnBroadcastNetwork(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMess
 	g.Network.Mux.Lock() // Lock the gossiper because we are accessing peers
 	for _, peer := range g.Network.Peers {
 		if sender != peer.RawAddr {
-			if _, err = channel.WriteToUDP(buf, peer.UdpAddr); err != nil {
+			if _, err = g.GossipChannel.WriteToUDP(buf, peer.UDPAddr); err != nil {
 				return
 			}
 		}

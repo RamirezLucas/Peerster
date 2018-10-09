@@ -19,12 +19,14 @@ type CustomError struct {
 
 // Gossiper - Represents a gossiper
 type Gossiper struct {
-	ClientAddr string                  // IP/Port on which the client talks (RO)
-	GossipAddr string                  // IP/Port on which to listen to other gossips (RO)
-	Name       string                  // Name of that gossiper (RO)
-	SimpleMode bool                    // Indicate whether the gossiper operated in simple broadcast mode (RO)
-	Network    GossipNetwork           // The gossip network (Shared)
-	Timeouts   StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared)
+	ClientAddr    string                  // IP/Port on which the client talks (RO)
+	GossipAddr    string                  // IP/Port on which to listen to other gossips (RO)
+	Name          string                  // Name of that gossiper (RO)
+	SimpleMode    bool                    // Indicate whether the gossiper operated in simple broadcast mode (RO)
+	ClientChannel *net.UDPConn            // UDP channel to communicate with the client (Shared, thread-safe)
+	GossipChannel *net.UDPConn            // UDP channel to communicate with the network (Shared, thread-safe)
+	Network       GossipNetwork           // The gossip network (Shared)
+	Timeouts      StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared)
 }
 
 // Client - Represents a gossiper
@@ -36,7 +38,7 @@ type Client struct {
 // Peer - Represents another peer
 type Peer struct {
 	RawAddr string       // An IP/Port pair <ip:port>
-	UdpAddr *net.UDPAddr // A corresponding UDP address
+	UDPAddr *net.UDPAddr // A corresponding UDP address
 }
 
 // NamedPeer - Represents a named peer as well as the list of messages received from him

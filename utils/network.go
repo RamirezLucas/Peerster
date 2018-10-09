@@ -8,15 +8,7 @@ import (
 
 // CompareUDPAddress - Compares 2 UDP addresses
 func CompareUDPAddress(a, b *net.UDPAddr) bool {
-	if a.Port == b.Port {
-		for i := 0; i < 4; i++ {
-			if a.IP[i] != b.IP[i] {
-				return false
-			}
-		}
-		return true
-	}
-	return false
+	return fmt.Sprintf("%s", a) == fmt.Sprintf("%s", b)
 }
 
 // CreatePeer - Creates a Peer
@@ -29,7 +21,7 @@ func (p *Peer) CreatePeer(addr string) error {
 	}
 
 	p.RawAddr = addr
-	p.UdpAddr = udpAddr
+	p.UDPAddr = udpAddr
 
 	return nil
 }
@@ -43,24 +35,26 @@ func (network *GossipNetwork) AddNamedPeer(name string) {
 }
 
 // AddMessageIfNext - Adds a message to the GossipNetwork given that we got all the preceding ones
-func (network *GossipNetwork) AddMessageIfNext(r *RumorMessage) bool {
+func (network *GossipNetwork) AddMessageIfNext(r *RumorMessage) {
 	for i, namedPeer := range network.History { // Find the named peer in the list
 		if namedPeer.Name == r.Origin { // Match !
 			if r.ID == network.VectorClock.Want[i].NextID { // Check the message order
 				namedPeer.Messages = append(namedPeer.Messages, r.Text) // Append the message to the list
 				network.VectorClock.Want[i].NextID++                    // Update the vector clock
-				return true
+				return
 			}
-			return false
+			return
 		}
 	}
 
-	// Could not find the named peer in the list: add it
-	network.AddNamedPeer(r.Origin)
-	networkSize := len(network.History) - 1
-	network.History[networkSize].Messages = append(network.History[networkSize].Messages, r.Text)
-	network.VectorClock.Want[networkSize].NextID++
-	return true
+	if r.ID == 1 {
+		// Could not find the named peer in the list: add it
+		network.AddNamedPeer(r.Origin)
+		networkSize := len(network.History)
+		network.History[networkSize-1].Messages = append(network.History[networkSize-1].Messages, r.Text)
+		network.VectorClock.Want[networkSize-1].NextID++
+	}
+
 }
 
 // GetMessage - Get a message stored in the GossipNetwork
@@ -116,7 +110,7 @@ func (network *GossipNetwork) IsLocalStatusComplete(status *StatusPacket) bool {
 			}
 		} else { // We don't know the peer
 			network.AddNamedPeer(distantPeer.Identifier)
-			return distantPeer.NextID > 1
+			return distantPeer.NextID <= 1
 		}
 	}
 	return true
@@ -135,14 +129,13 @@ func (status *StatusPacket) IsPeerInStatus(name string) int {
 // AddPeerIfAbsent - Add a peer to the list if it is absent from it
 func (network *GossipNetwork) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 	for _, peer := range network.Peers { // Iterate over the know peers
-		if CompareUDPAddress(peer.UdpAddr, newPeerAddr) { // Match !
+		if CompareUDPAddress(peer.UDPAddr, newPeerAddr) { // Match !
 			return
 		}
 	}
 
 	// We must add the peer to the list
-	newPeer := Peer{fmt.Sprintf("%s", newPeerAddr), newPeerAddr}
-	network.Peers = append(network.Peers, newPeer)
+	network.Peers = append(network.Peers, Peer{fmt.Sprintf("%s", newPeerAddr), newPeerAddr})
 }
 
 // GetRandomPeer - Get a random peer from a list, excluding one
@@ -156,7 +149,7 @@ func (network *GossipNetwork) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr
 	}
 
 	// Check that the excludeMe peer is not the only one in the list
-	if excludeMe != nil && nbPeers == 1 && CompareUDPAddress(excludeMe, network.Peers[0].UdpAddr) {
+	if excludeMe != nil && nbPeers == 1 && CompareUDPAddress(excludeMe, network.Peers[0].UDPAddr) {
 		return nil
 	}
 
@@ -164,7 +157,7 @@ func (network *GossipNetwork) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr
 	our pseudo-random generator goes) while preventing the selection of the
 	"excludeMe" peer */
 	for {
-		randomPeer := network.Peers[rand.Intn(nbPeers)].UdpAddr
+		randomPeer := network.Peers[rand.Intn(nbPeers)].UDPAddr
 		if excludeMe == nil || !CompareUDPAddress(excludeMe, randomPeer) {
 			return randomPeer
 		}

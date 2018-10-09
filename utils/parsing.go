@@ -8,6 +8,7 @@ import (
 	"strings"
 )
 
+// ParsePort -
 func ParsePort(s string) error {
 	if port, err := strconv.ParseInt(s, 10, 16); err != nil || port < 1024 || port > 65535 {
 		return &CustomError{"parsePort", "failed to parse PORT number"}
@@ -15,6 +16,7 @@ func ParsePort(s string) error {
 	return nil
 }
 
+// CheckIPPortPair -
 func CheckIPPortPair(s string) error {
 
 	slices := strings.Split(s, ":")
@@ -41,6 +43,7 @@ func CheckIPPortPair(s string) error {
 	return nil
 }
 
+// ParsePeers -
 func (network *GossipNetwork) ParsePeers(s string) error {
 
 	slices := strings.Split(s, ",")
@@ -61,6 +64,7 @@ func (network *GossipNetwork) ParsePeers(s string) error {
 	return nil
 }
 
+// ParseArgumentsGossiper -
 func (g *Gossiper) ParseArgumentsGossiper() error {
 
 	for _, arg := range os.Args[1:] {
@@ -126,6 +130,7 @@ func (g *Gossiper) ParseArgumentsGossiper() error {
 	return nil
 }
 
+// ParseArgumentsClient -
 func (c *Client) ParseArgumentsClient() error {
 	for _, arg := range os.Args[1:] {
 		switch {
