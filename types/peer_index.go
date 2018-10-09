@@ -15,7 +15,7 @@ type PeerIndex struct {
 
 // Peer - Represents a peer
 type Peer struct {
-	udpAddr *net.UDPAddr // The peer's UDP address
+	udpAddr net.UDPAddr // The peer's UDP address
 }
 
 // NewPeerIndex - Creates a new instance of PeerIndex
@@ -25,13 +25,6 @@ func NewPeerIndex() *PeerIndex {
 	return &peerIndex
 }
 
-// NewPeer - Creates a new instance of Peer
-func NewPeer(addr string) *Peer {
-	var peer Peer
-	peer.udpAddr, _ = net.ResolveUDPAddr("udp4", addr)
-	return &peer
-}
-
 // Broadcast - Send a packet to everyone, possible exluding one peer
 func (peerIndex *PeerIndex) Broadcast(channel *net.UDPConn, buf []byte, excludeMe string) {
 	peerIndex.mux.Lock()
@@ -39,7 +32,7 @@ func (peerIndex *PeerIndex) Broadcast(channel *net.UDPConn, buf []byte, excludeM
 
 	for addr, peer := range peerIndex.index {
 		if addr != excludeMe {
-			channel.WriteToUDP(buf, peer.udpAddr)
+			channel.WriteToUDP(buf, &peer.udpAddr)
 		}
 	}
 
@@ -52,7 +45,7 @@ func (peerIndex *PeerIndex) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 
 	addrStr := UDPAddressToString(newPeerAddr)
 	if _, ok := peerIndex.index[addrStr]; !ok { // We don't know this peer
-		peerIndex.index[addrStr] = &Peer{udpAddr: newPeerAddr}
+		peerIndex.index[addrStr] = &Peer{udpAddr: *newPeerAddr}
 	}
 }
 
@@ -69,48 +62,47 @@ func (peerIndex *PeerIndex) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr {
 		return nil
 	}
 
-	if excludeMe == nil {
+	// Temporary variables
+	tmp := make([]*Peer, nbPeers)
+	i := 0
+
+	if excludeMe != nil {
 
 		excludeStr := UDPAddressToString(excludeMe)
 
 		// Check that the excludeMe peer is not the only one in the list
 		if nbPeers == 1 {
-			var peer *Peer
-			var ok bool
-			if peer, ok = peerIndex.index[excludeStr]; ok {
+			if _, ok := peerIndex.index[excludeStr]; ok {
 				return nil
 			}
-			return peer.udpAddr
+			for _, peer := range peerIndex.index {
+				return &peer.udpAddr
+			}
+
 		}
 
-		// Pick a random peer in the index
-		randomIndex := rand.Intn(nbPeers - 1)
 		for addr, peer := range peerIndex.index {
-			if addr != excludeStr { // Never select the exludeMe peer
-				if randomIndex == 0 {
-					return peer.udpAddr
-				}
-				randomIndex--
+			if addr != excludeStr {
+				tmp[i] = peer
+				i++
 			}
 		}
 
-		// Should never get here
-		return nil
+		// Pick a random peer in the list
+		randomIndex := rand.Intn(nbPeers - 1)
+		return &tmp[randomIndex].udpAddr
 
 	}
 
 	// == Normal case ==
-	// Pick a random peer in the index
-	randomIndex := rand.Intn(nbPeers)
 	for _, peer := range peerIndex.index {
-		if randomIndex == 0 {
-			return peer.udpAddr
-		}
-		randomIndex--
+		tmp[i] = peer
+		i++
 	}
 
-	// Should never get here
-	return nil
+	// Pick a random peer in the list
+	randomIndex := rand.Intn(nbPeers)
+	return &tmp[randomIndex].udpAddr
 
 }
 
