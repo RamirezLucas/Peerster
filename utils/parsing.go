@@ -2,6 +2,7 @@ package utils
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -115,10 +116,10 @@ func (g *Gossiper) ParseArgumentsGossiper() error {
 	}
 
 	// Create default values for missing parameters
-	if g.ClientAddr != "" {
+	if g.ClientAddr == "" {
 		g.ClientAddr = "127.0.0.1:8080"
 	}
-	if g.GossipAddr != "" {
+	if g.GossipAddr == "" {
 		g.GossipAddr = "127.0.0.1:5000"
 	}
 
@@ -129,20 +130,26 @@ func (c *Client) ParseArgumentsClient() error {
 	for _, arg := range os.Args[1:] {
 		switch {
 		case strings.HasPrefix(arg, "-UIPort="):
-			if c.Addr != "" {
+			if c.Addr != nil {
 				return &CustomError{"parseArgumentsClient", "UIPort defined twice"}
 			}
 			err := ParsePort(arg[8:])
 			if err != nil {
 				return &CustomError{"parseArgumentsClient", "unable to parse UIPort"}
 			}
-			c.Addr = fmt.Sprintf("127.0.0.1:%s", arg[8:])
 
-		case strings.HasPrefix(arg, "-msg"):
+			// Resolve the address
+			udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%s", arg[8:]))
+			if err != nil {
+				return &CustomError{"CreatePeer", "cannot resolve UDP address"}
+			}
+			c.Addr = udpAddr
+
+		case strings.HasPrefix(arg, "-msg="):
 			if c.Msg != "" {
 				return &CustomError{"parseArgumentsClient", "msg defined twice"}
 			}
-			c.Msg = arg[4:]
+			c.Msg = arg[5:]
 		}
 	}
 
@@ -152,8 +159,12 @@ func (c *Client) ParseArgumentsClient() error {
 	}
 
 	// Create default values for missing parameters
-	if c.Addr != "" {
-		c.Addr = "127.0.0.1:8080"
+	if c.Addr == nil {
+		udpAddr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:8080")
+		if err != nil {
+			return &CustomError{"CreatePeer", "cannot resolve UDP address"}
+		}
+		c.Addr = udpAddr
 	}
 
 	return nil

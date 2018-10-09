@@ -1,9 +1,10 @@
 package main
 
 import (
+	"Peerster/utils"
 	"fmt"
 	"net"
-	"Peerster/utils"
+
 	"github.com/dedis/protobuf"
 )
 
@@ -28,7 +29,7 @@ func main() {
 	}
 
 	// Establish a UDP connection
-	udpAddr, err := net.ResolveUDPAddr("udp4", client.Addr)
+	udpAddr, err := net.ResolveUDPAddr("udp4", "localhost:0")
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -43,7 +44,7 @@ func main() {
 	defer udpConn.Close()
 
 	// Send to local gossiper
-	if _, err = udpConn.WriteToUDP(buf, udpAddr); err != nil {
+	if _, err = udpConn.WriteToUDP(buf, client.Addr); err != nil {
 		fmt.Println(err)
 		return
 	}

@@ -43,6 +43,14 @@ func OnBroadcastNetwork(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMess
 
 	// Print to the console
 	g.Network.Mux.Lock()
+
+	// Resolve the address
+	udpAddr, err := net.ResolveUDPAddr("udp4", simpleMsg.RelayPeerAddr)
+	if err != nil {
+		return
+	}
+	g.Network.AddPeerIfAbsent(udpAddr)
+
 	fmt.Printf("%s\n%s\n", SimpleMessageToString(simpleMsg), PeersToString(g.Network.Peers))
 	g.Network.Mux.Unlock()
 
@@ -59,24 +67,13 @@ func OnBroadcastNetwork(g *Gossiper, channel *net.UDPConn, simpleMsg *SimpleMess
 
 	// Send to everyone (except the sender)
 	g.Network.Mux.Lock() // Lock the gossiper because we are accessing peers
-	defer g.Network.Mux.Unlock()
-
-	isPeerKnown := false
 	for _, peer := range g.Network.Peers {
-		if sender == peer.RawAddr {
-			isPeerKnown = true
-		} else {
+		if sender != peer.RawAddr {
 			if _, err = channel.WriteToUDP(buf, peer.UdpAddr); err != nil {
 				return
 			}
 		}
 	}
-
-	if !isPeerKnown { // We need to add the sender to the peers list
-		var newPeer Peer
-		if err := newPeer.CreatePeer(sender); err != nil {
-			g.Network.Peers = append(g.Network.Peers, newPeer)
-		}
-	}
+	g.Network.Mux.Unlock()
 
 }

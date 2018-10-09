@@ -28,31 +28,51 @@ func OnSendRumor(g *Gossiper, rumor *RumorMessage, channel *net.UDPConn, target 
 	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
 	to forward us the StatusPacket response */
 	responseChan := make(chan StatusPacket)
+	hash := rand.Int()
 	g.Timeouts.Mux.Lock()
-	g.Timeouts.Responses = append(g.Timeouts.Responses, TimeoutHandler{target, responseChan, false})
+	g.Timeouts.Responses = append(g.Timeouts.Responses, TimeoutHandler{target, responseChan, hash, false})
 	g.Timeouts.Mux.Unlock()
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
 	var response *StatusPacket
-	stopWaiting := false
+	stop := false
 
 	// Wait for an answer or a timeout, whichever is first
-	for !stopWaiting {
+	for !stop {
 		select {
 		case <-timer.C: // Timeout expired
-			stopWaiting = true
+			stop = true
 		case r := <-responseChan:
 			response = &r
-			stopWaiting = true
+			stop = true
 		default:
+			// Avoid busy waiting
 			time.Sleep(100 * time.Millisecond)
 		}
 	}
 
 	// Stop the timer
 	timer.Stop()
-	// TODO: remove the timeout handler
+	g.Timeouts.Mux.Lock()
+
+	// Last chance to get the response status
+	select {
+	case r := <-responseChan:
+		response = &r
+	default:
+		// Do nothing
+	}
+
+	for i, t := range g.Timeouts.Responses {
+		if hash == t.Hash { // Found our timeout
+			// Delete our handler
+			len := len(g.Timeouts.Responses)
+			g.Timeouts.Responses[i] = g.Timeouts.Responses[len-1]
+			g.Timeouts.Responses = g.Timeouts.Responses[:len-1]
+		}
+	}
+	g.Timeouts.Mux.Unlock()
 
 	if response == nil { // The response did not arrive on time
 		if rand.Int()%2 == 0 { // Flip a coin

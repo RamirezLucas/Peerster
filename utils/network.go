@@ -115,7 +115,8 @@ func (network *GossipNetwork) IsLocalStatusComplete(status *StatusPacket) bool {
 				return false
 			}
 		} else { // We don't know the peer
-			return false
+			network.AddNamedPeer(distantPeer.Identifier)
+			return distantPeer.NextID > 1
 		}
 	}
 	return true

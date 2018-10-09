@@ -4,11 +4,17 @@ import "fmt"
 
 // PeersToString - Returns a textual representation of a []Peer
 func PeersToString(peers []Peer) string {
-	s := "PEERS"
+	s := "PEERS "
 	for _, peer := range peers {
-		s = s + fmt.Sprintf(" %s", peer.RawAddr)
+		s = s + fmt.Sprintf("%s,", peer.RawAddr)
 	}
-	return s
+	return s[:len(s)-1]
+}
+
+// GossiperToString -
+func GossiperToString(g *Gossiper) string {
+	return fmt.Sprintf("ClienAddr: %s\nGossipAddr: %s\nName: %s\nSimpleMode: %v\n",
+		g.ClientAddr, g.GossipAddr, g.Name, g.SimpleMode)
 }
 
 // SimpleMessageToString - Returns a textual representation of a SimpleMessage

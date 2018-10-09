@@ -6,7 +6,7 @@ import (
 )
 
 // BufSize - Size of the UDP buffer
-const BufSize = 1024
+const BufSize = 2048
 
 // TimeoutSec - Length of generic timeout
 const TimeoutSec = 1
@@ -29,8 +29,8 @@ type Gossiper struct {
 
 // Client - Represents a gossiper
 type Client struct {
-	Addr string // IP/Port on which to talk
-	Msg  string // Message to send
+	Addr *net.UDPAddr // Address on which to send
+	Msg  string       // Message to send
 }
 
 // Peer - Represents another peer
@@ -57,6 +57,7 @@ type GossipNetwork struct {
 type TimeoutHandler struct {
 	Addr *net.UDPAddr      // A peer's address
 	Com  chan StatusPacket // A channel to communicate the status answer between threads
+	Hash int               // A random number to identify the thread owning the timeout
 	Done bool              // Indicated whether a packet was already forwarded using this handler
 }
 
@@ -66,7 +67,7 @@ type StatusResponseForwarder struct {
 	Mux       sync.Mutex       // Mutex to manipulate the structure from different threads
 }
 
-// SimpleMessage - Represents a simple user message (from client to local gossiper)
+// SimpleMessage - Represents a simple message
 type SimpleMessage struct {
 	OriginalName  string // Name of original sender
 	RelayPeerAddr string // Address of last relayer
