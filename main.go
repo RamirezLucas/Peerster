@@ -14,6 +14,14 @@ import (
 	"github.com/dedis/protobuf"
 )
 
+func threadIDGenerator(chanID chan uint32) {
+	threadID := uint32(1)
+	for {
+		chanID <- threadID
+		threadID++
+	}
+}
+
 func openUDPChannel(s string) (*net.UDPConn, error) {
 
 	// Resolve the address
@@ -68,7 +76,7 @@ func antiEntropy(g *types.Gossiper) {
 	}
 }
 
-func udpDispatcherGossip(g *types.Gossiper) {
+func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 
 	// Create a buffer to store arriving data
 	buf := make([]byte, types.BufSize)
@@ -97,41 +105,26 @@ func udpDispatcherGossip(g *types.Gossiper) {
 			continue
 		}
 
-		isPacketHandled := false
+		// Select the right callback
+		switch {
+		case pkt.SimpleMsg != nil:
+			network.OnBroadcastNetwork(g, pkt.SimpleMsg)
+		case pkt.Rumor != nil:
+			go network.OnReceiveRumor(g, pkt.Rumor, sender, false, <-chanID)
+		case pkt.Status != nil:
 
-		// Timeout management
-		if pkt.Status != nil {
-
-			g.Timeouts.Mux.Lock()
-			for _, t := range g.Timeouts.Responses { // Attempt to find a handler for this response
-				if !t.Done && types.CompareUDPAddress(t.Addr, sender) { // Match !
-					t.Com <- *pkt.Status
-					t.Done = true
-					isPacketHandled = true
-					break
-				}
+			isPacketHandled := g.Timeouts.SearchAndForward(sender, pkt.Status)
+			if !isPacketHandled {
+				go network.OnReceiveStatus(g, pkt.Status, sender, <-chanID)
 			}
-			g.Timeouts.Mux.Unlock()
-		}
-
-		if !isPacketHandled {
-			// Select the right callback
-			switch {
-			case pkt.SimpleMsg != nil:
-				network.OnBroadcastNetwork(g, pkt.SimpleMsg)
-			case pkt.Rumor != nil:
-				go network.OnReceiveRumor(g, pkt.Rumor, sender, false)
-			case pkt.Status != nil:
-				go network.OnReceiveStatus(g, pkt.Status, sender)
-			default:
-				// Should never happen
-			}
+		default:
+			// Should never happen
 		}
 
 	}
 }
 
-func udpDispatcherClient(g *types.Gossiper) {
+func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 
 	// Create a buffer to store arriving data
 	buf := make([]byte, types.BufSize)
@@ -162,9 +155,10 @@ func udpDispatcherClient(g *types.Gossiper) {
 		if g.SimpleMode { // Simple mode
 			network.OnBroadcastClient(g, pkt.SimpleMsg)
 		} else {
+
 			// Convert the message to a RumorMessage
 			rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
-			go network.OnReceiveRumor(g, &rumor, sender, true)
+			go network.OnReceiveRumor(g, &rumor, sender, true, <-chanID)
 		}
 
 	}
@@ -196,12 +190,16 @@ func main() {
 	defer gossiper.ClientChannel.Close()
 	defer gossiper.GossipChannel.Close()
 
+	// Launch a thread giving thread IDs
+	chanID := make(chan uint32)
+	go threadIDGenerator(chanID)
+
 	/* Launch 2 threads for client-side and network-side communication and one thread
 	for the Anti-Entropy protocol */
-	go udpDispatcherClient(gossiper)
-	go udpDispatcherGossip(gossiper)
+	go udpDispatcherClient(gossiper, chanID)
+	go udpDispatcherGossip(gossiper, chanID)
 	if !gossiper.SimpleMode {
-		go antiEntropy(gossiper)
+		//go antiEntropy(gossiper)
 	}
 
 	// Kill all goroutines before exiting

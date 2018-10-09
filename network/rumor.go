@@ -11,8 +11,8 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-// OnSendRumor -
-func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAddr) error {
+// OnSendRumor - Sends a rumor
+func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAddr, threadID uint32) error {
 
 	// Create the packet
 	pkt := types.GossipPacket{Rumor: rumor}
@@ -24,16 +24,15 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 	// Send the packet
 	fmt.Printf("MONGERING with %s\n", fmt.Sprintf("%s", target))
 	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
+		g.Timeouts.DeleteTimeoutHandler(threadID)
 		return &fail.CustomError{Fun: "OnSendRumor", Desc: "failed to send RumorMessage"}
 	}
 
+	// TODO: chance to miss the packet here, although unlikely
+
 	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
 	to forward us the StatusPacket response */
-	responseChan := make(chan types.StatusPacket)
-	hash := rand.Int()
-	g.Timeouts.Mux.Lock()
-	g.Timeouts.Responses = append(g.Timeouts.Responses, types.TimeoutHandler{Addr: target, Com: responseChan, Hash: hash, Done: false})
-	g.Timeouts.Mux.Unlock()
+	g.Timeouts.AddTimeoutHandler(threadID, target)
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
@@ -45,52 +44,49 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 		select {
 		case <-timer.C: // Timeout expired
 			stop = true
-		case r := <-responseChan:
-			response = &r
-			stop = true
+			// default:
+			// 	if response = g.Timeouts.LookForData(threadID); response != nil { // Response received
+			// 		stop = true
+			// 	} else { // Nothing
+			// 		// time.Sleep(100 * time.Millisecond)
+			// 	}
 		}
 	}
 
 	// Stop the timer
 	timer.Stop()
-	g.Timeouts.Mux.Lock()
 
-	// Last chance to get the response status
-	select {
-	case r := <-responseChan:
-		response = &r
-	default:
-		// Do nothing
+	if response == nil {
+		// Last chance to pickup the value before deletion
+		response = g.Timeouts.DeleteTimeoutHandler(threadID)
+	} else {
+		// Void the return value
+		g.Timeouts.DeleteTimeoutHandler(threadID)
 	}
-
-	for i, t := range g.Timeouts.Responses {
-		if hash == t.Hash { // Found our timeout
-			// Delete our handler
-			len := len(g.Timeouts.Responses)
-			g.Timeouts.Responses[i] = g.Timeouts.Responses[len-1]
-			g.Timeouts.Responses = g.Timeouts.Responses[:len-1]
-		}
-	}
-	g.Timeouts.Mux.Unlock()
 
 	if response == nil { // The response did not arrive on time
+
 		if rand.Int()%2 == 0 { // Flip a coin
 			return nil // Stop the thread
 		}
+
 		// Spread the rumor to someone else
-		newTarget := g.PeerIndex.GetRandomPeer(target)
-		fmt.Printf("FLIPPED COIN sending rumor to %s\n", fmt.Sprintf("%s", newTarget))
-		OnSendRumor(g, rumor, newTarget)
+
+		if newTarget := g.PeerIndex.GetRandomPeer(target); newTarget != nil {
+			fmt.Printf("FLIPPED COIN sending rumor to %s\n", fmt.Sprintf("%s", newTarget))
+			OnSendRumor(g, rumor, newTarget, threadID)
+		}
+
 	} else { // We received a status response
-		OnReceiveStatus(g, response, target)
+		OnReceiveStatus(g, response, target, threadID)
 	}
 
 	return nil
 
 }
 
-// OnReceiveRumor -
-func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, isClientSide bool) {
+// OnReceiveRumor - Called when a rumor is received
+func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, isClientSide bool, threadID uint32) {
 
 	if isClientSide {
 		// Create the message name and ID
@@ -130,5 +126,5 @@ func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UD
 	}
 
 	// Propagate rumor
-	OnSendRumor(g, rumor, target)
+	OnSendRumor(g, rumor, target, threadID)
 }

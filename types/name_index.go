@@ -2,6 +2,7 @@ package types
 
 import (
 	"fmt"
+	"os"
 	"sync"
 )
 
@@ -39,6 +40,7 @@ func (nameIndex *NameIndex) AddName(name string) {
 		nameIndex.index[name] = NewMessages()
 	} else {
 		fmt.Printf("ERROR: Trying to add existing name %s to the name index", name)
+		os.Exit(1)
 	}
 }
 

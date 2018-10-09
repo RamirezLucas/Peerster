@@ -9,7 +9,7 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-// OnSendStatus -
+// OnSendStatus - Sends a status
 func OnSendStatus(vectorClock *types.StatusPacket, channel *net.UDPConn, target *net.UDPAddr) error {
 
 	// Create the packet
@@ -26,8 +26,8 @@ func OnSendStatus(vectorClock *types.StatusPacket, channel *net.UDPConn, target 
 	return nil
 }
 
-// OnReceiveStatus -
-func OnReceiveStatus(g *types.Gossiper, status *types.StatusPacket, sender *net.UDPAddr) {
+// OnReceiveStatus - Called when a status is received
+func OnReceiveStatus(g *types.Gossiper, status *types.StatusPacket, sender *net.UDPAddr, threadID uint32) {
 
 	// Attempt to add the sending peer to the list of neighbors
 	g.PeerIndex.AddPeerIfAbsent(sender)
@@ -46,7 +46,7 @@ func OnReceiveStatus(g *types.Gossiper, status *types.StatusPacket, sender *net.
 			OnSendStatus(vectorClock, g.GossipChannel, sender)
 		}
 	} else { // We must propagate a rumor to the sender
-		OnSendRumor(g, rumorToPropagate, sender)
+		OnSendRumor(g, rumorToPropagate, sender, threadID)
 	}
 
 }
