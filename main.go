@@ -199,7 +199,7 @@ func main() {
 	go udpDispatcherClient(gossiper, chanID)
 	go udpDispatcherGossip(gossiper, chanID)
 	if !gossiper.SimpleMode {
-		//go antiEntropy(gossiper)
+		go antiEntropy(gossiper)
 	}
 
 	// Kill all goroutines before exiting
