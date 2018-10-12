@@ -36,7 +36,6 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
-	var response *types.StatusPacket
 
 	// Wait for the timeout
 	select {
@@ -46,14 +45,7 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 	// Stop the timer
 	timer.Stop()
 
-	if response == nil {
-		// Last chance to pickup the value before deletion
-		response = g.Timeouts.DeleteTimeoutHandler(threadID)
-	} else {
-		// Void the return value
-		g.Timeouts.DeleteTimeoutHandler(threadID)
-	}
-
+	response := g.Timeouts.DeleteTimeoutHandler(threadID)
 	if response == nil { // The response did not arrive on time
 
 		if rand.Int()%2 == 0 { // Flip a coin
