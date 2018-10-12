@@ -100,6 +100,8 @@ func (forwarder *StatusResponseForwarder) SearchAndForward(sender *net.UDPAddr, 
 
 // LookForData - Look for data on the channel dedicated to a particular thread
 func (forwarder *StatusResponseForwarder) LookForData(threadID uint32) *StatusPacket {
+	forwarder.mux.Lock()
+	defer forwarder.mux.Unlock()
 
 	// TODO: Maybe locking is needed here
 	if handler, ok := forwarder.responses[threadID]; ok {

@@ -28,7 +28,7 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 		return &fail.CustomError{Fun: "OnSendRumor", Desc: "failed to send RumorMessage"}
 	}
 
-	// TODO: chance to miss the packet here, although unlikely
+	// NOTE: chance to miss the packet here, although unlikely
 
 	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
 	to forward us the StatusPacket response */
@@ -37,20 +37,10 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
 	var response *types.StatusPacket
-	stop := false
 
-	// Wait for an answer or a timeout, whichever is first
-	for !stop {
-		select {
-		case <-timer.C: // Timeout expired
-			stop = true
-			// default:
-			// 	if response = g.Timeouts.LookForData(threadID); response != nil { // Response received
-			// 		stop = true
-			// 	} else { // Nothing
-			// 		// time.Sleep(100 * time.Millisecond)
-			// 	}
-		}
+	// Wait for the timeout
+	select {
+	case <-timer.C: // Timeout expired
 	}
 
 	// Stop the timer
