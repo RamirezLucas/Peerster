@@ -12,7 +12,7 @@ import (
 
 // parsePort - Checks that a port number is correctly formed
 func parsePort(s string) error {
-	if port, err := strconv.ParseInt(s, 10, 16); err != nil || port < 1024 || port > 65535 {
+	if port, err := strconv.ParseInt(s, 10, 32); err != nil || port < 1024 || port > 65535 {
 		return &fail.CustomError{Fun: "parsePort", Desc: "failed to parse PORT number"}
 	}
 	return nil
@@ -38,7 +38,8 @@ func checkIPPortPair(s string) error {
 	}
 
 	for _, x := range slicesIP {
-		if n, err := strconv.ParseInt(x, 10, 8); err != nil || n > 255 || n < 0 {
+		if n, err := strconv.ParseInt(x, 10, 32); err != nil || n > 255 || n < 0 {
+			fmt.Println(n)
 			return &fail.CustomError{Fun: "checkIPPortPair", Desc: "IP component not in range [0, 256)"}
 		}
 	}

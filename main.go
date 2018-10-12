@@ -62,7 +62,7 @@ func isPacketValid(pkt *types.GossipPacket, isClientSide bool, isSimpleMode bool
 func antiEntropy(g *types.Gossiper) {
 
 	// Create a timeout timer
-	timer := time.NewTicker(4 * time.Second)
+	timer := time.NewTicker(time.Second)
 	for {
 		select {
 		case <-timer.C:
