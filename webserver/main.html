@@ -4,50 +4,60 @@
         <link rel="stylesheet" type="text/css" href="style.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
     </head>
+    
     <body>
 
-    <div class="header"></div>
-    <div class="container">
-        <div class="peers_list_container">
-            <h2>Peers List</h2>
-            <p>&lt 192.168.001.001:64000 &gt</p>
-            <p>Hello. How are you today?</p>
-        </div>
-        <div class="chat_container">
-            <div class="message_box">
-                <h3>Lucas</h3>
-                <p>Hello. How are you today?</p>
+        <div class="container">
+            <div class="chat">
+
+                <h2>MESSAGES (speaking as JacquieLaFrite)</h2>
+
+                <div class="message_box">
+                    <span style="font-weight:bold">Lucas</span>
+                    <p>Hello. How are you today?</p>
+                </div>
+                
+                <div class="message_box darker">
+                    <span style="font-weight:bold">Random Bitch</span>
+                    <p>Hey! I'm fine. Thanks for asking!</p>
+                </div>
             </div>
-            <div class="message_box darker">
-                <h3>Random Bitch</h3>
-                <p>Hey! I'm fine. Thanks for asking!</p>
+            <div class="peers">
+
+                <h2>PEERS (&lt IP:PORT &gt)</h2>
+
+                <div class="peer_box">
+                    <span>IP:   <b>192.168.0.1</b></span><br>
+                    <span>Port: <em>5000</em></span>
+                </div>
+                
+        
+                </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="header"></div>
+
+        <div class="container">
+            <div class="input_message">
+                <input type="text" name="new_msg" placeholder="Enter new message"><br>
+            </div>  
+            <div class="button right_aligned">
+                <span>Send Message</span>
             </div>
+            <div class="clear"></div>
         </div>
-        <div class="status_container">
-            <h2>Current Status</h2>
+
+
+        <div class="container">
+            <div class="input_message">
+                <input type="text" name="new_peer" placeholder="Enter a new peer &lt IP:PORT &gt"><br>
+            </div>  
+            <div class="button right_aligned">
+                <span>Add Peer</span>
+            </div>
+            <div class="clear"></div>
         </div>
-        <div class="clear"></div>
-    </div>
 
-    <div class="header"></div>
-    <div class="container">
-        <div class="input_peer_container">
-            <input type="text" style="font-size: 16pt" placeholder="&lt ip:port &gt of new peer"></textarea>
-        </div>
-        <div class="input_message_container">
-            <!-- Add textarea -->
-        </div>
-    </div>
-
-    <button class="button left_place">
-        <span>Add a new peer</span>
-    </button>
-
-    <button class="button right_place">
-            <span>Send Message</span>
-    </button>
-
-    
-
-
+    </body>
 </html>
