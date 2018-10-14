@@ -36,20 +36,22 @@ func (buffer *PeerBuffer) AddServerPeer(ip string, port int) {
 }
 
 // GetDataAndEmpty - Empty the buffer and returns all its data as a byte slice
-func (buffer *PeerBuffer) GetDataAndEmpty() []byte {
+func (buffer *PeerBuffer) GetDataAndEmpty() *[]byte {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
 
+	data := []byte("{}")
+
 	// Check if the peer buffer isn't empty
 	if buffer.peers == nil || len(buffer.peers) == 0 {
-		return []byte("{}")
+		return &data
 	}
 
 	// Collect last messages
-	data, _ := json.Marshal(map[string][]ServerPeer{
+	data, _ = json.Marshal(map[string][]ServerPeer{
 		"peers": buffer.peers,
 	})
 	buffer.peers = nil
 
-	return data
+	return &data
 }

@@ -41,21 +41,23 @@ func (buffer *MessageBuffer) AddServerMessage(name, msg string) {
 }
 
 // GetDataAndEmpty - Empty the buffer and returns all its data as a byte slice
-func (buffer *MessageBuffer) GetDataAndEmpty() []byte {
+func (buffer *MessageBuffer) GetDataAndEmpty() *[]byte {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
 
+	data := []byte("{}")
+
 	// Check if the peer buffer isn't empty
 	if buffer.messages == nil || len(buffer.messages) == 0 {
-		return []byte("{}")
+		return &data
 	}
 
 	// Collect last messages
-	data, _ := json.Marshal(map[string][]ServerMessage{
+	data, _ = json.Marshal(map[string][]ServerMessage{
 		"messages": buffer.messages,
 	})
 	buffer.messages = nil
 
-	return data
+	return &data
 
 }

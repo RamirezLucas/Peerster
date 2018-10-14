@@ -11,6 +11,10 @@ For example, the following commands launch a gossiper that can only use the CL c
 On the other hand, the following command launches a gossiper that can use both the CL client on port `3000` and the GUI on port `8080`:  
 `./Peerster -UIPort=3000 -gossipAddr=127.0.0.1:2000 -name=Alice`  
 
+For testing purposes I also created a new flag `-GUIPort` (default value `8080`) that allows to launch the server on an arbitrary port.  
+The following command launches a gossiper that can use both the CL client on port `8080` and the GUI on port `8090`:  
+`./Peerster -UIPort=8080 -GUIPort=8090 -gossipAddr=127.0.0.1:2000 -name=Alice`  
+
 --- 
 
 ## Notes on the GUI (webserver)

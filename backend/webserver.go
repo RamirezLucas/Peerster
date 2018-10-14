@@ -41,7 +41,7 @@ func Webserver(g *types.Gossiper, chanID chan uint32) {
 
 	srv := &http.Server{
 		Handler: r,
-		Addr:    "127.0.0.1:8080",
+		Addr:    "127.0.0.1:" + g.ServerPort,
 	}
 
 	// Launch the server
@@ -85,7 +85,7 @@ func getMessageHandler(w http.ResponseWriter, r *http.Request) {
 	// Send JSON data
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	w.Write(*data)
 
 }
 
@@ -129,7 +129,7 @@ func getNodeHandler(w http.ResponseWriter, r *http.Request) {
 	// Send JSON data
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
-	w.Write(data)
+	w.Write(*data)
 
 }
 

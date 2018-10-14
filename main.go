@@ -208,8 +208,8 @@ func main() {
 	// Launch a thread for the client dispatcher
 	go udpDispatcherClient(gossiper, chanID)
 
-	// Launch the webserver
-	if strings.Split(gossiper.ClientAddr, ":")[1] != "8080" {
+	// Launch the webserver if the ports do not clash
+	if strings.Split(gossiper.ClientAddr, ":")[1] != gossiper.ServerPort {
 		go backend.Webserver(gossiper, chanID)
 	}
 

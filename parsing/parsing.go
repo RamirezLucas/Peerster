@@ -70,7 +70,7 @@ func parsePeers(peerIndex *types.PeerIndex, s string) error {
 // ParseArgumentsGossiper - Parses the arguments for the gossiper
 func ParseArgumentsGossiper(g *types.Gossiper) error {
 
-	var uiPortDone, gossipAddrDone, nameDone, peersDone bool
+	var uiPortDone, guiPortDone, gossipAddrDone, nameDone, peersDone bool
 
 	for _, arg := range os.Args[1:] {
 		switch {
@@ -84,6 +84,16 @@ func ParseArgumentsGossiper(g *types.Gossiper) error {
 			}
 			g.ClientAddr = fmt.Sprintf("127.0.0.1:%s", arg[8:])
 			uiPortDone = true
+		case strings.HasPrefix(arg, "-GUIPort="):
+			if guiPortDone {
+				return &fail.CustomError{Fun: "ParseArgumentsGossiper", Desc: "GUIPort defined twice"}
+			}
+			err := parsePort(arg[9:])
+			if err != nil {
+				return &fail.CustomError{Fun: "ParseArgumentsGossiper", Desc: "unable to parse GUIPort"}
+			}
+			g.ServerPort = arg[9:]
+			guiPortDone = true
 		case strings.HasPrefix(arg, "-gossipAddr="):
 			if gossipAddrDone {
 				return &fail.CustomError{Fun: "ParseArgumentsGossiper", Desc: "gossipAddr defined twice"}
@@ -127,6 +137,9 @@ func ParseArgumentsGossiper(g *types.Gossiper) error {
 	// Create default values for missing parameters
 	if !uiPortDone {
 		g.ClientAddr = "127.0.0.1:8080"
+	}
+	if !guiPortDone {
+		g.ServerPort = "8080"
 	}
 	if !gossipAddrDone {
 		g.GossipAddr = "127.0.0.1:5000"
