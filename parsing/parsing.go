@@ -52,6 +52,10 @@ func parsePeers(peerIndex *types.PeerIndex, s string) error {
 	slices := strings.Split(s, ",")
 	for _, rawAddr := range slices {
 
+		if rawAddr == "" {
+			return nil
+		}
+
 		// Add the peer
 		if udpAddr, err := net.ResolveUDPAddr("udp4", rawAddr); err == nil {
 			peerIndex.AddPeerIfAbsent(udpAddr)
