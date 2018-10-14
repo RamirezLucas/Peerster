@@ -2,6 +2,7 @@ package types
 
 import (
 	"encoding/json"
+	"strings"
 	"sync"
 )
 
@@ -31,6 +32,10 @@ func NewMessageBuffer() *MessageBuffer {
 func (buffer *MessageBuffer) AddServerMessage(name, msg string) {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
+
+	// Prevent Javascript injection
+	msg = strings.Replace(msg, "<", " &lt ", -1)
+	msg = strings.Replace(msg, ">", " &gt ", -1)
 
 	buffer.messages = append(buffer.messages, ServerMessage{Name: name, Msg: msg})
 }
