@@ -149,3 +149,24 @@ func (nameIndex *NameIndex) GetVectorClock() *StatusPacket {
 
 	return &status
 }
+
+// GetEverything - Returns everything that was received this far
+func (nameIndex *NameIndex) GetEverything() *[]byte {
+
+	buffer := NewMessageBuffer()
+
+	// Retrieve everything
+	nameIndex.mux.Lock()
+	for name, messages := range nameIndex.index {
+		for _, m := range messages.list {
+			buffer.messages = append(buffer.messages, ServerMessage{Name: name, Msg: m})
+		}
+	}
+
+	// Empty the "normal" buffer (we already have everything in the local one)
+	BufferMessages.EmptyBuffer()
+
+	nameIndex.mux.Unlock()
+
+	return buffer.GetDataAndEmpty()
+}

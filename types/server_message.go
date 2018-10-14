@@ -28,6 +28,13 @@ func NewMessageBuffer() *MessageBuffer {
 	return &buffer
 }
 
+// EmptyBuffer - Empty the buffer
+func (buffer *MessageBuffer) EmptyBuffer() {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+	buffer.messages = nil
+}
+
 // AddServerMessage - Adds a message to the buffer
 func (buffer *MessageBuffer) AddServerMessage(name, msg string) {
 	buffer.mux.Lock()

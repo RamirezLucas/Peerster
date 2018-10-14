@@ -37,16 +37,15 @@ function sendNewPeer() {
 }
 
 function refresh() {
-    refreshMessages()
-    refreshPeers()
+    refreshMessages("/message")
+    refreshPeers("/node")
     setTimeout(refresh, 3000);
 }
 
-function refreshMessages() {
+function refreshMessages(request_path) {
 
     var xhr = new XMLHttpRequest();
-    var url = "/message"
-    xhr.open("GET", url, true);
+    xhr.open("GET", request_path, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
@@ -82,11 +81,10 @@ function refreshMessages() {
 
 }
 
-function refreshPeers() {
+function refreshPeers(request_path) {
 
     var xhr = new XMLHttpRequest();
-    var url = "/node"
-    xhr.open("GET", url, true);
+    xhr.open("GET", request_path, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
@@ -101,7 +99,7 @@ function refreshPeers() {
                         div.className = "peer_box";
                         div.innerHTML = 
                             ' <span>IP:   <b>' + peer.IP + '</b></span><br>\
-                            <span>Port: <em>' + String(peer.Port) + '</em></span>';
+                            <span>Port: <em>' + peer.Port + '</em></span>';
 
                         // Append new element to list
                         document.getElementById('peers').appendChild(div);
@@ -140,6 +138,10 @@ var messageID = 0;
 
 // Get our name
 sayMyName()
+
+// Get the current state
+refreshMessages("/in_message")
+refreshPeers("/in_node")
 
 // Initial call to refresh the page
 setTimeout(refresh, 3000);

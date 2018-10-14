@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
-	"strconv"
 	"strings"
 	"sync"
 )
@@ -57,9 +56,7 @@ func (peerIndex *PeerIndex) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 
 		// Add new peer to server buffer
 		slices := strings.Split(addrStr, ":")
-		if port, err := strconv.ParseInt(slices[1], 10, 32); err == nil {
-			BufferPeers.AddServerPeer(slices[0], int(port))
-		}
+		BufferPeers.AddServerPeer(slices[0], slices[1])
 	}
 }
 
@@ -130,4 +127,24 @@ func (peerIndex *PeerIndex) PeersToString() string {
 		s = s + fmt.Sprintf("%s,", addr)
 	}
 	return s[:len(s)-1]
+}
+
+// GetEverything - Returns everything that we know this far
+func (peerIndex *PeerIndex) GetEverything() *[]byte {
+
+	buffer := NewPeerBuffer()
+
+	// Retrieve everything
+	peerIndex.mux.Lock()
+	for rawAddr := range peerIndex.index {
+		slices := strings.Split(rawAddr, ":")
+		buffer.peers = append(buffer.peers, ServerPeer{IP: slices[0], Port: slices[1]})
+	}
+
+	// Empty the "normal" buffer (we already have everything in the local one)
+	BufferPeers.EmptyBuffer()
+
+	peerIndex.mux.Unlock()
+
+	return buffer.GetDataAndEmpty()
 }

@@ -14,7 +14,7 @@ type PeerBuffer struct {
 // ServerPeer - A peer for the frontend
 type ServerPeer struct {
 	IP   string // Peer's IP
-	Port int    // Peer's port
+	Port string // Peer's port
 }
 
 // BufferPeers - A buffer of peers
@@ -27,8 +27,15 @@ func NewPeerBuffer() *PeerBuffer {
 	return &buffer
 }
 
+// EmptyBuffer - Empty the buffer
+func (buffer *PeerBuffer) EmptyBuffer() {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+	buffer.peers = nil
+}
+
 // AddServerPeer - Adds a peer to the buffer
-func (buffer *PeerBuffer) AddServerPeer(ip string, port int) {
+func (buffer *PeerBuffer) AddServerPeer(ip, port string) {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
 
