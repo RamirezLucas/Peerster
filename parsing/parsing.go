@@ -110,8 +110,6 @@ func ParseArgumentsGossiper(g *types.Gossiper) error {
 			peersDone = true
 		case strings.HasPrefix(arg, "-simple"):
 			g.SimpleMode = true
-		case strings.HasPrefix(arg, "-webserver"):
-			g.WebserverMode = true
 		default:
 			return &fail.CustomError{Fun: "ParseArgumentsGossiper", Desc: "unknown argument"}
 		}

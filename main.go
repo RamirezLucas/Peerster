@@ -10,6 +10,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"strings"
 	"time"
 
 	"github.com/dedis/protobuf"
@@ -198,10 +199,11 @@ func main() {
 	go udpDispatcherGossip(gossiper, chanID)
 
 	// Launch a thread for the client dispatcher
-	if gossiper.WebserverMode {
+	go udpDispatcherClient(gossiper, chanID)
+
+	// Launch the webserver
+	if strings.Split(gossiper.ClientAddr, ":")[1] != "8080" {
 		go backend.Webserver(gossiper, chanID)
-	} else {
-		go udpDispatcherClient(gossiper, chanID)
 	}
 
 	// Anti Entropy

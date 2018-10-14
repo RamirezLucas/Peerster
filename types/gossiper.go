@@ -17,7 +17,6 @@ type Gossiper struct {
 	GossipAddr    string                   // IP/Port on which to listen to other gossips (RO)
 	Name          string                   // Name of that gossiper (RO)
 	SimpleMode    bool                     // Indicates whether the gossiper operates in simple broadcast mode (RO)
-	WebserverMode bool                     // Indicates whether the gossiper operates in command line mode (RO)
 	ClientChannel *net.UDPConn             // UDP channel to communicate with the client (Shared, thread-safe)
 	GossipChannel *net.UDPConn             // UDP channel to communicate with the network (Shared, thread-safe)
 	NameIndex     *NameIndex               // A dictionnary between peer names and received messages (Shared, thread-safe)
