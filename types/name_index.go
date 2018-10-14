@@ -159,7 +159,7 @@ func (nameIndex *NameIndex) GetEverything() *[]byte {
 	nameIndex.mux.Lock()
 	for name, messages := range nameIndex.index {
 		for _, m := range messages.list {
-			buffer.messages = append(buffer.messages, ServerMessage{Name: name, Msg: m})
+			buffer.AddServerMessage(name, m)
 		}
 	}
 
