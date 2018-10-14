@@ -46,6 +46,12 @@ func (peerIndex *PeerIndex) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 	defer peerIndex.mux.Unlock()
 
 	addrStr := UDPAddressToString(newPeerAddr)
+
+	// Prevents the client from talking on the network port
+	if addrStr == ":0" {
+		return
+	}
+
 	if _, ok := peerIndex.index[addrStr]; !ok { // We don't know this peer
 		peerIndex.index[addrStr] = &Peer{udpAddr: *newPeerAddr}
 

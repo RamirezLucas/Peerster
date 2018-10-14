@@ -110,6 +110,13 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 		// Select the right callback
 		switch {
 		case pkt.SimpleMsg != nil:
+
+			// Make sure the client isn't talking on the network port
+			if pkt.SimpleMsg.RelayPeerAddr == "" {
+				// Error: ignore the packet
+				continue
+			}
+
 			network.OnBroadcastNetwork(g, pkt.SimpleMsg)
 		case pkt.Rumor != nil:
 			go network.OnReceiveRumor(g, pkt.Rumor, sender, false, <-chanID)
