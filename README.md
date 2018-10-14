@@ -17,14 +17,18 @@ The following command launches a gossiper that can use both the CL client on por
 
 --- 
 
-## Notes on the GUI (webserver)
+## Webserver Implementation
 
 Requests handlers:  
 
-    * POST request to /message: send a message
-    * POST request to /node: add a peer
-    * GET request to  /message: retrieve all non-displayed messages (polls every 3 seconds)
-    * GET request to  /node: retrieve all non-displayed peers (polls every 3 seconds)
-    * GET request to  /id: get the gossiper's name (displayed on top on chat window)
+    * POST request to /message:    send a message
+    * POST request to /node:       add a peer
+    * GET request to  /message:    retrieve all non-displayed messages (polls every 3 seconds)
+    * GET request to  /node:       retrieve all non-displayed peers (polls every 3 seconds)
+    * GET request to  /id:         get the gossiper's name (displayed on top on chat window)
+
+    * GET request to  /in_message: retrieve all messages (used once when the page loads)
+    * GET request to  /in_node:    retrieve all peers (used once when the page loads)
+
 
 The implementation doesn't use `JQuery`, only standard `Javascript`.
