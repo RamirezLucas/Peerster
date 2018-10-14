@@ -61,12 +61,14 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) {
 	if messages, ok := nameIndex.index[rumor.Origin]; ok { // We know this name
 		if uint32(len(messages.list))+1 == rumor.ID { // Ensure message ordering
 			messages.list = append(messages.list, rumor.Text)
+			BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
 		}
 	} else { // We don't know this name
 		if rumor.ID == 1 { // Must be the first message
 			nameIndex.AddNameUnsafe(rumor.Origin)
 			messages := nameIndex.index[rumor.Origin]
 			messages.list = append(messages.list, rumor.Text)
+			BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
 		}
 	}
 }

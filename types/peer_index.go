@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"strconv"
+	"strings"
 	"sync"
 )
 
@@ -46,6 +48,12 @@ func (peerIndex *PeerIndex) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 	addrStr := UDPAddressToString(newPeerAddr)
 	if _, ok := peerIndex.index[addrStr]; !ok { // We don't know this peer
 		peerIndex.index[addrStr] = &Peer{udpAddr: *newPeerAddr}
+
+		// Add new peer to server buffer
+		slices := strings.Split(addrStr, ":")
+		if port, err := strconv.ParseInt(slices[1], 10, 32); err == nil {
+			BufferPeers.AddServerPeer(slices[0], int(port))
+		}
 	}
 }
 

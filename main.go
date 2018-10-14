@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Peerster/backend"
 	"Peerster/fail"
 	"Peerster/network"
 	"Peerster/parsing"
@@ -155,7 +156,6 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 		if g.SimpleMode { // Simple mode
 			network.OnBroadcastClient(g, pkt.SimpleMsg)
 		} else {
-
 			// Convert the message to a RumorMessage
 			rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
 			go network.OnReceiveRumor(g, &rumor, sender, true, <-chanID)
@@ -194,10 +194,17 @@ func main() {
 	chanID := make(chan uint32)
 	go threadIDGenerator(chanID)
 
-	/* Launch 2 threads for client-side and network-side communication and one thread
-	for the Anti-Entropy protocol */
-	go udpDispatcherClient(gossiper, chanID)
+	// Launch a thread for the gossiper dispatcher
 	go udpDispatcherGossip(gossiper, chanID)
+
+	// Launch a thread for the client dispatcher
+	if gossiper.WebserverMode {
+		go backend.Webserver(gossiper, chanID)
+	} else {
+		go udpDispatcherClient(gossiper, chanID)
+	}
+
+	// Anti Entropy
 	if !gossiper.SimpleMode {
 		go antiEntropy(gossiper)
 	}

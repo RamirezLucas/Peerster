@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="text/javascript" src="scripts.js"></script>
+    </head>
+    
+    <body>
+
+        <div class="container">
+            <div id="chat">
+                <h2 id="myID">MESSAGES</h2>
+            </div>
+            <div id="peers">
+                <h2>PEERS</h2>        
+                </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="header"></div>
+
+        <div class="container">
+            <div class="input_message">
+                <input type="text" id="new_msg" placeholder="Enter a new message"><br>
+            </div>  
+            <button class="button right_aligned" onclick="sendNewMessage()">
+                Send Message
+            </button>
+            <div class="clear"></div>
+        </div>
+
+        <div class="header"></div>
+
+        <div class="container">
+            <div class="input_message">
+                <input type="text" id="new_peer" placeholder="Enter a new peer &lt IP:PORT &gt"><br>
+            </div>  
+            <button class="button right_aligned" onclick="sendNewPeer()">
+                Add New Peer
+            </button>
+            <div class="clear"></div>
+        </div>
+
+    </body>
+</html>
