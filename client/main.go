@@ -12,7 +12,7 @@ import (
 func main() {
 
 	// Initialize the client
-	client, err := parsing.ParseArgumentsClient(&client)
+	client, err := parsing.ParseArgumentsClient()
 	if err != nil {
 		fmt.Println(err)
 		return
