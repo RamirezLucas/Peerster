@@ -70,10 +70,13 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 // OnReceiveRumor - Called when a rumor is received
 func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, isClientSide bool, threadID uint32) {
 
+	// Is the message a RouteRumor ?
+	isRouteRumor := (rumor.Text == "")
+
 	if isClientSide {
 		// Create the message name and ID
-		rumor.Origin = g.Name
-		rumor.ID = g.NameIndex.GetLastMessageID(g.Name)
+		rumor.Origin = g.Args.Name
+		rumor.ID = g.NameIndex.GetLastMessageID(g.Args.Name)
 	} else {
 		// Attempt to add the sending peer to the list of neighbors
 		g.PeerIndex.AddPeerIfAbsent(sender)
@@ -83,13 +86,15 @@ func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UD
 	if isClientSide {
 		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, g.PeerIndex.PeersToString())
 	} else {
-		fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
+		if !isRouteRumor {
+			fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
+		}
 	}
 
 	// Store the new message
 	if g.NameIndex.AddMessageIfNext(rumor) { // TODO: unorder but higher ?
-		// If the message was in sequence, update the routing table
-		g.Router.UpdateTable(rumor.Origin, sender)
+		// If the message was in sequence, update the routing table and print
+		g.Router.UpdateTableAndPrint(rumor.Origin, sender)
 	}
 
 	// Reply with status message

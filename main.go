@@ -78,6 +78,35 @@ func antiEntropy(g *types.Gossiper) {
 	}
 }
 
+func routeRumor(g *types.Gossiper, chanID chan uint32) {
+
+	// Send a rumor on startup
+	sendRouteRumor(g, chanID)
+
+	// Create a timeout timer
+	timer := time.NewTicker(time.Duration(g.Args.RTimer) * time.Second)
+	for {
+		select {
+		case <-timer.C:
+			sendRouteRumor(g, chanID)
+		}
+	}
+
+}
+
+func sendRouteRumor(g *types.Gossiper, chanID chan uint32) {
+	// Pick a random target and send a RouteRumor message
+	target := g.PeerIndex.GetRandomPeer(nil)
+	nextID := g.NameIndex.GetLastMessageID(g.Args.Name)
+
+	// Create a RouteRumor message
+	routeRumor := &types.RumorMessage{Origin: g.Args.Name, ID: nextID, Text: ""}
+
+	if target != nil {
+		network.OnSendRumor(g, routeRumor, target, <-chanID)
+	}
+}
+
 func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 
 	// Create a buffer to store arriving data
@@ -102,7 +131,7 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 		}
 
 		// Check the packet's validity
-		if !isPacketValid(&pkt, false, g.SimpleMode) {
+		if !isPacketValid(&pkt, false, g.Args.SimpleMode) {
 			// Error: ignore the packet
 			continue
 		}
@@ -156,12 +185,12 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 		}
 
 		// Check the packet's validity
-		if !isPacketValid(&pkt, true, g.SimpleMode) {
+		if !isPacketValid(&pkt, true, g.Args.SimpleMode) {
 			// Error: ignore the packet
 			continue
 		}
 
-		if g.SimpleMode { // Simple mode
+		if g.Args.SimpleMode { // Simple mode
 			network.OnBroadcastClient(g, pkt.SimpleMsg)
 		} else {
 			// Convert the message to a RumorMessage
@@ -176,21 +205,23 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 func main() {
 
 	// Argument parsing
-	gossiper := types.NewGossiper()
-	if err := parsing.ParseArgumentsGossiper(gossiper); err != nil {
+	args, err := parsing.ParseArgumentsGossiper()
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
+	// Create the gossiper
+	gossiper := types.NewGossiper(args)
+
 	// Add myself to the named peer list
-	gossiper.NameIndex.AddName(gossiper.Name)
+	gossiper.NameIndex.AddName(gossiper.Args.Name)
 
 	// Create 2 communication channels
-	var err error
-	if gossiper.ClientChannel, err = openUDPChannel(gossiper.ClientAddr); err != nil {
+	if gossiper.ClientChannel, err = openUDPChannel(gossiper.Args.ClientAddr); err != nil {
 		return
 	}
-	if gossiper.GossipChannel, err = openUDPChannel(gossiper.GossipAddr); err != nil {
+	if gossiper.GossipChannel, err = openUDPChannel(gossiper.Args.GossipAddr); err != nil {
 		return
 	}
 
@@ -209,13 +240,18 @@ func main() {
 	go udpDispatcherClient(gossiper, chanID)
 
 	// Launch the webserver if the ports do not clash
-	if strings.Split(gossiper.ClientAddr, ":")[1] != gossiper.ServerPort {
+	if strings.Split(gossiper.Args.ClientAddr, ":")[1] != gossiper.Args.ServerPort {
 		go backend.Webserver(gossiper, chanID)
 	}
 
 	// Anti Entropy
-	if !gossiper.SimpleMode {
+	if !gossiper.Args.SimpleMode {
 		go antiEntropy(gossiper)
+	}
+
+	// RouteRumor
+	if gossiper.Args.RTimer != 0 {
+		go routeRumor(gossiper, chanID)
 	}
 
 	// Kill all goroutines before exiting

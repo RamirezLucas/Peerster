@@ -42,7 +42,7 @@ func Webserver(g *types.Gossiper, chanID chan uint32) {
 
 	srv := &http.Server{
 		Handler: r,
-		Addr:    "127.0.0.1:" + g.ServerPort,
+		Addr:    "127.0.0.1:" + g.Args.ServerPort,
 	}
 
 	// Launch the server
@@ -55,7 +55,7 @@ func getIDHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Header().Set("Content-Type", "application/json")
 	data, _ := json.Marshal(map[string]string{
-		"name": gossiper.Name,
+		"name": gossiper.Args.Name,
 	})
 	w.Write(data)
 

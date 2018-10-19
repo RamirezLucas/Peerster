@@ -1,7 +1,9 @@
 package types
 
 import (
+	"fmt"
 	"net"
+	"os"
 	"sync"
 )
 
@@ -18,8 +20,8 @@ func NewRoutingTable() *RoutingTable {
 	return &routing
 }
 
-// UpdateTable - Updates the table with a new/updated record
-func (routing *RoutingTable) UpdateTable(name string, sender *net.UDPAddr) {
+// UpdateTableAndPrint - Updates the table with a new/updated record and prints it
+func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAddr) {
 	routing.mux.Lock()
 	defer routing.mux.Unlock()
 
@@ -37,4 +39,18 @@ func (routing *RoutingTable) UpdateTable(name string, sender *net.UDPAddr) {
 		routing.table[name] = NewPeer(addrStr, sender)
 
 	}
+
+	fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
+}
+
+// RouterEntryToStringUnsafe - Returns the textual representation of a router entry
+func (routing *RoutingTable) RouterEntryToStringUnsafe(name string) string {
+
+	if peer, ok := routing.table[name]; ok { // We know the sender
+		return fmt.Sprintf("DSDV %s %s", name, peer.PeerToString())
+	}
+
+	fmt.Printf("ERROR: Trying to print non-existent entry %s in the routing table", name)
+	os.Exit(1)
+	return ""
 }

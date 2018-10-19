@@ -1,6 +1,8 @@
 package types
 
-import "net"
+import (
+	"net"
+)
 
 // Peer - Represents a peer
 type Peer struct {
@@ -11,4 +13,9 @@ type Peer struct {
 // NewPeer - Creates a new instance of Peer
 func NewPeer(rawAddr string, udpAddr *net.UDPAddr) *Peer {
 	return &Peer{rawAddr: rawAddr, udpAddr: *udpAddr}
+}
+
+// PeerToString - Returns the textual representation of a Peer
+func (peer *Peer) PeerToString() string {
+	return peer.rawAddr
 }

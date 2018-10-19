@@ -15,8 +15,8 @@ func OnBroadcastClient(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 	fmt.Printf("CLIENT MESSAGE %s\n%s\n", simpleMsg.Contents, g.PeerIndex.PeersToString())
 
 	// Modify the packet
-	simpleMsg.OriginalName = g.Name
-	simpleMsg.RelayPeerAddr = g.GossipAddr
+	simpleMsg.OriginalName = g.Args.Name
+	simpleMsg.RelayPeerAddr = g.Args.GossipAddr
 
 	// Create the packet
 	pkt := types.GossipPacket{SimpleMsg: simpleMsg}
@@ -52,7 +52,7 @@ func OnBroadcastNetwork(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 
 	// Modify the packet
 	sender := simpleMsg.RelayPeerAddr
-	simpleMsg.RelayPeerAddr = g.GossipAddr
+	simpleMsg.RelayPeerAddr = g.Args.GossipAddr
 
 	// Create the packet
 	pkt := types.GossipPacket{SimpleMsg: simpleMsg}

@@ -2,9 +2,7 @@ package parsing
 
 import (
 	"Peerster/fail"
-	"Peerster/types"
 	"fmt"
-	"net"
 	"strconv"
 	"strings"
 )
@@ -17,8 +15,8 @@ func parsePort(s string) error {
 	return nil
 }
 
-// checkIPPortPair - Checks that a pair <ip:port> is correctly formed
-func checkIPPortPair(s string) error {
+// parseIPPortPair - Checks that a pair <ip:port> is correctly formed
+func parseIPPortPair(s string) error {
 
 	slices := strings.Split(s, ":")
 	if len(slices) != 2 {
@@ -46,22 +44,19 @@ func checkIPPortPair(s string) error {
 }
 
 // parsePeers - Parses a list of <ip:port>,
-func parsePeers(peerIndex *types.PeerIndex, s string) error {
+func parsePeers(peers *[]string, s string) error {
 
 	slices := strings.Split(s, ",")
 	for _, rawAddr := range slices {
 
-		if rawAddr == "" {
-			return nil
+		// Check for correct <ip:port>
+		if err := parseIPPortPair(rawAddr); err != nil {
+			fmt.Println(err)
+			return &fail.CustomError{Fun: "parsePeers", Desc: "failed to parse <ip:port>"}
 		}
 
-		// Add the peer
-		if udpAddr, err := net.ResolveUDPAddr("udp4", rawAddr); err == nil {
-			peerIndex.AddPeerIfAbsent(udpAddr)
-		} else {
-			return &fail.CustomError{Fun: "parsePeers", Desc: "unable to parse peer"}
-		}
-
+		// Append to list
+		*peers = append(*peers, rawAddr)
 	}
 	return nil
 }

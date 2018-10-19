@@ -36,12 +36,7 @@ func (nameIndex *NameIndex) AddName(name string) {
 	nameIndex.mux.Lock()
 	defer nameIndex.mux.Unlock()
 
-	if _, ok := nameIndex.index[name]; !ok { // The name should not already exists
-		nameIndex.index[name] = NewMessages()
-	} else {
-		fmt.Printf("ERROR: Trying to add existing name %s to the name index", name)
-		os.Exit(1)
-	}
+	nameIndex.AddNameUnsafe(name)
 }
 
 // AddNameUnsafe - Adds a named peer to the index (not thread-safe)
@@ -50,6 +45,7 @@ func (nameIndex *NameIndex) AddNameUnsafe(name string) {
 		nameIndex.index[name] = NewMessages()
 	} else {
 		fmt.Printf("ERROR: Trying to add existing name %s to the name index", name)
+		os.Exit(1)
 	}
 }
 
@@ -58,10 +54,18 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 	nameIndex.mux.Lock()
 	defer nameIndex.mux.Unlock()
 
+	// Is the message a RouteRumor ?
+	isRouteRumor := (rumor.Text == "")
+
 	if messages, ok := nameIndex.index[rumor.Origin]; ok { // We know this name
 		if uint32(len(messages.list))+1 == rumor.ID { // Ensure message ordering
 			messages.list = append(messages.list, rumor.Text)
-			BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+
+			// Don't forward route rumors to the server
+			if !isRouteRumor {
+				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+			}
+
 			return true
 		}
 	} else { // We don't know this name
@@ -69,7 +73,12 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 			nameIndex.AddNameUnsafe(rumor.Origin)
 			messages := nameIndex.index[rumor.Origin]
 			messages.list = append(messages.list, rumor.Text)
-			BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+
+			// Don't forward route rumors to the server
+			if !isRouteRumor {
+				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+			}
+
 			return true
 		}
 	}
@@ -162,7 +171,10 @@ func (nameIndex *NameIndex) GetEverything() *[]byte {
 	nameIndex.mux.Lock()
 	for name, messages := range nameIndex.index {
 		for _, m := range messages.list {
-			buffer.AddServerMessage(name, m)
+			// Don't forward route rumors to the server
+			if m != "" {
+				buffer.AddServerMessage(name, m)
+			}
 		}
 	}
 
