@@ -12,15 +12,22 @@ import (
 func main() {
 
 	// Initialize the client
-	var client types.Client
-	if err := parsing.ParseArgumentsClient(&client); err != nil {
+	client, err := parsing.ParseArgumentsClient()
+	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	// Create the packet
-	simpleMsg := types.SimpleMessage{Contents: client.Msg}
-	pkt := types.GossipPacket{SimpleMsg: &simpleMsg}
+	var pkt types.GossipPacket
+	if client.Dst == "" { // Normal message
+		simpleMsg := types.SimpleMessage{Contents: client.Msg}
+		pkt = types.GossipPacket{SimpleMsg: &simpleMsg}
+	} else { // Private message
+		privateMsg := types.PrivateMessage{Text: client.Msg,
+			Destination: client.Dst}
+		pkt = types.GossipPacket{Private: &privateMsg}
+	}
 
 	// Encode the packet
 	buf, err := protobuf.Encode(&pkt)

@@ -14,11 +14,6 @@ type PeerIndex struct {
 	mux   sync.Mutex       // Mutex to manipulate the structure from different threads
 }
 
-// Peer - Represents a peer
-type Peer struct {
-	udpAddr net.UDPAddr // The peer's UDP address
-}
-
 // NewPeerIndex - Creates a new instance of PeerIndex
 func NewPeerIndex() *PeerIndex {
 	var peerIndex PeerIndex
@@ -46,13 +41,8 @@ func (peerIndex *PeerIndex) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 
 	addrStr := UDPAddressToString(newPeerAddr)
 
-	// Prevents the client from talking on the network port
-	if addrStr == ":0" {
-		return
-	}
-
 	if _, ok := peerIndex.index[addrStr]; !ok { // We don't know this peer
-		peerIndex.index[addrStr] = &Peer{udpAddr: *newPeerAddr}
+		peerIndex.index[addrStr] = NewPeer(addrStr, newPeerAddr)
 
 		// Add new peer to server buffer
 		slices := strings.Split(addrStr, ":")
@@ -117,18 +107,6 @@ func (peerIndex *PeerIndex) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr {
 
 }
 
-// PeersToString - Returns a textual representation of a peer index
-func (peerIndex *PeerIndex) PeersToString() string {
-	peerIndex.mux.Lock()
-	defer peerIndex.mux.Unlock()
-
-	s := "PEERS "
-	for addr := range peerIndex.index {
-		s = s + fmt.Sprintf("%s,", addr)
-	}
-	return s[:len(s)-1]
-}
-
 // GetEverything - Returns everything that we know this far
 func (peerIndex *PeerIndex) GetEverything() *[]byte {
 
@@ -147,4 +125,16 @@ func (peerIndex *PeerIndex) GetEverything() *[]byte {
 	peerIndex.mux.Unlock()
 
 	return buffer.GetDataAndEmpty()
+}
+
+// PeersToString - Returns a textual representation of a peer index
+func (peerIndex *PeerIndex) PeersToString() string {
+	peerIndex.mux.Lock()
+	defer peerIndex.mux.Unlock()
+
+	s := "PEERS "
+	for addr := range peerIndex.index {
+		s = s + fmt.Sprintf("%s,", addr)
+	}
+	return s[:len(s)-1]
 }

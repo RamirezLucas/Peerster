@@ -29,11 +29,21 @@ type StatusPacket struct {
 	Want []PeerStatus // Vector clock
 }
 
-// GossipPacket -- Structure that is exchanged between gossipers (only one of the 3-fields is non-nil)
+// PrivateMessage - Represents a pricate message between 2 peers
+type PrivateMessage struct {
+	Origin      string // The sender's name
+	ID          uint32 // The message ID (not important for now as sequence order isn't enforced)
+	Text        string // The message's content
+	Destination string // The destination's name
+	HopLimit    uint32 // The maximum number of hops the message is allowed to go through
+}
+
+// GossipPacket -- Structure that is exchanged between gossipers (only one of the 4-fields can be non-nil)
 type GossipPacket struct {
-	SimpleMsg *SimpleMessage // A plain message (part 1)
-	Rumor     *RumorMessage  // A rumor (part 2)
-	Status    *StatusPacket  // A vector clock (part 2)
+	SimpleMsg *SimpleMessage  // A plain message
+	Rumor     *RumorMessage   // A rumor
+	Status    *StatusPacket   // A vector clock
+	Private   *PrivateMessage // A private message
 }
 
 // SimpleMessageToString - Returns a textual representation of a SimpleMessage
@@ -55,4 +65,10 @@ func (pkt *StatusPacket) StatusPacketToString(relayAddr string) string {
 		s = s + fmt.Sprintf(" peer %s nextID %d", peer.Identifier, peer.NextID)
 	}
 	return s
+}
+
+// PrivateMessageToString - Returns a textual representation of a PrivateMessage
+func (pkt *PrivateMessage) PrivateMessageToString() string {
+	return fmt.Sprintf("PRIVATE origin %s hop_limit %d contents %s",
+		pkt.Origin, pkt.HopLimit, pkt.Text)
 }
