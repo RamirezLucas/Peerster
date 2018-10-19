@@ -39,6 +39,11 @@ func OnBroadcastNetwork(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 		return
 	}
 
+	// Prevents the client from talking on the network port
+	if simpleMsg.RelayPeerAddr == "" {
+		return
+	}
+
 	// Add the peer to the index
 	g.PeerIndex.AddPeerIfAbsent(udpAddr)
 

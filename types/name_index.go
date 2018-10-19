@@ -54,7 +54,7 @@ func (nameIndex *NameIndex) AddNameUnsafe(name string) {
 }
 
 // AddMessageIfNext - Adds a message to the name index if we got all the preceding ones
-func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) {
+func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 	nameIndex.mux.Lock()
 	defer nameIndex.mux.Unlock()
 
@@ -62,6 +62,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) {
 		if uint32(len(messages.list))+1 == rumor.ID { // Ensure message ordering
 			messages.list = append(messages.list, rumor.Text)
 			BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+			return true
 		}
 	} else { // We don't know this name
 		if rumor.ID == 1 { // Must be the first message
@@ -69,8 +70,10 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) {
 			messages := nameIndex.index[rumor.Origin]
 			messages.list = append(messages.list, rumor.Text)
 			BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+			return true
 		}
 	}
+	return false
 }
 
 // GetLastMessageID - Get the next message expected for a given name
@@ -159,7 +162,7 @@ func (nameIndex *NameIndex) GetEverything() *[]byte {
 	nameIndex.mux.Lock()
 	for name, messages := range nameIndex.index {
 		for _, m := range messages.list {
-			buffer.messages = append(buffer.messages, ServerMessage{Name: name, Msg: m})
+			buffer.AddServerMessage(name, m)
 		}
 	}
 

@@ -22,6 +22,7 @@ type Gossiper struct {
 	GossipChannel *net.UDPConn             // UDP channel to communicate with the network (Shared, thread-safe)
 	NameIndex     *NameIndex               // A dictionnary between peer names and received messages (Shared, thread-safe)
 	PeerIndex     *PeerIndex               // A dictionnary between <ip:port> and peer addresses (Shared, thread-safe)
+	Router        *RoutingTable            // A routing table associating names with next hop address (Shared, thread-safe)
 	Timeouts      *StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
 }
 
@@ -30,6 +31,7 @@ func NewGossiper() *Gossiper {
 	var gossip Gossiper
 	gossip.NameIndex = NewNameIndex()
 	gossip.PeerIndex = NewPeerIndex()
+	gossip.Router = NewRoutingTable()
 	gossip.Timeouts = NewStatusResponseForwarder()
 	return &gossip
 }

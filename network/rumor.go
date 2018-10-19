@@ -87,7 +87,10 @@ func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UD
 	}
 
 	// Store the new message
-	g.NameIndex.AddMessageIfNext(rumor)
+	if g.NameIndex.AddMessageIfNext(rumor) { // TODO: unorder but higher ?
+		// If the message was in sequence, update the routing table
+		g.Router.UpdateTable(rumor.Origin, sender)
+	}
 
 	// Reply with status message
 	vectorClock := g.NameIndex.GetVectorClock()
