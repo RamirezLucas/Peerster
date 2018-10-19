@@ -63,7 +63,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 
 			// Don't forward route rumors to the server
 			if !isRouteRumor {
-				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text, false)
 			}
 
 			return true
@@ -76,7 +76,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 
 			// Don't forward route rumors to the server
 			if !isRouteRumor {
-				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text)
+				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text, false)
 			}
 
 			return true
@@ -173,7 +173,7 @@ func (nameIndex *NameIndex) GetEverything() *[]byte {
 		for _, m := range messages.list {
 			// Don't forward route rumors to the server
 			if m != "" {
-				buffer.AddServerMessage(name, m)
+				buffer.AddServerMessage(name, m, false)
 			}
 		}
 	}

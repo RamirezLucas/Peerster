@@ -14,8 +14,9 @@ type MessageBuffer struct {
 
 // ServerMessage - A message for the frontend
 type ServerMessage struct {
-	Name string // Peer's name
-	Msg  string // Peer's message
+	Name      string // Peer's name
+	Msg       string // Peer's message
+	IsPrivate bool   // Set to true is the message is private
 }
 
 // BufferMessages - A buffer of messages
@@ -36,7 +37,7 @@ func (buffer *MessageBuffer) EmptyBuffer() {
 }
 
 // AddServerMessage - Adds a message to the buffer
-func (buffer *MessageBuffer) AddServerMessage(name, msg string) {
+func (buffer *MessageBuffer) AddServerMessage(name, msg string, isPrivate bool) {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
 
@@ -44,7 +45,7 @@ func (buffer *MessageBuffer) AddServerMessage(name, msg string) {
 	msg = strings.Replace(msg, "<", " &lt ", -1)
 	msg = strings.Replace(msg, ">", " &gt ", -1)
 
-	buffer.messages = append(buffer.messages, ServerMessage{Name: name, Msg: msg})
+	buffer.messages = append(buffer.messages, ServerMessage{Name: name, Msg: msg, IsPrivate: isPrivate})
 }
 
 // GetDataAndEmpty - Empty the buffer and returns all its data as a byte slice
