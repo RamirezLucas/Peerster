@@ -42,14 +42,26 @@ func openUDPChannel(s string) (*net.UDPConn, error) {
 
 func isPacketValid(pkt *types.GossipPacket, isClientSide bool, isSimpleMode bool) bool {
 
-	// Exactly one of the field of the GossipPacket must be non-nil
-	if (pkt.SimpleMsg != nil && pkt.Rumor != nil) || (pkt.SimpleMsg != nil && pkt.Status != nil) ||
-		(pkt.Rumor != nil && pkt.Status != nil) || (pkt.SimpleMsg == nil && pkt.Rumor == nil && pkt.Status == nil) {
+	// Exactly one field of the packet must be non-nil
+	counter := 0
+	if pkt.SimpleMsg != nil {
+		counter++
+	}
+	if pkt.Rumor != nil {
+		counter++
+	}
+	if pkt.Status != nil {
+		counter++
+	}
+	if pkt.Private != nil {
+		counter++
+	}
+	if counter != 1 {
 		return false
 	}
 
-	// The client only sends SimpleMsg
-	if isClientSide && pkt.SimpleMsg == nil {
+	// The client only sends SimpleMessage and PrivateMessage
+	if isClientSide && (pkt.SimpleMsg == nil && pkt.Private == nil) {
 		return false
 	}
 
@@ -155,6 +167,8 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 			if !isPacketHandled {
 				go network.OnReceiveStatus(g, pkt.Status, sender, <-chanID)
 			}
+		case pkt.Private != nil:
+			go network.OnReceivePrivate(g, pkt.Private, sender, false)
 		default:
 			// Should never happen
 		}
@@ -190,12 +204,19 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 			continue
 		}
 
-		if g.Args.SimpleMode { // Simple mode
-			network.OnBroadcastClient(g, pkt.SimpleMsg)
-		} else {
-			// Convert the message to a RumorMessage
-			rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
-			go network.OnReceiveRumor(g, &rumor, sender, true, <-chanID)
+		switch {
+		case pkt.SimpleMsg != nil:
+			if g.Args.SimpleMode { // Simple mode
+				go network.OnBroadcastClient(g, pkt.SimpleMsg)
+			} else {
+				// Promote SimpleMessage to RumorMessage
+				rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
+				go network.OnReceiveRumor(g, &rumor, sender, true, <-chanID)
+			}
+		case pkt.Private != nil:
+			go network.OnReceivePrivate(g, pkt.Private, sender, true)
+		default:
+			// Should never happen
 		}
 
 	}

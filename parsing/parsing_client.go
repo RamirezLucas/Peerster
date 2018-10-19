@@ -10,50 +10,66 @@ import (
 )
 
 // ParseArgumentsClient - Parses the arguments for the client
-func ParseArgumentsClient(c *types.Client) error {
+func ParseArgumentsClient() (*types.Client, error) {
 
-	var uiPortDone, msgDone bool
+	var client types.Client
+	var uiPortDone, msgDone, destDone bool
 
 	for _, arg := range os.Args[1:] {
 		switch {
 		case strings.HasPrefix(arg, "-UIPort="):
 			if uiPortDone {
-				return &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "UIPort defined twice"}
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "UIPort defined twice"}
 			}
-			err := parsePort(arg[8:])
-			if err != nil {
-				return &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unable to parse UIPort"}
+			if err := parsePort(arg[8:]); err != nil {
+				fmt.Println(err)
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unable to parse UIPort"}
 			}
 
 			// Resolve the address
 			udpAddr, err := net.ResolveUDPAddr("udp4", fmt.Sprintf("127.0.0.1:%s", arg[8:]))
 			if err != nil {
-				return &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot resolve UDP address"}
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot resolve UDP address"}
 			}
-			c.Addr = udpAddr
+
+			// Validate
+			client.Addr = udpAddr
 			uiPortDone = true
+
 		case strings.HasPrefix(arg, "-msg="):
 			if msgDone {
-				return &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "msg defined twice"}
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "msg defined twice"}
 			}
-			c.Msg = arg[5:]
+
+			// Validate
+			client.Msg = arg[5:]
 			msgDone = true
+		case strings.HasPrefix(arg, "-dest="):
+			if destDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "msg defined twice"}
+			}
+
+			// Validate
+			client.Dst = arg[6:]
+			destDone = true
+		default:
+			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unknown argument"}
 		}
 	}
 
 	// The client must have a message
 	if !msgDone {
-		return &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "the client has no message to transmit"}
+		return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "the client has no message to transmit"}
 	}
 
 	// Create default values for missing parameters
 	if !uiPortDone {
 		udpAddr, err := net.ResolveUDPAddr("udp4", "127.0.0.1:8080")
 		if err != nil {
-			return &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot resolve UDP address"}
+			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot resolve UDP address"}
 		}
-		c.Addr = udpAddr
+		client.Addr = udpAddr
 	}
 
-	return nil
+	return &client, nil
 }

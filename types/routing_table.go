@@ -43,6 +43,17 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 	fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
 }
 
+// GetTarget - Get the next-hop target in the routing table for a particular destination
+func (routing *RoutingTable) GetTarget(name string) *net.UDPAddr {
+
+	if peer, ok := routing.table[name]; ok { // We have a next-hop
+		return &peer.udpAddr
+	}
+
+	// We don't have a next-hop (should not happen)
+	return nil
+}
+
 // RouterEntryToStringUnsafe - Returns the textual representation of a router entry
 func (routing *RoutingTable) RouterEntryToStringUnsafe(name string) string {
 
