@@ -1,0 +1,30 @@
+.contact_list_wrap {
+    float: left;
+    width: 20%;
+    box-sizing: border-box;
+}
+
+.contact_scrollable_wrap {
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
+.contact_nav {
+    margin-bottom: 0;
+    padding-left: 0;
+    list-style: none;
+    margin-top: 0;
+    box-sizing: border-box;
+}
+
+.private_contact_wrap {
+    border-bottom: 5px solid #3f3d3d;
+    background-color: #5983a1;
+    padding: 10px;
+    height: 50px;
+    float: none;
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+}
+

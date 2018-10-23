@@ -1,0 +1,30 @@
+.peers_list_wrap {
+    float: left;
+    width: 20%;
+    box-sizing: border-box;
+}
+
+.peers_scrollable_wrap {
+    direction: rtl;
+    overflow: scroll;
+    overflow-x: hidden;
+}
+
+.peers_nav {
+    margin-bottom: 0;
+    padding-left: 0;
+    list-style: none;
+    margin-top: 0;
+    box-sizing: border-box;
+}
+
+.peer_wrap {
+    border-bottom: 5px solid #3f3d3d;
+    background-color: #5983a1;
+    padding: 10px;
+    height: 50px;
+    float: none;
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+}

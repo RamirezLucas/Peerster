@@ -1,0 +1,12 @@
+.chat_wrap {
+    background-color: #c5e0c9;
+    float: left;
+    width: 60%;
+    box-sizing: border-box;
+}
+
+.message_wrap {
+    word-wrap: break-word;
+    /*line-height: 150%;*/
+    white-space: pre-wrap;
+}
