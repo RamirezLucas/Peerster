@@ -1,6 +1,9 @@
+html, body {
+    margin: 0;
+    height: 100%;
+}
+
 .page_wrap {
-    background: #fff;
-    margin: 0 auto;
     overflow: hidden;
     box-sizing: border-box;
     font: 1.5em Tahoma,sans-serif,Arial,Helvetica;

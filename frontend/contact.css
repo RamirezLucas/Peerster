@@ -1,12 +1,16 @@
 .contact_list_wrap {
+    position: relative;
     float: left;
-    width: 20%;
+    width: 15%;
+    height: 100vh;
+    background-color: rgb(28, 33, 37);
     box-sizing: border-box;
 }
 
 .contact_scrollable_wrap {
-    overflow: scroll;
-    overflow-x: hidden;
+    height: 100%;
+    overflow: auto;
+    overflow-x: hidden; 
 }
 
 .contact_nav {
@@ -18,13 +22,16 @@
 }
 
 .private_contact_wrap {
-    border-bottom: 5px solid #3f3d3d;
-    background-color: #5983a1;
-    padding: 10px;
-    height: 50px;
+    /* positionning */
     float: none;
     position: relative;
     display: block;
+    padding: 10px;
+    height: 50px;
     box-sizing: border-box;
-}
 
+    /* style */
+    border-bottom: 3px solid #3f3d3d;
+    color: rgb(255,255,255);
+
+}
