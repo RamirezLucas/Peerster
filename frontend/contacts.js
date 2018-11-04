@@ -63,7 +63,6 @@ function contact_add(name) {
     document.getElementById('chat_scrollable_wrap').appendChild(newChat);
 }
 
-
 /* ------- ONLOAD ------- */
 
 function contact_attach_listeners(contact) {
@@ -80,5 +79,7 @@ window.onload = function(){
     for (var i = 0 ; i < contacts.length ; i++) {
         contact_attach_listeners(contacts[i]);
     }
+
+    // TODO: get my own name and IP:PORT address
     
 };

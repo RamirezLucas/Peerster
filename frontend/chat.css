@@ -69,16 +69,3 @@
     border-top-style: solid;
     display: none;
 }
-
-textarea {
-    /* position/size */
-    width: 100%;
-    resize: none;
-    /* text behavior */
-    overflow: hidden;
-    /* style */
-    background: rgb(54,57,63);
-    border-style: none;
-    font: 1em Tahoma,sans-serif,Arial,Helvetica;
-    color: rgb(155,156,160);
-}

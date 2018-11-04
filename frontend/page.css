@@ -9,3 +9,16 @@ html, body {
     font: 1.5em Tahoma,sans-serif,Arial,Helvetica;
     color: rgb(105,106,110);
 }
+
+textarea {
+    /* position/size */
+    width: 100%;
+    resize: none;
+    /* text behavior */
+    overflow: hidden;
+    /* style */
+    background: rgb(0,0,0,0);
+    border-style: none;
+    font: 1em Tahoma,sans-serif,Arial,Helvetica;
+    color: rgb(155,156,160);
+}

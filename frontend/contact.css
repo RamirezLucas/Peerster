@@ -9,7 +9,7 @@
 }
 
 #contact_scrollable_wrap {
-    height: 95%;
+    height: 93%;
     padding: 10px 20px;
     overflow: auto;
     overflow-x: hidden; 
@@ -44,7 +44,7 @@
     /* positionning/size */
     position: absolute;
     bottom: 0;
-    height: 5%;
+    height: 7%;
     width: 100%;
     /* box */
     padding: 15px 20px;
