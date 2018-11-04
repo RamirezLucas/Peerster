@@ -7,4 +7,5 @@ html, body {
     overflow: hidden;
     box-sizing: border-box;
     font: 1.5em Tahoma,sans-serif,Arial,Helvetica;
+    color: rgb(105,106,110);
 }

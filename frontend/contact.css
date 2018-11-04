@@ -27,17 +27,24 @@
     box-sizing: border-box;
 
     /* style */
-    /*border: 1px solid #ccc;*/
     border-radius: 5px;
     color: rgb(105,106,110);
     cursor: pointer;
-}
-
-.global_chat {
-    float: none;
 }
 
 .private_contact_wrap:hover {
     background-color: rgb(54, 57, 63);
     color: rgb(255,255,255);
 }
+
+.contact_separator {
+    /* box */
+    margin: 10px 0px;
+    padding: 40px 0px 10px;
+    /* style */
+    font: 0.8em Tahoma,sans-serif,Arial,Helvetica;
+    border-color: rgb(62,65,71);
+    border-width: medium;
+    border-top-style: solid;
+}
+

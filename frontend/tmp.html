@@ -1,27 +1,34 @@
 <!DOCTYPE html>
 <html>
     <head>
+        <meta charset="UTF-8"> 
         <link rel="stylesheet" type="text/css" href="contact.css">
         <link rel="stylesheet" type="text/css" href="chat.css">
         <link rel="stylesheet" type="text/css" href="page.css">
         <link rel="stylesheet" type="text/css" href="peer.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="scripts.js"></script>
+        <script type="text/javascript" src="events.js"></script>
     </head>
 
     <body>
         <div class="page_wrap">
             <div class="contact_list_wrap">
                 <div class="contact_scrollable_wrap">
-                    <div class="private_contact_wrap">Alice</div>
-                    <div class="private_contact_wrap">
-                        <span>Bob</span>
-                    </div>
-                    <div class="private_contact_wrap">Zobi La Mouche Qui Pete En Plein Vol</div>
+                    <div class="private_contact_wrap" id="default_conv" style="font-style:italic" onclick="switch_conv(this)">Global Channel</div>
+                    <div class="contact_separator">PRIVATE MESSAGES</div>
+                    <div class="private_contact_wrap" onclick="switch_conv(this)">Alice</div>
+                    <div class="private_contact_wrap" onclick="switch_conv(this)">Bob</div>
                 </div>
             </div>
             <div class="chat_wrap">
                 <div class="message_scrollable_wrap">
+                    <div class="conversation" id="Global Channel">
+                        <div class="monologue">
+                            <div class="author">Jean Mich</div>
+                            <div class="message">Bite en bois</div>
+                        </div>
+                    </div>     
+                    <div class="conversation" id="Alice">
                         <div class="monologue">
                             <div class="author">Alice</div>
                             <div class="message">Bonjour Bob</div>
@@ -30,10 +37,12 @@
                             <div class="author">Bob</div>
                             <div class="message">Salut Alice</div>
                         </div>
+                    </div>
+                    <div class="conversation" id="Bob"></div>
                 </div>
 
                 <div class="send_message_wrap">
-                    <textarea rows="3" placeholder="> Message Alice"></textarea>
+                    <textarea rows="3" placeholder="> Message TODO (speaking as TODO)"></textarea>
                 </div>
 
             </div>
