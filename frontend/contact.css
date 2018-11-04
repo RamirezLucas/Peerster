@@ -20,21 +20,15 @@
 .private_contact_wrap {
     /* positionning/size */
     position: relative;
-
     /* box */
     padding: 10px 20px;
     margin-bottom: 5px;
     box-sizing: border-box;
-
     /* style */
     border-radius: 5px;
+    background-color: rgb(47, 49, 54);
     color: rgb(105,106,110);
     cursor: pointer;
-}
-
-.private_contact_wrap:hover {
-    background-color: rgb(54, 57, 63);
-    color: rgb(255,255,255);
 }
 
 .contact_separator {
