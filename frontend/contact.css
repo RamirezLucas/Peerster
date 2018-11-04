@@ -1,10 +1,14 @@
 .contact_list_wrap {
+    /* position/size */
     position: relative;
     float: left;
     width: 15%;
     height: 100vh;
-    background-color: rgb(28, 33, 37);
+    /* box */
+    padding: 10px 20px;
     box-sizing: border-box;
+    /* style */
+    background-color: rgb(47, 49, 54);
 }
 
 .contact_scrollable_wrap {
@@ -13,25 +17,27 @@
     overflow-x: hidden; 
 }
 
-.contact_nav {
-    margin-bottom: 0;
-    padding-left: 0;
-    list-style: none;
-    margin-top: 0;
-    box-sizing: border-box;
-}
-
 .private_contact_wrap {
-    /* positionning */
-    float: none;
+    /* positionning/size */
     position: relative;
-    display: block;
-    padding: 10px;
-    height: 50px;
+
+    /* box */
+    padding: 10px 20px;
+    margin-bottom: 5px;
     box-sizing: border-box;
 
     /* style */
-    border-bottom: 3px solid #3f3d3d;
-    color: rgb(255,255,255);
+    /*border: 1px solid #ccc;*/
+    border-radius: 5px;
+    color: rgb(105,106,110);
+    cursor: pointer;
+}
 
+.global_chat {
+    float: none;
+}
+
+.private_contact_wrap:hover {
+    background-color: rgb(54, 57, 63);
+    color: rgb(255,255,255);
 }
