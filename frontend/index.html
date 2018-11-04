@@ -1,46 +1,51 @@
 <!DOCTYPE html>
 <html>
     <head>
-        <link rel="stylesheet" type="text/css" href="style.css">
+        <meta charset="UTF-8"> 
+        <link rel="stylesheet" type="text/css" href="contact.css">
+        <link rel="stylesheet" type="text/css" href="chat.css">
+        <link rel="stylesheet" type="text/css" href="page.css">
+        <link rel="stylesheet" type="text/css" href="peer.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="scripts.js"></script>
+        <script type="text/javascript" src="contacts.js"></script>
+        <script type="text/javascript" src="chat.js"></script>
+        <script type="text/javascript" src="peer.js"></script>
     </head>
-    
+
     <body>
-
-        <div class="container">
-            <div id="chat">
-                <h2 id="myID">MESSAGES</h2>
-            </div>
-            <div id="peers">
-                <h2>PEERS</h2>        
+        <div class="page_wrap">
+            <div class="contact_list_wrap">
+                <div id="contact_scrollable_wrap">
+                    <div class="private_contact_wrap" style="font-style:italic">Global Channel</div>
+                    <div class="contact_separator">PRIVATE MESSAGES</div>
                 </div>
-            <div class="clear"></div>
+                <div id="my_contact">
+                    <span>Pimsinoupou (you)</span>
+                    <span>127.011.011.111:64000</span>
+                </div>
+            </div>
+            <div class="chat_wrap">
+                <div id="chat_scrollable_wrap">
+                    <div class="conversation" id="Global Channel">
+                        <div class="begin_conv"><span>This is the beginning of your conversation with Global Channel</span></div>
+                    </div>     
+                </div>
+                <div id="send_message_wrap">
+                    <textarea rows="3" id="send_message" placeholder="" onkeydown="check_send(event)"></textarea>
+                </div>
+
+            </div>
+            <div class="peers_list_wrap">
+                <div id="peers_scrollable_wrap">
+                    <div class="peer_header">
+                        <span><em>Known peers</em></span>
+                    </div>
+                </div>
+                <div id="new_peer_wrap">
+                    <textarea rows="1" maxlength="21" id="new_peer" placeholder="> ip:port (Ctrl + Enter)" onkeydown="check_new_peer(event)"></textarea>
+                </div>
+            </div>
         </div>
-
-        <div class="header"></div>
-
-        <div class="container">
-            <div class="input_message">
-                <input type="text" id="new_msg" placeholder="Enter a new message"><br>
-            </div>  
-            <button class="button right_aligned" onclick="sendNewMessage()">
-                Send Message
-            </button>
-            <div class="clear"></div>
-        </div>
-
-        <div class="header"></div>
-
-        <div class="container">
-            <div class="input_message">
-                <input type="text" id="new_peer" placeholder="Enter a new peer &lt IP:PORT &gt"><br>
-            </div>  
-            <button class="button right_aligned" onclick="sendNewPeer()">
-                Add New Peer
-            </button>
-            <div class="clear"></div>
-        </div>
-
     </body>
 </html>
+  
