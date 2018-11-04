@@ -7,28 +7,32 @@
         <link rel="stylesheet" type="text/css" href="page.css">
         <link rel="stylesheet" type="text/css" href="peer.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <script type="text/javascript" src="events.js"></script>
+        <script type="text/javascript" src="contacts.js"></script>
+        <script type="text/javascript" src="chat.js"></script>
     </head>
 
     <body>
         <div class="page_wrap">
             <div class="contact_list_wrap">
-                <div class="contact_scrollable_wrap">
+                <div id="contact_scrollable_wrap">
                     <div class="private_contact_wrap" style="font-style:italic">Global Channel</div>
                     <div class="contact_separator">PRIVATE MESSAGES</div>
                     <div class="private_contact_wrap">Alice</div>
                     <div class="private_contact_wrap">Bob</div>
                 </div>
+                <div id="my_contact">Pimsinoupou (you)</div>
             </div>
             <div class="chat_wrap">
-                <div class="message_scrollable_wrap">
+                <div id="chat_scrollable_wrap">
                     <div class="conversation" id="Global Channel">
+                        <div class="begin_conv"><span>This is the beginning of your conversation with Global Channel</span></div>
                         <div class="monologue">
                             <div class="author">Jean Mich</div>
                             <div class="message">Bite en bois</div>
                         </div>
                     </div>     
                     <div class="conversation" id="Alice">
+                        <div class="begin_conv"><span>This is the beginning of your conversation with Alice</span></div>
                         <div class="monologue">
                             <div class="author">Alice</div>
                             <div class="message">Bonjour Bob</div>
@@ -38,11 +42,13 @@
                             <div class="message">Salut Alice</div>
                         </div>
                     </div>
-                    <div class="conversation" id="Bob"></div>
+                    <div class="conversation" id="Bob">
+                        <div class="begin_conv"><span>This is the beginning of your conversation with Bob</span></div>
+                    </div>
                 </div>
 
-                <div class="send_message_wrap">
-                    <textarea rows="3" placeholder="> Message TODO (speaking as TODO)"></textarea>
+                <div id="send_message_wrap">
+                    <textarea rows="3" id="send_message" placeholder="" onkeydown="check_send(event)"></textarea>
                 </div>
 
             </div>

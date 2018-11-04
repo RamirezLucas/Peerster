@@ -1,3 +1,5 @@
+/* ------- EVENTS ------- */
+
 function contact_switch() {
 
     // If the contact was already selected, do nothing
@@ -18,11 +20,12 @@ function contact_switch() {
     this.style.color = 'rgb(' + 255 + ',' + 255 + ',' + 255 + ')';
     var newConv = document.getElementById(this.innerHTML)
     newConv.style.display = "block"
-    // TODO: change name in send message box
+    
+    // Change name in textbox
+    change_message_box_text(this.innerHTML)
 
     // Update current contact
     curr_contact = this
-
 }
 
 function contact_mouse_enter() {
@@ -38,6 +41,30 @@ function contact_mouse_leave() {
         this.style.color = 'rgb(' + 105 + ',' + 106 + ',' + 110 + ')';
     }
 }
+
+/* ------- API ------- */
+
+function contact_add(name) {
+
+    // Create new contact tab
+    var newContact = document.createElement("div");
+    newContact.className = "private_contact_wrap";
+    newContact.innerHTML = name;
+    document.getElementById('contact_scrollable_wrap').appendChild(newContact);
+    contact_attach_listeners(newContact);
+
+    // Create new chat history
+    var newChat = document.createElement("div");
+    newChat.className = "conversation";
+    newChat.id = name;
+    newChat.innerHTML =
+        '<div class="begin_conv"><span>This is the beginning of \
+        your conversation with ' + name + '</span></div>';
+    document.getElementById('chat_scrollable_wrap').appendChild(newChat);
+}
+
+
+/* ------- ONLOAD ------- */
 
 function contact_attach_listeners(contact) {
     contact.addEventListener("click", contact_switch);
