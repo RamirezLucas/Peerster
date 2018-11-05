@@ -43,7 +43,7 @@ func postNodeHandler(w http.ResponseWriter, r *http.Request) {
 func getNodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get data
-	data := types.BufferPeers.GetDataAndEmpty()
+	data := types.FBuffer.GetDataAndEmpty()
 
 	// Send JSON data
 	w.WriteHeader(http.StatusOK)
@@ -55,11 +55,11 @@ func getNodeHandler(w http.ResponseWriter, r *http.Request) {
 func getInitNodeHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get data
-	data := gossiper.PeerIndex.GetEverything()
+	// data := gossiper.PeerIndex.GetEverything()
 
-	// Send JSON data
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(*data)
+	// // Send JSON data
+	// w.WriteHeader(http.StatusOK)
+	// w.Header().Set("Content-Type", "application/json")
+	// w.Write(*data)
 
 }

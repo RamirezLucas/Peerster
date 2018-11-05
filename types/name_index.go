@@ -63,7 +63,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 
 			// Don't forward route rumors to the server
 			if !isRouteRumor {
-				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text, false)
+				FBuffer.AddFrontendRumor(rumor.Origin, rumor.Text)
 			}
 
 			return true
@@ -76,7 +76,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 
 			// Don't forward route rumors to the server
 			if !isRouteRumor {
-				BufferMessages.AddServerMessage(rumor.Origin, rumor.Text, false)
+				FBuffer.AddFrontendRumor(rumor.Origin, rumor.Text)
 			}
 
 			return true
@@ -160,28 +160,4 @@ func (nameIndex *NameIndex) GetVectorClock() *StatusPacket {
 	}
 
 	return &status
-}
-
-// GetEverything - Returns everything that was received this far
-func (nameIndex *NameIndex) GetEverything() *[]byte {
-
-	buffer := NewMessageBuffer()
-
-	// Retrieve everything
-	nameIndex.mux.Lock()
-	for name, messages := range nameIndex.index {
-		for _, m := range messages.list {
-			// Don't forward route rumors to the server
-			if m != "" {
-				buffer.AddServerMessage(name, m, false)
-			}
-		}
-	}
-
-	// Empty the "normal" buffer (we already have everything in the local one)
-	BufferMessages.EmptyBuffer()
-
-	nameIndex.mux.Unlock()
-
-	return buffer.GetDataAndEmpty()
 }

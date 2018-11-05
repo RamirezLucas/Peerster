@@ -40,7 +40,7 @@ func postMessageHandler(w http.ResponseWriter, r *http.Request) {
 func getMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get data
-	data := types.BufferMessages.GetDataAndEmpty()
+	data := types.FBuffer.GetDataAndEmpty()
 
 	// Send JSON data
 	w.WriteHeader(http.StatusOK)
@@ -51,11 +51,11 @@ func getMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 func getInitMessageHandler(w http.ResponseWriter, r *http.Request) {
 
-	data := gossiper.NameIndex.GetEverything()
+	// data := gossiper.NameIndex.GetEverything()
 
-	// Send JSON data
-	w.WriteHeader(http.StatusOK)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write(*data)
+	// // Send JSON data
+	// w.WriteHeader(http.StatusOK)
+	// w.Header().Set("Content-Type", "application/json")
+	// w.Write(*data)
 
 }

@@ -46,7 +46,7 @@ func (peerIndex *PeerIndex) AddPeerIfAbsent(newPeerAddr *net.UDPAddr) {
 
 		// Add new peer to server buffer
 		slices := strings.Split(addrStr, ":")
-		BufferPeers.AddServerPeer(slices[0], slices[1])
+		FBuffer.AddFrontendPeer(slices[0], slices[1])
 	}
 }
 
@@ -105,26 +105,6 @@ func (peerIndex *PeerIndex) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr {
 	randomIndex := rand.Intn(nbPeers)
 	return &tmp[randomIndex].udpAddr
 
-}
-
-// GetEverything - Returns everything that we know this far
-func (peerIndex *PeerIndex) GetEverything() *[]byte {
-
-	buffer := NewPeerBuffer()
-
-	// Retrieve everything
-	peerIndex.mux.Lock()
-	for rawAddr := range peerIndex.index {
-		slices := strings.Split(rawAddr, ":")
-		buffer.peers = append(buffer.peers, ServerPeer{IP: slices[0], Port: slices[1]})
-	}
-
-	// Empty the "normal" buffer (we already have everything in the local one)
-	BufferPeers.EmptyBuffer()
-
-	peerIndex.mux.Unlock()
-
-	return buffer.GetDataAndEmpty()
 }
 
 // PeersToString - Returns a textual representation of a peer index
