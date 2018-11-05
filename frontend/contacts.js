@@ -1,6 +1,6 @@
 /* ------- EVENTS ------- */
 
-function contact_switch() {
+function switchContact() {
 
     // If the contact was already selected, do nothing
     if (curr_contact !== null && this.innerHTML === curr_contact.innerHTML) {
@@ -22,20 +22,20 @@ function contact_switch() {
     newConv.style.display = "block"
     
     // Change name in textbox
-    change_message_box_text(this.innerHTML)
+    changeMessageBoxTest(this.innerHTML)
 
     // Update current contact
     curr_contact = this
 }
 
-function contact_mouse_enter() {
+function contactMouseEnter() {
     if (curr_contact === null || curr_contact.innerHTML != this.innerHTML) {
         this.style.backgroundColor = 'rgb(' + 54 + ',' + 57 + ',' + 63 + ')';
         this.style.color = 'rgb(' + 255 + ',' + 255 + ',' + 255 + ')';
     }
 }
 
-function contact_mouse_leave() {
+function contactMouseLeave() {
     if (curr_contact === null || curr_contact.innerHTML != this.innerHTML) {
         this.style.backgroundColor = 'rgb(' + 47 + ',' + 49 + ',' + 54 + ')';
         this.style.color = 'rgb(' + 105 + ',' + 106 + ',' + 110 + ')';
@@ -44,7 +44,7 @@ function contact_mouse_leave() {
 
 /* ------- API ------- */
 
-function contact_add(name) {
+function addContact(name) {
 
     // Create new contact tab
     var newContact = document.createElement("div");
@@ -63,23 +63,47 @@ function contact_add(name) {
     document.getElementById('chat_scrollable_wrap').appendChild(newChat);
 }
 
+function whoAmI() {
+     
+    // POST data
+    var xhr = new XMLHttpRequest();
+    var url = "/id";
+    xhr.open("GET", url, true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState === 4 && xhr.status === 200) {
+            if (xhr.responseText !== "") {
+                var json = JSON.parse(xhr.responseText); // Parse JSON
+                if(json.hasOwnProperty("name")){ // Check that the key exists
+                    document.getElementById("myID").innerText = 'MESSAGES (gossiping as ' + json.name + ')'
+                }
+            }
+        }
+    };
+    
+    xhr.send();
+}
+
 /* ------- ONLOAD ------- */
 
 function contact_attach_listeners(contact) {
-    contact.addEventListener("click", contact_switch);
-    contact.addEventListener("mouseenter", contact_mouse_enter);
-    contact.addEventListener("mouseleave", contact_mouse_leave);
+    contact.addEventListener("click", switchContact);
+    contact.addEventListener("mouseenter", contactMouseEnter);
+    contact.addEventListener("mouseleave", contactMouseLeave);
 }
 
 var curr_contact = null
 window.onload = function(){
-    
     // Attach event listeners to all existing contacts
     var contacts = document.getElementsByClassName("private_contact_wrap");
     for (var i = 0 ; i < contacts.length ; i++) {
         contact_attach_listeners(contacts[i]);
     }
 
-    // TODO: get my own name and IP:PORT address
-    
+    // Get my own name and IP:PORT address
+    whoAmI()
+
+    // Initial call to refresh the page
+    refresh()    
+
 };

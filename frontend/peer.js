@@ -1,4 +1,4 @@
-function check_new_peer(e) {
+function checkNewPeer(e) {
     
     var code = (e.keyCode ? e.keyCode : e.which);
 
@@ -7,16 +7,18 @@ function check_new_peer(e) {
         e.preventDefault();
 
         if (e.ctrlKey) {
-            // TODO: Send new peer
-            var textarea = document.getElementById("new_peer");
-                    
+
+            // Send new peer
+            var newPeer = document.getElementById("new_peer").value;
+            sendToServer("peer", newPeer, "/node")
+
             // Reset textarea
             document.getElementById("new_peer").value = "";
         }
     }
 }
 
-function peer_add(address) {
+function addPeer(address) {
 
     // Create new contact tab
     var new_peer = document.createElement("div");

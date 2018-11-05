@@ -1,4 +1,4 @@
-function change_message_box_text(gossipingTo) {
+function changeMessageBoxTest(gossipingTo) {
     // Enable textarea
     document.getElementById("send_message_wrap").style.display = "block";
     // Chnage text    
@@ -6,16 +6,20 @@ function change_message_box_text(gossipingTo) {
         "> Message " + gossipingTo + " (Ctrl + Enter to send)");
 }   
 
-function check_send(e) {
+function checkSend(e) {
     
     var code = (e.keyCode ? e.keyCode : e.which);
     if (e.ctrlKey && code == 13) {
         // Don't create a newline
         e.preventDefault();
 
-        // TODO: Send message
-        var textarea = document.getElementById("send_message");
-        
+        // Send message
+        var newMsg = document.getElementById("send_message").value;
+        if (curr_contact.innerHTML === "Global Channel") {
+            sendToServer("message", newMsg, "/rumor")        
+        } else {
+            sendToServer("message", newMsg, "/private")        
+        }
 
         // Reset textarea
         document.getElementById("send_message").value = "";
@@ -23,7 +27,7 @@ function check_send(e) {
 
 }
 
-function append_message(channel, sender, msg_content) {
+function appendMessage(channel, sender, msg_content) {
 
     /* The function assumes that the channel already exists */
     
