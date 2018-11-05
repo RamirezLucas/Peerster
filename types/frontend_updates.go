@@ -18,23 +18,29 @@ type FrontendRumor struct {
 	Msg  string // Peer's message
 }
 
-// FrontendPrivateMessage - A private message for the frontend
-type FrontendPrivateMessage struct {
-	Name string // Peer's name
-	Msg  string // Peer's message
-}
-
 // FrontendPeer - A peer for the frontend
 type FrontendPeer struct {
 	IP   string // Peer's IP
 	Port string // Peer's port
 }
 
+// FrontendPrivateMessage - A private message for the frontend
+type FrontendPrivateMessage struct {
+	Name string // Peer's name
+	Msg  string // Peer's message
+}
+
+// FrontendPrivateContact - A private contact for the frontend
+type FrontendPrivateContact struct {
+	Name string // Peer's name
+}
+
 // FrontendUpdate - An update for the
 type FrontendUpdate struct {
 	Rumor          *FrontendRumor          // A rumor
-	PrivateMessage *FrontendPrivateMessage // A private message
 	Peer           *FrontendPeer           // A peer
+	PrivateMessage *FrontendPrivateMessage // A private message
+	PrivateContact *FrontendPrivateContact // A private contact
 }
 
 // FBuffer - A buffer of updates for the frontend
@@ -71,6 +77,17 @@ func (buffer *FrontendBuffer) AddFrontendRumor(name, msg string) {
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 
+// AddFrontendPeer - Adds a peer to the buffer
+func (buffer *FrontendBuffer) AddFrontendPeer(ip, port string) {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+
+	// Create update
+	newPeer := &FrontendPeer{IP: ip, Port: port}
+	newUpdate := &FrontendUpdate{Peer: newPeer}
+	buffer.updates = append(buffer.updates, newUpdate)
+}
+
 // AddFrontendPrivateMessage - Adds a private message to the buffer
 func (buffer *FrontendBuffer) AddFrontendPrivateMessage(name, msg string) {
 	buffer.mux.Lock()
@@ -88,14 +105,14 @@ func (buffer *FrontendBuffer) AddFrontendPrivateMessage(name, msg string) {
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 
-// AddFrontendPeer - Adds a peer to the buffer
-func (buffer *FrontendBuffer) AddFrontendPeer(ip, port string) {
+// AddFrontendPrivateContact - Adds a private contact to the buffer
+func (buffer *FrontendBuffer) AddFrontendPrivateContact(name string) {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
 
 	// Create update
-	newPeer := &FrontendPeer{IP: ip, Port: port}
-	newUpdate := &FrontendUpdate{Peer: newPeer}
+	newPrivateContact := &FrontendPrivateContact{Name: name}
+	newUpdate := &FrontendUpdate{PrivateContact: newPrivateContact}
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 

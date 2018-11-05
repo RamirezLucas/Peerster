@@ -24,12 +24,12 @@ function getUpdates() {
                         if (update.Rumor !== null) {
                             // This is a rumor
                             appendMessage("Global Channel", update.Rumor.Name, update.Rumor.Msg)
-                        } else if (update.PrivateMessage !== null) {
-                            // This is a private message
-                            appendMessage(update.Rumor.Name, update.Rumor.Name, update.Rumor.Msg)
                         } else if (update.Peer !== null) {
                             // This is a peer
                             addPeer(update.Peer.IP + update.Peer.Port)
+                        } else if (update.PrivateMessage !== null) {
+                            // This is a private message
+                            appendMessage(update.Rumor.Name, update.Rumor.Name, update.Rumor.Msg)
                         } else if (update.PrivateContact !== null) {
                             // This is a private contact
                             addContact(update.PrivateContact.Name)
