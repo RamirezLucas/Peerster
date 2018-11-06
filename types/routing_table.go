@@ -30,10 +30,6 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 	if _, ok := routing.table[name]; !ok { // We don't know the sender
 		routing.table[name] = NewPeer(addrStr, sender)
 
-		// Add new peer to server buffer
-		// slices := strings.Split(addrStr, ":")
-		// BufferPeers.AddServerPeer(slices[0], slices[1])
-
 	} else { // We know the sender
 
 		routing.table[name] = NewPeer(addrStr, sender)

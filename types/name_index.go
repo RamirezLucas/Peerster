@@ -12,9 +12,10 @@ type NameIndex struct {
 	mux   sync.Mutex           // Mutex to manipulate the structure from different threads
 }
 
-// Messages - Represents a list of messages
+// Messages - Represents a public of messages
 type Messages struct {
-	list []string // A list of messages
+	public  []string // A list of public messages
+	private []string // A list of (unordered) private messages
 }
 
 // NewNameIndex - Creates a new instance of NameIndex
@@ -27,7 +28,7 @@ func NewNameIndex() *NameIndex {
 // NewMessages - Creates a new instance of Messages
 func NewMessages() *Messages {
 	var messages Messages
-	messages.list = make([]string, 0)
+	messages.public = make([]string, 0)
 	return &messages
 }
 
@@ -58,8 +59,8 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 	isRouteRumor := (rumor.Text == "")
 
 	if messages, ok := nameIndex.index[rumor.Origin]; ok { // We know this name
-		if uint32(len(messages.list))+1 == rumor.ID { // Ensure message ordering
-			messages.list = append(messages.list, rumor.Text)
+		if uint32(len(messages.public))+1 == rumor.ID { // Ensure message ordering
+			messages.public = append(messages.public, rumor.Text)
 
 			// Don't forward route rumors to the server
 			if !isRouteRumor {
@@ -72,7 +73,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 		if rumor.ID == 1 { // Must be the first message
 			nameIndex.AddNameUnsafe(rumor.Origin)
 			messages := nameIndex.index[rumor.Origin]
-			messages.list = append(messages.list, rumor.Text)
+			messages.public = append(messages.public, rumor.Text)
 
 			// Don't forward route rumors to the server
 			if !isRouteRumor {
@@ -88,7 +89,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 // GetLastMessageID - Get the next message expected for a given name
 func (nameIndex *NameIndex) GetLastMessageID(name string) uint32 {
 	if messages, ok := nameIndex.index[name]; ok { // We know this name
-		return uint32(len(messages.list)) + 1
+		return uint32(len(messages.public)) + 1
 	}
 	return 0
 }
@@ -111,11 +112,11 @@ func (nameIndex *NameIndex) GetUnknownMessageTarget(targetStatus *StatusPacket) 
 
 		if indexPeer != -1 { // We both now the peer
 			nextIDWanted := targetStatus.Want[indexPeer].NextID
-			if 0 < nextIDWanted && nextIDWanted < uint32(len(messages.list))+1 { // We have something the other doesn't have
-				return &RumorMessage{localName, nextIDWanted, messages.list[nextIDWanted-1]}
+			if 0 < nextIDWanted && nextIDWanted < uint32(len(messages.public))+1 { // We have something the other doesn't have
+				return &RumorMessage{localName, nextIDWanted, messages.public[nextIDWanted-1]}
 			}
-		} else if len(messages.list) > 0 { // The other doesn't know the peer, we have at least one message from him
-			return &RumorMessage{localName, 1, messages.list[0]}
+		} else if len(messages.public) > 0 { // The other doesn't know the peer, we have at least one message from him
+			return &RumorMessage{localName, 1, messages.public[0]}
 		}
 	}
 	return nil
@@ -129,7 +130,7 @@ func (nameIndex *NameIndex) IsLocalStatusComplete(status *StatusPacket) bool {
 	for _, distantPeer := range status.Want {
 
 		if messages, ok := nameIndex.index[distantPeer.Identifier]; ok { // We know this name
-			nextIDWanted := uint32(len(messages.list)) + 1
+			nextIDWanted := uint32(len(messages.public)) + 1
 			if nextIDWanted < distantPeer.NextID { // The other has something we don't have
 				return false
 			}
@@ -155,7 +156,7 @@ func (nameIndex *NameIndex) GetVectorClock() *StatusPacket {
 	for name, messages := range nameIndex.index {
 		status.Want[i] = PeerStatus{
 			Identifier: name,
-			NextID:     uint32(len(messages.list)) + 1}
+			NextID:     uint32(len(messages.public)) + 1}
 		i++
 	}
 
