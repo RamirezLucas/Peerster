@@ -259,7 +259,7 @@ func main() {
 
 	if !gossiper.Args.SimpleMode {
 		// Anti Entropy
-		//go antiEntropy(gossiper)
+		go antiEntropy(gossiper)
 
 		// RouteRumor
 		if gossiper.Args.RTimer != 0 {
