@@ -11,7 +11,7 @@ import (
 
 // OnSendStatus - Sends a status
 func OnSendStatus(vectorClock *types.StatusPacket, channel *net.UDPConn, target *net.UDPAddr) error {
-	fmt.Printf("sending status\n")
+
 	// Create the packet
 	pkt := types.GossipPacket{Status: vectorClock}
 	buf, err := protobuf.Encode(&pkt)

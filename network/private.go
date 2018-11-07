@@ -27,28 +27,38 @@ func OnSendPrivate(g *types.Gossiper, private *types.PrivateMessage, target *net
 
 }
 
-// OnReceivePrivate - Called when a private message is received
-func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, isClientSide bool) {
+// OnReceiveClientPrivate - Called when a private message is received from the client
+func OnReceiveClientPrivate(g *types.Gossiper, private *types.PrivateMessage) {
 
-	// Complete the packet in case it comes from the client
-	if isClientSide {
-		private.Origin = g.Args.Name
-		private.ID = 0
-		private.HopLimit = 16
-		g.NameIndex.AddPrivateMessage(private)
-	} else {
-		private.HopLimit--
+	// Fill in remaining fields
+	private.Origin = g.Args.Name
+	private.ID = 0
+	private.HopLimit = 16
+
+	// Add the message
+	g.NameIndex.AddPrivateMessage(private)
+
+	// Pick the target (should exist) and send
+	target := g.Router.GetTarget(private.Destination)
+	if target != nil {
+		OnSendPrivate(g, private, target)
 	}
+
+}
+
+// OnReceivePrivate - Called when a private message is received
+func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, sender *net.UDPAddr) {
 
 	// Check if the message is for me
 	if g.Args.Name == private.Destination {
 		fmt.Printf("%s\n", private.PrivateMessageToString())
+		g.Router.AddContactIfAbsent(private.Origin, sender)
 		g.NameIndex.AddPrivateMessage(private)
-		types.FBuffer.AddFrontendPrivateMessage(private.Origin, private.Text)
 		return
 	}
 
-	// TODO: use destination to learn name of someone ?
+	// Decrement hop limit
+	private.HopLimit--
 
 	// Send/Relay private message if hop-limit not exhausted
 	if private.HopLimit != 0 {

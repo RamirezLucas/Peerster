@@ -118,7 +118,9 @@ func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UD
 	}
 
 	// Update the routing table for private messages
-	g.Router.UpdateTableAndPrint(rumor.Origin, sender, rumor.ID)
+	if rumor.Origin != g.Args.Name {
+		g.Router.UpdateTableAndPrint(rumor.Origin, sender, rumor.ID)
+	}
 
 	// Store the new message
 	g.NameIndex.AddMessageIfNext(rumor)

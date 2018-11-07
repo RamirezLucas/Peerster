@@ -56,16 +56,16 @@ func (nameIndex *NameIndex) AddPrivateMessage(private *PrivateMessage) {
 	defer nameIndex.mux.Unlock()
 
 	if messages, ok := nameIndex.index[private.Origin]; ok { // We know this name
-
 		messages.private = append(messages.private, private.Text)
 
 	} else { // We don't know this name
-
 		nameIndex.AddNameUnsafe(private.Origin)
 		messages := nameIndex.index[private.Origin]
 		messages.private = append(messages.private, private.Text)
-
 	}
+
+	// Forward to frontend
+	FBuffer.AddFrontendPrivateMessage(private.Origin, private.Destination, private.Text)
 }
 
 // AddMessageIfNext - Adds a message to the name index if we got all the preceding ones
@@ -105,7 +105,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 }
 
 // FillInRumorAndSave - Fills in a rumor coming from the client and store it
-func (nameIndex *NameIndex) FillInRumorAndSave(rumor *RumorMessage, origin string) uint32 {
+func (nameIndex *NameIndex) FillInRumorAndSave(rumor *RumorMessage, origin string) {
 	nameIndex.mux.Lock()
 	defer nameIndex.mux.Unlock()
 
@@ -123,13 +123,13 @@ func (nameIndex *NameIndex) FillInRumorAndSave(rumor *RumorMessage, origin strin
 		if !isRouteRumor {
 			FBuffer.AddFrontendRumor(rumor.Origin, rumor.Text)
 		}
+
+		return
 	}
 
 	// Should not happen
 	fmt.Printf("ERROR: Trying to get the last message ID of non-client peer %s\n", origin)
 	os.Exit(1)
-
-	return 0
 }
 
 // GetUnknownMessageTarget - Tries to find a message that we have but that the other doesn't

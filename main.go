@@ -90,7 +90,7 @@ func antiEntropy(g *types.Gossiper) {
 	}
 }
 
-func routeRumor(g *types.Gossiper, chanID chan uint32) {
+func rumorEntropy(g *types.Gossiper, chanID chan uint32) {
 
 	go network.OnSendRouteRumor(g, <-chanID)
 
@@ -154,7 +154,7 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 				go network.OnReceiveStatus(g, pkt.Status, sender, <-chanID)
 			}
 		case pkt.Private != nil:
-			go network.OnReceivePrivate(g, pkt.Private, false)
+			go network.OnReceivePrivate(g, pkt.Private, sender)
 		default:
 			// Should never happen
 		}
@@ -206,7 +206,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 				go network.OnReceiveClientRumor(g, &rumor, <-chanID)
 			}
 		case pkt.Private != nil:
-			go network.OnReceivePrivate(g, pkt.Private, true)
+			go network.OnReceiveClientPrivate(g, pkt.Private)
 		default:
 			// Should never happen
 		}
@@ -257,14 +257,14 @@ func main() {
 		go backend.Webserver(gossiper, chanID)
 	}
 
-	// Anti Entropy
-	// if !gossiper.Args.SimpleMode {
-	// 	go antiEntropy(gossiper)
-	// }
+	if !gossiper.Args.SimpleMode {
+		// Anti Entropy
+		//go antiEntropy(gossiper)
 
-	// RouteRumor
-	if gossiper.Args.RTimer != 0 {
-		go routeRumor(gossiper, chanID)
+		// RouteRumor
+		if gossiper.Args.RTimer != 0 {
+			go rumorEntropy(gossiper, chanID)
+		}
 	}
 
 	// Kill all goroutines before exiting

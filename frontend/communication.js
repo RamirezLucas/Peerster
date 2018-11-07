@@ -18,7 +18,11 @@ function getUpdates() {
                             addPeer(update.Peer.IP + ":" + update.Peer.Port)
                         } else if (update.PrivateMessage !== null) {
                             // This is a private message
-                            appendMessage(update.PrivateMessage.Name, update.PrivateMessage.Name, update.PrivateMessage.Msg)
+                            if (update.PrivateMessage.Origin === document.getElementById("my_name").innerHTML) {
+                                appendMessage(update.PrivateMessage.Destination, update.PrivateMessage.Origin, update.PrivateMessage.Msg)                                
+                            } else {
+                                appendMessage(update.PrivateMessage.Origin, update.PrivateMessage.Origin, update.PrivateMessage.Msg)
+                            }
                         } else if (update.PrivateContact !== null) {
                             // This is a private contact
                             addContact(update.PrivateContact.Name)
@@ -34,5 +38,5 @@ function getUpdates() {
 
 function refresh() {
     getUpdates()
-    setTimeout(refresh, 3000);
+    setTimeout(refresh, 1000);
 }

@@ -53,7 +53,7 @@ function sendPrivateMessage(destination, privateMsg) {
 function appendMessage(channel, sender, msg_content) {
 
     /* The function assumes that the channel already exists */
-    
+
     // Check who was the last to talk on the channel
     var conversation = document.getElementById(channel);
     var childs_conv = conversation.children;

@@ -75,8 +75,8 @@ function whoAmI() {
             if (xhr.responseText !== "") {
                 var json = JSON.parse(xhr.responseText); // Parse JSON
                 if(json.hasOwnProperty("name") && json.hasOwnProperty("addr")){ // Check that the keys exist
-                    var myContact = document.getElementById("my_contact");
-                    myContact.innerHTML = '<span>' + json.name + '</span>\n<span>' + json.addr + '</span>'
+                    document.getElementById("my_name").innerHTML = json.name
+                    document.getElementById("my_address").innerHTML = json.addr                
                 }
             }
         }

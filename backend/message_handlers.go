@@ -66,7 +66,7 @@ func postPrivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Accept the new message
 	privateMessage := &types.PrivateMessage{Destination: dst, Text: msg}
-	network.OnReceivePrivate(gossiper, privateMessage, true)
+	network.OnReceiveClientPrivate(gossiper, privateMessage)
 }
 
 func getUpdatesHandler(w http.ResponseWriter, r *http.Request) {

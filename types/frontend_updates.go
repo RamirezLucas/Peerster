@@ -26,8 +26,9 @@ type FrontendPeer struct {
 
 // FrontendPrivateMessage - A private message for the frontend
 type FrontendPrivateMessage struct {
-	Name string // Peer's name
-	Msg  string // Peer's message
+	Origin      string // Message's origin
+	Destination string // Message's destination
+	Msg         string // Peer's message
 }
 
 // FrontendPrivateContact - A private contact for the frontend
@@ -89,18 +90,18 @@ func (buffer *FrontendBuffer) AddFrontendPeer(ip, port string) {
 }
 
 // AddFrontendPrivateMessage - Adds a private message to the buffer
-func (buffer *FrontendBuffer) AddFrontendPrivateMessage(name, msg string) {
+func (buffer *FrontendBuffer) AddFrontendPrivateMessage(origin, destination, msg string) {
 	buffer.mux.Lock()
 	defer buffer.mux.Unlock()
 
 	// Prevent Javascript injection
-	name = strings.Replace(name, "<", " &lt ", -1)
-	name = strings.Replace(name, ">", " &gt ", -1)
+	origin = strings.Replace(origin, "<", " &lt ", -1)
+	origin = strings.Replace(origin, ">", " &gt ", -1)
 	msg = strings.Replace(msg, "<", " &lt ", -1)
 	msg = strings.Replace(msg, ">", " &gt ", -1)
 
 	// Create update
-	newPrivateMessage := &FrontendPrivateMessage{Name: name, Msg: msg}
+	newPrivateMessage := &FrontendPrivateMessage{Origin: origin, Destination: destination, Msg: msg}
 	newUpdate := &FrontendUpdate{PrivateMessage: newPrivateMessage}
 	buffer.updates = append(buffer.updates, newUpdate)
 }
