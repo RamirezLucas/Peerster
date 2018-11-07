@@ -27,6 +27,29 @@ function checkSend(e) {
 
 }
 
+function sendRumor(rumor) {
+    
+    // POST data
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/rumor", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    var data = JSON.stringify({"message": rumor});
+    xhr.send(data);
+
+}
+
+function sendPrivateMessage(destination, privateMsg) {
+    
+    // POST data
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/private", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    var data = JSON.stringify({"destination": destination,
+                                "message": privateMsg});
+    xhr.send(data);
+
+}
+
 function appendMessage(channel, sender, msg_content) {
 
     /* The function assumes that the channel already exists */

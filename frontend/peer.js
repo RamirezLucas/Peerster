@@ -10,12 +10,23 @@ function checkNewPeer(e) {
 
             // Send new peer
             var newPeer = document.getElementById("new_peer").value;
-            sendToServer("peer", newPeer, "/node")
+            sendPeer(newPeer);
 
             // Reset textarea
             document.getElementById("new_peer").value = "";
         }
     }
+}
+
+function sendPeer(addr) {
+    
+    // POST data
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/node", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    var data = JSON.stringify({"peer": addr});
+    xhr.send(data);
+
 }
 
 function addPeer(address) {
