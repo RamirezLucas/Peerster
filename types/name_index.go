@@ -50,6 +50,24 @@ func (nameIndex *NameIndex) AddNameUnsafe(name string) {
 	}
 }
 
+// AddPrivateMessage - Adds a private message to the name index (no order imposed)
+func (nameIndex *NameIndex) AddPrivateMessage(private *PrivateMessage) {
+	nameIndex.mux.Lock()
+	defer nameIndex.mux.Unlock()
+
+	if messages, ok := nameIndex.index[private.Origin]; ok { // We know this name
+
+		messages.private = append(messages.private, private.Text)
+
+	} else { // We don't know this name
+
+		nameIndex.AddNameUnsafe(private.Origin)
+		messages := nameIndex.index[private.Origin]
+		messages.private = append(messages.private, private.Text)
+
+	}
+}
+
 // AddMessageIfNext - Adds a message to the name index if we got all the preceding ones
 func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 	nameIndex.mux.Lock()

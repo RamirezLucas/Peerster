@@ -9,30 +9,50 @@ import (
 
 // RoutingTable - Represents a routing table between peers name and next hop <ip:port>
 type RoutingTable struct {
-	table map[string]*Peer // A mapping from peer name to <ip:port>
-	mux   sync.Mutex       // Mutex to manipulate the structure from different threads
+	table map[string]*NextHop // A mapping from peer name to <ip:port>
+	mux   sync.Mutex          // Mutex to manipulate the structure from different threads
+}
+
+// NextHop - Represents a next hop along a route
+type NextHop struct {
+	nextPeer     *Peer  // The next peer along the route
+	lastUpdateID uint32 // The last ID used to update the route
 }
 
 // NewRoutingTable - Creates a new instance of RoutingTable
 func NewRoutingTable() *RoutingTable {
 	var routing RoutingTable
-	routing.table = make(map[string]*Peer)
+	routing.table = make(map[string]*NextHop)
 	return &routing
 }
 
+// NewNextHop - Creates a new instance of NextHop
+func NewNextHop(rawAddr string, udpAddr *net.UDPAddr, updateID uint32) *NextHop {
+	var nextHop NextHop
+	nextHop.nextPeer = NewPeer(rawAddr, udpAddr)
+	nextHop.lastUpdateID = updateID
+	return &nextHop
+}
+
 // UpdateTableAndPrint - Updates the table with a new/updated record and prints it
-func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAddr) {
+func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAddr, updateID uint32) {
 	routing.mux.Lock()
 	defer routing.mux.Unlock()
 
 	addrStr := UDPAddressToString(sender)
 
-	if _, ok := routing.table[name]; !ok { // We don't know the sender
-		routing.table[name] = NewPeer(addrStr, sender)
+	if nextHop, ok := routing.table[name]; !ok { // We don't know the sender
+		routing.table[name] = NewNextHop(addrStr, sender, updateID)
+
+		// Send the new name to the server
+		FBuffer.AddFrontendPrivateContact(name)
 
 	} else { // We know the sender
 
-		routing.table[name] = NewPeer(addrStr, sender)
+		// Update the route if the sequence ID is higher or equal
+		if updateID >= nextHop.lastUpdateID {
+			routing.table[name] = NewNextHop(addrStr, sender, updateID)
+		}
 
 	}
 
@@ -42,8 +62,8 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 // GetTarget - Get the next-hop target in the routing table for a particular destination
 func (routing *RoutingTable) GetTarget(name string) *net.UDPAddr {
 
-	if peer, ok := routing.table[name]; ok { // We have a next-hop
-		return &peer.udpAddr
+	if nextHop, ok := routing.table[name]; ok { // We have a next-hop
+		return &nextHop.nextPeer.udpAddr
 	}
 
 	// We don't have a next-hop (should not happen)
@@ -53,8 +73,8 @@ func (routing *RoutingTable) GetTarget(name string) *net.UDPAddr {
 // RouterEntryToStringUnsafe - Returns the textual representation of a router entry
 func (routing *RoutingTable) RouterEntryToStringUnsafe(name string) string {
 
-	if peer, ok := routing.table[name]; ok { // We know the sender
-		return fmt.Sprintf("DSDV %s %s", name, peer.PeerToString())
+	if nextHop, ok := routing.table[name]; ok { // We know the sender
+		return fmt.Sprintf("DSDV %s %s", name, nextHop.nextPeer.PeerToString())
 	}
 
 	fmt.Printf("ERROR: Trying to print non-existent entry %s in the routing table", name)

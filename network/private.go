@@ -42,6 +42,7 @@ func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, sender *
 	// Check if the message is for me
 	if g.Args.Name == private.Destination {
 		fmt.Printf("%s\n", private.PrivateMessageToString())
+		g.NameIndex.AddPrivateMessage(private)
 		types.FBuffer.AddFrontendPrivateMessage(private.Origin, private.Text)
 		return
 	}
