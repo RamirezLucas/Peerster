@@ -1,10 +1,22 @@
-function sendToServer(jsonKey, jsonValue, domain) {
+function sendRumor(rumor) {
     
     // POST data
     var xhr = new XMLHttpRequest();
-    xhr.open("POST", domain, true);
+    xhr.open("POST", "/rumor", true);
     xhr.setRequestHeader("Content-Type", "application/json");
-    var data = JSON.stringify({jsonKey: jsonValue});
+    var data = JSON.stringify({"message": rumor});
+    xhr.send(data);
+
+}
+
+function sendPrivateMessage(destination, privateMsg) {
+    
+    // POST data
+    var xhr = new XMLHttpRequest();
+    xhr.open("POST", "/private", true);
+    xhr.setRequestHeader("Content-Type", "application/json");
+    var data = JSON.stringify({"destination": destination,
+                                "message": privateMsg});
     xhr.send(data);
 
 }

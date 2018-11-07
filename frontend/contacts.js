@@ -74,8 +74,9 @@ function whoAmI() {
         if (xhr.readyState === 4 && xhr.status === 200) {
             if (xhr.responseText !== "") {
                 var json = JSON.parse(xhr.responseText); // Parse JSON
-                if(json.hasOwnProperty("name")){ // Check that the key exists
-                    document.getElementById("myID").innerText = 'MESSAGES (gossiping as ' + json.name + ')'
+                if(json.hasOwnProperty("name") && json.hasOwnProperty("addr")){ // Check that the keys exist
+                    var myContact = document.getElementById("my_contact");
+                    myContact.innerHTML = '<span>' + json.name + '</span><span>' + json.addr + '</span>'
                 }
             }
         }
@@ -104,6 +105,6 @@ window.onload = function(){
     whoAmI()
 
     // Initial call to refresh the page
-    refresh()    
+    //refresh()    
 
 };

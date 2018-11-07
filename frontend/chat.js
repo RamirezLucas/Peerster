@@ -16,9 +16,9 @@ function checkSend(e) {
         // Send message
         var newMsg = document.getElementById("send_message").value;
         if (curr_contact.innerHTML === "Global Channel") {
-            sendToServer("message", newMsg, "/rumor")        
+            sendRumor(newMsg)      
         } else {
-            sendToServer("message", newMsg, "/private")        
+            sendPrivateMessage(curr_contact.innerHTML, newMsg)        
         }
 
         // Reset textarea

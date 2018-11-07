@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-func postMessageHandler(w http.ResponseWriter, r *http.Request) {
+func confirmAndParse(w http.ResponseWriter, r *http.Request) *map[string]interface{} {
 
 	// Confirm POST to frontend
 	w.WriteHeader(http.StatusOK)
@@ -16,28 +16,57 @@ func postMessageHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("{}"))
 
 	// Parse received JSON
-	var newMsg map[string]interface{}
+	var recJSON map[string]interface{}
 	if data, err := ioutil.ReadAll(r.Body); err == nil {
-		if err := json.Unmarshal(data, &newMsg); err != nil {
-			return // Ignore
+		if err := json.Unmarshal(data, &recJSON); err != nil {
+			return nil
 		}
 	} else {
+		return nil
+	}
+
+	return &recJSON
+}
+
+func postRumorHandler(w http.ResponseWriter, r *http.Request) {
+
+	recJSON := confirmAndParse(w, r)
+	if recJSON != nil {
 		return // Ignore
 	}
 
 	// Typecheck
-	msg, ok := newMsg["msg"].(string)
+	msg, ok := (*recJSON)["message"].(string)
 	if !ok {
 		return // Ignore
 	}
 
-	// Accep the new message
+	// Accept the new message
 	rumor := &types.RumorMessage{Text: msg}
 	network.OnReceiveRumor(gossiper, rumor, nil, true, <-(*idChannel))
 
 }
 
-func getMessageHandler(w http.ResponseWriter, r *http.Request) {
+func postPrivateHandler(w http.ResponseWriter, r *http.Request) {
+
+	recJSON := confirmAndParse(w, r)
+	if recJSON != nil {
+		return // Ignore
+	}
+
+	// Typecheck
+	dst, ok1 := (*recJSON)["destination"].(string)
+	msg, ok2 := (*recJSON)["message"].(string)
+	if !ok1 || !ok2 {
+		return // Ignore
+	}
+
+	// Accept the new message
+	privateMessage := &types.PrivateMessage{Destination: dst, Text: msg}
+	network.OnReceivePrivate(gossiper, privateMessage, true)
+}
+
+func getUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get data
 	data := types.FBuffer.GetDataAndEmpty()
@@ -49,13 +78,13 @@ func getMessageHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func getInitMessageHandler(w http.ResponseWriter, r *http.Request) {
+// func getInitMessageHandler(w http.ResponseWriter, r *http.Request) {
 
-	// data := gossiper.NameIndex.GetEverything()
+// 	data := gossiper.NameIndex.GetEverything()
 
-	// // Send JSON data
-	// w.WriteHeader(http.StatusOK)
-	// w.Header().Set("Content-Type", "application/json")
-	// w.Write(*data)
+// 	// Send JSON data
+// 	w.WriteHeader(http.StatusOK)
+// 	w.Header().Set("Content-Type", "application/json")
+// 	w.Write(*data)
 
-}
+// }

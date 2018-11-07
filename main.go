@@ -168,7 +168,7 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 				go network.OnReceiveStatus(g, pkt.Status, sender, <-chanID)
 			}
 		case pkt.Private != nil:
-			go network.OnReceivePrivate(g, pkt.Private, sender, false)
+			go network.OnReceivePrivate(g, pkt.Private, false)
 		default:
 			// Should never happen
 		}
@@ -214,7 +214,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 				go network.OnReceiveRumor(g, &rumor, sender, true, <-chanID)
 			}
 		case pkt.Private != nil:
-			go network.OnReceivePrivate(g, pkt.Private, sender, true)
+			go network.OnReceivePrivate(g, pkt.Private, true)
 		default:
 			// Should never happen
 		}

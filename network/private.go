@@ -28,7 +28,7 @@ func OnSendPrivate(g *types.Gossiper, private *types.PrivateMessage, target *net
 }
 
 // OnReceivePrivate - Called when a private message is received
-func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, sender *net.UDPAddr, isClientSide bool) {
+func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, isClientSide bool) {
 
 	// Complete the packet in case it comes from the client
 	if isClientSide {
