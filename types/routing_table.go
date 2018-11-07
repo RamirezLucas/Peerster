@@ -43,6 +43,7 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 
 	if nextHop, ok := routing.table[name]; !ok { // We don't know the sender
 		routing.table[name] = NewNextHop(addrStr, sender, updateID)
+		fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
 
 		// Send the new name to the server
 		FBuffer.AddFrontendPrivateContact(name)
@@ -52,11 +53,11 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 		// Update the route if the sequence ID is higher or equal
 		if updateID >= nextHop.lastUpdateID {
 			routing.table[name] = NewNextHop(addrStr, sender, updateID)
+			fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
 		}
 
 	}
 
-	fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
 }
 
 // GetTarget - Get the next-hop target in the routing table for a particular destination
@@ -77,7 +78,7 @@ func (routing *RoutingTable) RouterEntryToStringUnsafe(name string) string {
 		return fmt.Sprintf("DSDV %s %s", name, nextHop.nextPeer.PeerToString())
 	}
 
-	fmt.Printf("ERROR: Trying to print non-existent entry %s in the routing table", name)
+	fmt.Printf("ERROR: Trying to print non-existent entry %s in the routing table\n", name)
 	os.Exit(1)
 	return ""
 }

@@ -104,11 +104,31 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *RumorMessage) bool {
 	return false
 }
 
-// GetLastMessageID - Get the next message expected for a given name
-func (nameIndex *NameIndex) GetLastMessageID(name string) uint32 {
-	if messages, ok := nameIndex.index[name]; ok { // We know this name
-		return uint32(len(messages.public)) + 1
+// FillInRumorAndSave - Fills in a rumor coming from the client and store it
+func (nameIndex *NameIndex) FillInRumorAndSave(rumor *RumorMessage, origin string) uint32 {
+	nameIndex.mux.Lock()
+	defer nameIndex.mux.Unlock()
+
+	// Is the message a RouteRumor ?
+	isRouteRumor := (rumor.Text == "")
+
+	if messages, ok := nameIndex.index[origin]; ok { // We know this name
+		// Fill in the rumor
+		rumor.Origin = origin
+		rumor.ID = uint32(len(messages.public)) + 1
+		// Store it
+		messages.public = append(messages.public, rumor.Text)
+
+		// Don't forward route rumors to the server
+		if !isRouteRumor {
+			FBuffer.AddFrontendRumor(rumor.Origin, rumor.Text)
+		}
 	}
+
+	// Should not happen
+	fmt.Printf("ERROR: Trying to get the last message ID of non-client peer %s\n", origin)
+	os.Exit(1)
+
 	return 0
 }
 

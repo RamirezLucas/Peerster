@@ -35,6 +35,7 @@ func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, isClient
 		private.Origin = g.Args.Name
 		private.ID = 0
 		private.HopLimit = 16
+		g.NameIndex.AddPrivateMessage(private)
 	} else {
 		private.HopLimit--
 	}

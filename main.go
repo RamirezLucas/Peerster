@@ -92,31 +92,17 @@ func antiEntropy(g *types.Gossiper) {
 
 func routeRumor(g *types.Gossiper, chanID chan uint32) {
 
-	// Send a rumor on startup
-	sendRouteRumor(g, chanID)
+	go network.OnSendRouteRumor(g, <-chanID)
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Duration(g.Args.RTimer) * time.Second)
 	for {
 		select {
 		case <-timer.C:
-			sendRouteRumor(g, chanID)
+			go network.OnSendRouteRumor(g, <-chanID)
 		}
 	}
 
-}
-
-func sendRouteRumor(g *types.Gossiper, chanID chan uint32) {
-	// Pick a random target and send a RouteRumor message
-	target := g.PeerIndex.GetRandomPeer(nil)
-	nextID := g.NameIndex.GetLastMessageID(g.Args.Name)
-
-	// Create a RouteRumor message
-	routeRumor := &types.RumorMessage{Origin: g.Args.Name, ID: nextID, Text: ""}
-
-	if target != nil {
-		network.OnSendRumor(g, routeRumor, target, <-chanID)
-	}
 }
 
 func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
@@ -160,7 +146,7 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 
 			network.OnBroadcastNetwork(g, pkt.SimpleMsg)
 		case pkt.Rumor != nil:
-			go network.OnReceiveRumor(g, pkt.Rumor, sender, false, <-chanID)
+			go network.OnReceiveRumor(g, pkt.Rumor, sender, <-chanID)
 		case pkt.Status != nil:
 
 			isPacketHandled := g.Timeouts.SearchAndForward(sender, pkt.Status)
@@ -191,6 +177,12 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 			continue
 		}
 
+		// Check that the message arrived from the client
+		if types.UDPAddressToString(sender) != g.Args.ClientAddr {
+			// Error: ignore the packet
+			continue
+		}
+
 		// Decode the packet
 		var pkt types.GossipPacket
 		if err := protobuf.Decode(buf[:n], &pkt); err != nil {
@@ -211,7 +203,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 			} else {
 				// Promote SimpleMessage to RumorMessage
 				rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
-				go network.OnReceiveRumor(g, &rumor, sender, true, <-chanID)
+				go network.OnReceiveClientRumor(g, &rumor, <-chanID)
 			}
 		case pkt.Private != nil:
 			go network.OnReceivePrivate(g, pkt.Private, true)
@@ -266,9 +258,9 @@ func main() {
 	}
 
 	// Anti Entropy
-	if !gossiper.Args.SimpleMode {
-		go antiEntropy(gossiper)
-	}
+	// if !gossiper.Args.SimpleMode {
+	// 	go antiEntropy(gossiper)
+	// }
 
 	// RouteRumor
 	if gossiper.Args.RTimer != 0 {

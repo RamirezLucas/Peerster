@@ -4,6 +4,7 @@ import (
 	"Peerster/network"
 	"Peerster/types"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 )
@@ -19,9 +20,11 @@ func confirmAndParse(w http.ResponseWriter, r *http.Request) *map[string]interfa
 	var recJSON map[string]interface{}
 	if data, err := ioutil.ReadAll(r.Body); err == nil {
 		if err := json.Unmarshal(data, &recJSON); err != nil {
+			fmt.Printf("a")
 			return nil
 		}
 	} else {
+		fmt.Printf("b")
 		return nil
 	}
 
@@ -31,7 +34,7 @@ func confirmAndParse(w http.ResponseWriter, r *http.Request) *map[string]interfa
 func postRumorHandler(w http.ResponseWriter, r *http.Request) {
 
 	recJSON := confirmAndParse(w, r)
-	if recJSON != nil {
+	if recJSON == nil {
 		return // Ignore
 	}
 
@@ -43,14 +46,14 @@ func postRumorHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Accept the new message
 	rumor := &types.RumorMessage{Text: msg}
-	network.OnReceiveRumor(gossiper, rumor, nil, true, <-(*idChannel))
+	network.OnReceiveClientRumor(gossiper, rumor, <-(*idChannel))
 
 }
 
 func postPrivateHandler(w http.ResponseWriter, r *http.Request) {
 
 	recJSON := confirmAndParse(w, r)
-	if recJSON != nil {
+	if recJSON == nil {
 		return // Ignore
 	}
 

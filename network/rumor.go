@@ -11,6 +11,23 @@ import (
 	"github.com/dedis/protobuf"
 )
 
+// OnSendRouteRumor - Sends a route rumor
+func OnSendRouteRumor(g *types.Gossiper, threadID uint32) {
+
+	// Pick a random target and send a RouteRumor message
+	target := g.PeerIndex.GetRandomPeer(nil)
+
+	// Create a RouteRumor message
+	routeRumor := &types.RumorMessage{Text: ""}
+
+	if target != nil {
+		// Store the new message
+		g.NameIndex.FillInRumorAndSave(routeRumor, g.Args.Name)
+		// Send the route rumor
+		OnSendRumor(g, routeRumor, target, threadID)
+	}
+}
+
 // OnSendRumor - Sends a rumor
 func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAddr, threadID uint32) error {
 
@@ -67,49 +84,51 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 
 }
 
+// OnReceiveClientRumor - Called when a rumor is received from the client
+func OnReceiveClientRumor(g *types.Gossiper, rumor *types.RumorMessage, threadID uint32) {
+
+	// Print to console
+	fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, g.PeerIndex.PeersToString())
+
+	// Store the new message
+	g.NameIndex.FillInRumorAndSave(rumor, g.Args.Name)
+
+	// There is no risk to propagate back to ourself
+	target := g.PeerIndex.GetRandomPeer(nil)
+
+	if target == nil { // There is no one to propagate too
+		return
+	}
+
+	// Propagate rumor
+	OnSendRumor(g, rumor, target, threadID)
+}
+
 // OnReceiveRumor - Called when a rumor is received
-func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, isClientSide bool, threadID uint32) {
+func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, threadID uint32) {
 
 	// Is the message a RouteRumor ?
 	isRouteRumor := (rumor.Text == "")
 
-	if isClientSide {
-		// Create the message name and ID
-		rumor.Origin = g.Args.Name
-		rumor.ID = g.NameIndex.GetLastMessageID(g.Args.Name)
-	} else {
-		// Attempt to add the sending peer to the list of neighbors
-		g.PeerIndex.AddPeerIfAbsent(sender)
+	// Attempt to add the sending peer to the list of neighbors
+	g.PeerIndex.AddPeerIfAbsent(sender)
+
+	if !isRouteRumor {
+		fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
 	}
 
-	// Print to the console
-	if isClientSide {
-		fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, g.PeerIndex.PeersToString())
-	} else {
-		if !isRouteRumor {
-			fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
-		}
-	}
+	// Update the routing table for private messages
+	g.Router.UpdateTableAndPrint(rumor.Origin, sender, rumor.ID)
 
 	// Store the new message
 	g.NameIndex.AddMessageIfNext(rumor)
-
-	// Potentially update the routing table for private messages
-	g.Router.UpdateTableAndPrint(rumor.Origin, sender, rumor.ID)
 
 	// Reply with status message
 	vectorClock := g.NameIndex.GetVectorClock()
 	OnSendStatus(vectorClock, g.GossipChannel, sender)
 
-	// Pick a random peer
-	var target *net.UDPAddr
-	if isClientSide {
-		// There is no risk to propagate back to ourself
-		target = g.PeerIndex.GetRandomPeer(nil)
-	} else {
-		// Prevent the sender from being selected
-		target = g.PeerIndex.GetRandomPeer(sender)
-	}
+	// Prevent the sender from being selected
+	target := g.PeerIndex.GetRandomPeer(sender)
 
 	if target == nil { // There is no one to propagate too
 		return
