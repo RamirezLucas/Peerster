@@ -81,7 +81,6 @@ func (routing *RoutingTable) GetTarget(name string) *net.UDPAddr {
 		return &nextHop.nextPeer.udpAddr
 	}
 
-	// We don't have a next-hop (should not happen)
 	return nil
 }
 
