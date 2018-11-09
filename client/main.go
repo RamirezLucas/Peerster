@@ -20,16 +20,27 @@ func main() {
 
 	// Create the packet
 	var pkt types.GossipPacket
-	if client.Filename != "" {
+
+	switch {
+	// File request for someone else
+	case client.Filename != "" && client.Dst != "" && client.Request != nil:
+		fileRequest := types.DataRequest{Destination: client.Filename, HashValue: client.Request}
+		pkt = types.GossipPacket{DataRequest: &fileRequest}
+	// File index
+	case client.Filename != "":
 		fileRequest := types.DataRequest{Origin: client.Filename}
 		pkt = types.GossipPacket{DataRequest: &fileRequest}
-	} else if client.Dst == "" { // Normal message
+	// Private message
+	case client.Dst != "" && client.Msg != "":
+		privateMsg := types.PrivateMessage{Text: client.Msg, Destination: client.Dst}
+		pkt = types.GossipPacket{Private: &privateMsg}
+	// Simple rumor
+	case client.Msg != "":
 		simpleMsg := types.SimpleMessage{Contents: client.Msg}
 		pkt = types.GossipPacket{SimpleMsg: &simpleMsg}
-	} else { // Private message
-		privateMsg := types.PrivateMessage{Text: client.Msg,
-			Destination: client.Dst}
-		pkt = types.GossipPacket{Private: &privateMsg}
+	default:
+		fmt.Println("main(): Invalid arguments to main")
+		return
 	}
 
 	// Encode the packet

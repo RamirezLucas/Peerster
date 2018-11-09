@@ -13,7 +13,7 @@ import (
 func ParseArgumentsClient() (*types.Client, error) {
 
 	var client types.Client
-	var uiPortDone, msgDone, destDone, fileDone bool
+	var uiPortDone, msgDone, destDone, fileDone, reqDone bool
 
 	for _, arg := range os.Args[1:] {
 		switch {
@@ -60,6 +60,17 @@ func ParseArgumentsClient() (*types.Client, error) {
 			// Validate
 			client.Filename = arg[6:]
 			fileDone = true
+		case strings.HasPrefix(arg, "-request="):
+			if reqDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "request defined twice"}
+			}
+
+			// Validate
+			client.Request = []byte(arg[9:])
+			if len(client.Request) != 32 {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "hash isn't 32 bytes long"}
+			}
+			reqDone = true
 		default:
 			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unknown argument"}
 		}
