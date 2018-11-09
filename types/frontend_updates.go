@@ -138,5 +138,4 @@ func (buffer *FrontendBuffer) GetDataAndEmpty() *[]byte {
 	buffer.updates = nil
 
 	return &data
-
 }

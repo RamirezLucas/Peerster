@@ -20,7 +20,10 @@ func main() {
 
 	// Create the packet
 	var pkt types.GossipPacket
-	if client.Dst == "" { // Normal message
+	if client.Filename != "" {
+		fileRequest := types.DataRequest{Origin: client.Filename}
+		pkt = types.GossipPacket{DataRequest: &fileRequest}
+	} else if client.Dst == "" { // Normal message
 		simpleMsg := types.SimpleMessage{Contents: client.Msg}
 		pkt = types.GossipPacket{SimpleMsg: &simpleMsg}
 	} else { // Private message

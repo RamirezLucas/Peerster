@@ -13,7 +13,7 @@ import (
 func ParseArgumentsClient() (*types.Client, error) {
 
 	var client types.Client
-	var uiPortDone, msgDone, destDone bool
+	var uiPortDone, msgDone, destDone, fileDone bool
 
 	for _, arg := range os.Args[1:] {
 		switch {
@@ -52,6 +52,14 @@ func ParseArgumentsClient() (*types.Client, error) {
 			// Validate
 			client.Dst = arg[6:]
 			destDone = true
+		case strings.HasPrefix(arg, "-file="):
+			if fileDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "file defined twice"}
+			}
+
+			// Validate
+			client.Filename = arg[6:]
+			fileDone = true
 		default:
 			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unknown argument"}
 		}

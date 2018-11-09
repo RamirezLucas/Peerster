@@ -103,7 +103,6 @@ func (forwarder *StatusResponseForwarder) LookForData(threadID uint32) *StatusPa
 	forwarder.mux.Lock()
 	defer forwarder.mux.Unlock()
 
-	// TODO: Maybe locking is needed here
 	if handler, ok := forwarder.responses[threadID]; ok {
 		select {
 		case response := <-handler.com:

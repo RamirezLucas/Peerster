@@ -29,7 +29,7 @@ type StatusPacket struct {
 	Want []PeerStatus // Vector clock
 }
 
-// PrivateMessage - Represents a pricate message between 2 peers
+// PrivateMessage - Represents a private message between 2 peers
 type PrivateMessage struct {
 	Origin      string // The sender's name
 	ID          uint32 // The message ID (not important for now as sequence order isn't enforced)
@@ -38,12 +38,31 @@ type PrivateMessage struct {
 	HopLimit    uint32 // The maximum number of hops the message is allowed to go through
 }
 
+// DataRequest - Represents a data request
+type DataRequest struct {
+	Origin      string // The message's origin
+	Destination string // The message's destination
+	HopLimit    uint32 // The maximum number of hops the message is allowed to go through
+	HashValue   []byte // The requeted hash value
+}
+
+// DataReply - Represents a data reply
+type DataReply struct {
+	Origin      string // The message's origin
+	Destination string // The message's destination
+	HopLimit    uint32 // The maximum number of hops the message is allowed to go through
+	HashValue   []byte // The hash value computed from the Data field
+	Data        []byte // Data
+}
+
 // GossipPacket -- Structure that is exchanged between gossipers (only one of the 4-fields can be non-nil)
 type GossipPacket struct {
-	SimpleMsg *SimpleMessage  // A plain message
-	Rumor     *RumorMessage   // A rumor
-	Status    *StatusPacket   // A vector clock
-	Private   *PrivateMessage // A private message
+	SimpleMsg   *SimpleMessage  // A plain message
+	Rumor       *RumorMessage   // A rumor
+	Status      *StatusPacket   // A vector clock
+	Private     *PrivateMessage // A private message
+	DataRequest *DataRequest    // A data request
+	DataReply   *DataReply      // A data reply
 }
 
 // SimpleMessageToString - Returns a textual representation of a SimpleMessage

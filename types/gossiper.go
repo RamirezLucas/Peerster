@@ -19,6 +19,7 @@ type Gossiper struct {
 	NameIndex     *NameIndex               // A dictionnary between peer names and received messages (Shared, thread-safe)
 	PeerIndex     *PeerIndex               // A dictionnary between <ip:port> and peer addresses (Shared, thread-safe)
 	Router        *RoutingTable            // A routing table associating names with next hop address (Shared, thread-safe)
+	FileIndex     *FileIndex               // A file index containing all indexed files (Shared, thread-safe)
 	Timeouts      *StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
 }
 
@@ -40,6 +41,7 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 	gossip.NameIndex = NewNameIndex()
 	gossip.PeerIndex = NewPeerIndex()
 	gossip.Router = NewRoutingTable()
+	gossip.FileIndex = NewFileIndex()
 	gossip.Timeouts = NewStatusResponseForwarder()
 
 	// Copy all the peers from the CLArgs to the PeerIndex

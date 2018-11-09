@@ -56,12 +56,18 @@ func isPacketValid(pkt *types.GossipPacket, isClientSide bool, isSimpleMode bool
 	if pkt.Private != nil {
 		counter++
 	}
+	if pkt.DataRequest != nil {
+		counter++
+	}
+	if pkt.DataReply != nil {
+		counter++
+	}
 	if counter != 1 {
 		return false
 	}
 
-	// The client only sends SimpleMessage and PrivateMessage
-	if isClientSide && (pkt.SimpleMsg == nil && pkt.Private == nil) {
+	// The client only sends SimpleMessage and PrivateMessage and DataRequest
+	if isClientSide && (pkt.SimpleMsg == nil && pkt.Private == nil && pkt.DataRequest == nil) {
 		return false
 	}
 
@@ -169,16 +175,9 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 
 	for {
 
-		var sender *net.UDPAddr
 		var n int
 		var err error
-		if n, sender, err = g.ClientChannel.ReadFromUDP(buf); err != nil {
-			// Error: ignore the packet
-			continue
-		}
-
-		// Check that the message arrived from the client
-		if types.UDPAddressToString(sender) != g.Args.ClientAddr {
+		if n, _, err = g.ClientChannel.ReadFromUDP(buf); err != nil {
 			// Error: ignore the packet
 			continue
 		}
@@ -207,6 +206,8 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 			}
 		case pkt.Private != nil:
 			go network.OnReceiveClientPrivate(g, pkt.Private)
+		case pkt.DataRequest != nil:
+			go g.FileIndex.IndexNewFile(pkt.DataRequest.Origin)
 		default:
 			// Should never happen
 		}
