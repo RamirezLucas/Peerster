@@ -6,7 +6,7 @@ import (
 )
 
 // BufSize - Size of the UDP buffer
-const BufSize = 2048
+const BufSize = 16384
 
 // TimeoutSec - Length of generic timeout
 const TimeoutSec = 1
@@ -19,8 +19,9 @@ type Gossiper struct {
 	NameIndex     *NameIndex               // A dictionnary between peer names and received messages (Shared, thread-safe)
 	PeerIndex     *PeerIndex               // A dictionnary between <ip:port> and peer addresses (Shared, thread-safe)
 	Router        *RoutingTable            // A routing table associating names with next hop address (Shared, thread-safe)
-	FileIndex     *FileIndex               // A file index containing all indexed files (Shared, thread-safe)
 	Timeouts      *StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
+	FileIndex     *FileIndex               // A file index containing all indexed files (Shared, thread-safe)
+	DataTimeouts  *DataResponseForwarder   // Timeouts for DataReplies (Shared, thread-safe)
 }
 
 // CLArgsGossiper - Command line arguments for the gossiper
@@ -41,8 +42,9 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 	gossip.NameIndex = NewNameIndex()
 	gossip.PeerIndex = NewPeerIndex()
 	gossip.Router = NewRoutingTable()
-	gossip.FileIndex = NewFileIndex()
 	gossip.Timeouts = NewStatusResponseForwarder()
+	gossip.FileIndex = NewFileIndex()
+	gossip.DataTimeouts = NewDataResponseForwarder()
 
 	// Copy all the peers from the CLArgs to the PeerIndex
 	for _, peer := range args.Peers {

@@ -3,8 +3,8 @@ package network
 import (
 	"Peerster/fail"
 	"Peerster/types"
+	"crypto/sha256"
 	"fmt"
-	"math/rand"
 	"net"
 	"time"
 
@@ -12,61 +12,172 @@ import (
 )
 
 // OnSendDataRequest - Sends a data request
-func OnSendDataRequest(g *types.Gossiper, request *types.DataRequest, target *net.UDPAddr, threadID uint32) error {
+func OnSendDataRequest(g *types.Gossiper, request *types.DataRequest, target *net.UDPAddr) error {
 
 	// Create the packet
 	pkt := types.GossipPacket{DataRequest: request}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
-		return &fail.CustomError{Fun: "OnSendDataRequest", Desc: "failed to encode GossipPacket"}
+		return &fail.CustomError{Fun: "OnSendDataRequest", Desc: "failed to encode DataRequest"}
 	}
 
 	// Send the packet
-	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
-		return &fail.CustomError{Fun: "OnSendDataRequest", Desc: "failed to send PrivateMessage"}
-	}
-
-	// NOTE: chance to miss the packet here, although unlikely
-
-	/* Allocate a TimeoutHandler object that the UDPDispatcher will use
-	to forward us the StatusPacket response */
-	g.Timeouts.AddTimeoutHandler(threadID, target)
-
-	// Create a timeout timer
-	timer := time.NewTicker(time.Second)
-
-	// Wait for the timeout
-	select {
-	case <-timer.C: // Timeout expired
-	}
-
-	// Stop the timer
-	timer.Stop()
-
-	response := g.Timeouts.DeleteTimeoutHandler(threadID)
-	if response == nil { // The response did not arrive on time
-
-		if rand.Int()%2 == 0 { // Flip a coin
-			return nil // Stop the thread
-		}
-
-		// Spread the rumor to someone else
-
-		if newTarget := g.PeerIndex.GetRandomPeer(target); newTarget != nil {
-			fmt.Printf("FLIPPED COIN sending rumor to %s\n", fmt.Sprintf("%s", newTarget))
-			OnSendRumor(g, rumor, newTarget, threadID)
-		}
-
-	} else { // We received a status response
-		OnReceiveStatus(g, response, target, threadID)
+	if _, err := g.GossipChannel.WriteToUDP(buf, target); err != nil {
+		return &fail.CustomError{Fun: "OnSendDataRequest", Desc: "failed to send DataRequest"}
 	}
 
 	return nil
+}
+
+// OnSendTimedDataRequest - Sends a data request with timeout
+func OnSendTimedDataRequest(g *types.Gossiper, request *types.DataRequest, target *net.UDPAddr) error {
+
+	for {
+		// Send the request
+		if err := OnSendDataRequest(g, request, target); err != nil {
+			return &fail.CustomError{Fun: "OnSendTimedDataRequest", Desc: "failed to send DataRequest"}
+		}
+
+		// Create a timeout timer
+		timer := time.NewTicker(time.Duration(5) * time.Second)
+
+		// Wait for the timeout
+		select {
+		case <-timer.C: // Timeout expired
+		}
+		// Stop the timer
+		timer.Stop()
+
+		// Check if the response was received
+		if g.DataTimeouts.CheckResponseReceived(request.HashValue) {
+			return nil
+		}
+	}
 
 }
 
-// OnRemoteFileRequest - Handles a remote file request
-func OnRemoteFileRequest(g *types.Gossiper, metahash []byte, localFilename, remotePeer string, threadID uint32) {
+// OnSendDataReply - Sends a data reply
+func OnSendDataReply(g *types.Gossiper, reply *types.DataReply, target *net.UDPAddr) {
+
+	// Create the packet
+	pkt := types.GossipPacket{DataReply: reply}
+	buf, err := protobuf.Encode(&pkt)
+	if err != nil {
+		return
+	}
+
+	// Send the packet
+	g.GossipChannel.WriteToUDP(buf, target)
+}
+
+// OnReceiveDataRequest - Called when a data request is received
+func OnReceiveDataRequest(g *types.Gossiper, request *types.DataRequest, sender *net.UDPAddr) {
+
+	if g.Args.Name == request.Destination { // Message is for me
+		// Add the conttact to our routing table
+		g.Router.AddContactIfAbsent(request.Origin, sender)
+
+		if request.HashValue != nil {
+
+			// Request data for this hash
+			data := g.FileIndex.GetDataFromHash(request.HashValue)
+
+			// Craft DataReply
+			reply := &types.DataReply{Origin: g.Args.Name,
+				Destination: request.Origin,
+				HopLimit:    16,
+				HashValue:   request.HashValue,
+				Data:        data,
+			}
+
+			// Pick the target (should exist) and send
+			if target := g.Router.GetTarget(request.Origin); target != nil {
+				OnSendDataReply(g, reply, target)
+			}
+
+		}
+
+	} else { // Message is for someone else
+		// Decrement hop limit
+		request.HopLimit--
+
+		// Send/Relay private message if hop-limit not exhausted
+		if request.HopLimit != 0 {
+
+			// Pick the target (should exist) and send
+			target := g.Router.GetTarget(request.Destination)
+			if target != nil {
+				OnSendDataRequest(g, request, target)
+			}
+		}
+	}
+
+}
+
+// OnReceiveDataReply - Called when a data reply is received
+func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.UDPAddr) {
+
+	// Check that the data contained in the message corresponds to the hash
+	receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
+	if string(reply.HashValue[:]) != string(receivedDataHash[:]) {
+		// Ignore
+		return
+	}
+
+	// Look for the corresponding data request
+	knownHash := g.DataTimeouts.SearchHashAndForward(reply.HashValue, reply.Origin)
+	if knownHash == nil {
+		// Ignore
+		return
+	}
+
+	if knownHash.IsMetahash { // Metahash
+		// Update the shared file's metafile
+		g.FileIndex.SetMetafile(knownHash.File.Filename, reply.HashValue, reply.Data)
+		// Request the file's chunks
+		OnRemoteChunksRequest(g, knownHash.File, reply.Origin)
+	} else { // Chunk
+		// Write the chunk
+		g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply.Data)
+	}
+}
+
+// OnRemoteChunksRequest - Request the chunks of a remote file
+func OnRemoteChunksRequest(g *types.Gossiper, file *types.SharedFile, remotePeer string) {
+
+	nbChunks := uint32(len(file.Metafile) / types.HashSizeBytes)
+
+	// Download all chunks
+	for chunkID := uint32(0); chunkID < nbChunks; chunkID++ {
+		fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkID, remotePeer)
+
+		index := chunkID * types.HashSizeBytes
+		hash := file.Metafile[index : index+types.HashSizeBytes]
+
+		// Create chunk request
+		request := &types.DataRequest{Origin: g.Args.Name,
+			Destination: remotePeer,
+			HopLimit:    16,
+			HashValue:   hash,
+		}
+
+		// Check that the remote peer exists
+		target := g.Router.GetTarget(remotePeer)
+		if target == nil {
+			return
+		}
+
+		g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, false, chunkID)
+		OnSendTimedDataRequest(g, request, target)
+		g.DataTimeouts.DeleteDataTimeoutHandler(hash)
+	}
+
+	// Download finished
+	fmt.Printf("RECONSTRUCTED file %s\n", file.Filename)
+}
+
+// OnRemoteMetaFileRequest - Request the metafile of a remote file
+func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, remotePeer string) {
 
 	// Check that the remote peer exists
 	target := g.Router.GetTarget(remotePeer)
@@ -74,14 +185,23 @@ func OnRemoteFileRequest(g *types.Gossiper, metahash []byte, localFilename, remo
 		return
 	}
 
-	// Create metafile request and send it
-	request := types.DataRequest{Origin: g.Args.Name,
+	// Create a shared file
+	sharedFile := g.FileIndex.AddNewIndexedFile(localFilename, metahash)
+	if sharedFile == nil {
+		// Error: filename already exists
+		return
+	}
+
+	// Create metafile request
+	request := &types.DataRequest{Origin: g.Args.Name,
 		Destination: remotePeer,
 		HopLimit:    16,
-		HashValue:   metahash}
+		HashValue:   metahash,
+	}
 
-	OnSendDataRequest(g, &request, target, threadID)
-
-	// Request each chunk one after the other
+	fmt.Printf("DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
+	g.DataTimeouts.AddDataTimeoutHandler(metahash, remotePeer, sharedFile, true, 0)
+	OnSendTimedDataRequest(g, request, target)
+	g.DataTimeouts.DeleteDataTimeoutHandler(metahash)
 
 }

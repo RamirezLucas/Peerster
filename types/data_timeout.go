@@ -1,118 +1,88 @@
 package types
 
 import (
-	"fmt"
-	"net"
-	"os"
 	"sync"
 )
 
 // DataResponseForwarder - Represents the set of pending timeouts for data requests
 type DataResponseForwarder struct {
-	responses map[uint32]*TimeoutHandler // An index of timeout handlers
-	mux       sync.Mutex                 // Mutex to manipulate the structure from different threads
+	responses map[string]*DataTimeoutHandler // An index of timeout handlers
+	mux       sync.Mutex                     // Mutex to manipulate the structure from different threads
 }
 
 // DataTimeoutHandler - Represents a timeout handler for data requests
 type DataTimeoutHandler struct {
-	name string    // A peer's name
-	com  chan bool // A channel to communicate to the original thread
+	Origin string     // The peer's name that should be contained in the Origin field of the DataReply
+	Done   bool       // Acknowledges that the handler has been executed
+	Hash   *KnownHash // Information regarding this particular hash
 }
 
-// NewStatusResponseForwarder - Creates a new instance of StatusResponseForwarder
-func NewStatusResponseForwarder() *StatusResponseForwarder {
-	var forwarder StatusResponseForwarder
-	forwarder.responses = make(map[uint32]*TimeoutHandler)
+// NewDataResponseForwarder - Creates a new instance of DataResponseForwarder
+func NewDataResponseForwarder() *DataResponseForwarder {
+	var forwarder DataResponseForwarder
+	forwarder.responses = make(map[string]*DataTimeoutHandler)
 	return &forwarder
 }
 
-// NewTimeoutHandler - Creates a new instance of TimeoutHandler
-func NewTimeoutHandler(udpAddr *net.UDPAddr) *TimeoutHandler {
-	var handler TimeoutHandler
-	handler.addr = *udpAddr
-	handler.com = make(chan *StatusPacket, 1)
+// NewDataTimeoutHandler - Creates a new instance of DataTimeoutHandler
+func NewDataTimeoutHandler(origin string, file *SharedFile, isMetahash bool, chunkIndex uint32) *DataTimeoutHandler {
+	var handler DataTimeoutHandler
+	handler.Origin = origin
+	handler.Done = false
+	handler.Hash = NewKnownHash(file, isMetahash, chunkIndex)
 	return &handler
 }
 
-// AddTimeoutHandler - Adds a new timeout handler to the forwarder
-func (forwarder *StatusResponseForwarder) AddTimeoutHandler(threadID uint32, sender *net.UDPAddr) {
+// AddDataTimeoutHandler - Adds a DataTimeoutHandler to the forwarder
+func (forwarder *DataResponseForwarder) AddDataTimeoutHandler(hash []byte, origin string,
+	file *SharedFile, isMetahash bool, chunkIndex uint32) *DataTimeoutHandler {
+
 	forwarder.mux.Lock()
 	defer forwarder.mux.Unlock()
 
-	if _, ok := forwarder.responses[threadID]; !ok {
-		forwarder.responses[threadID] = NewTimeoutHandler(sender)
+	handler := NewDataTimeoutHandler(origin, file, isMetahash, chunkIndex)
+	forwarder.responses[string(hash[:])] = handler
+	return handler
+}
+
+// DeleteDataTimeoutHandler - Deletes a DataTimeoutHandler from the forwarder
+func (forwarder *DataResponseForwarder) DeleteDataTimeoutHandler(hash []byte) {
+	forwarder.mux.Lock()
+	defer forwarder.mux.Unlock()
+
+	strHash := string(hash[:])
+
+	if _, ok := forwarder.responses[strHash]; ok {
+		delete(forwarder.responses, strHash)
 	} else {
-		fmt.Printf("ERROR: Trying to add existing threadID %d to the forwarder", threadID)
-		os.Exit(1)
+		panic("DeleteDataTimeoutHandler(): Trying to delete non-existing data handler")
 	}
 }
 
-// DeleteTimeoutHandler - Deletes a timeout handler from the forwarder (last chance pickup)
-func (forwarder *StatusResponseForwarder) DeleteTimeoutHandler(threadID uint32) *StatusPacket {
+// SearchHashAndForward - Searches the set of handlers for a given hash. Accept the reply on match
+func (forwarder *DataResponseForwarder) SearchHashAndForward(hash []byte, origin string) *KnownHash {
 	forwarder.mux.Lock()
 	defer forwarder.mux.Unlock()
 
-	if handler, ok := forwarder.responses[threadID]; ok {
-
-		var status *StatusPacket
-
-		// Last chance to look at the channel
-		select {
-		case status = <-handler.com:
-		default: // Do nothing
+	if match, ok := forwarder.responses[string(hash[:])]; ok { // We were waiting for this hash
+		if !match.Done && match.Origin == origin { // Check that data was sent from the correct peer
+			// Acknowledges to the sender thread
+			match.Done = true
+			// Return the information concerning this hash
+			return match.Hash
 		}
-
-		close(handler.com)
-		delete(forwarder.responses, threadID)
-		return status
 	}
-
-	fmt.Printf("ERROR: Trying to delete non-existing threadID %d from the forwarder", threadID)
-	os.Exit(1)
 	return nil
 }
 
-// SearchAndForward - Searches the list of handlers for a given sender address. Forwards the packet on match
-func (forwarder *StatusResponseForwarder) SearchAndForward(sender *net.UDPAddr, status *StatusPacket) bool {
+// CheckResponseReceived - Checks whether the response to the given hash was received
+func (forwarder *DataResponseForwarder) CheckResponseReceived(hash []byte) bool {
 	forwarder.mux.Lock()
 	defer forwarder.mux.Unlock()
 
-	minThreadID := uint32(0)
-
-	for threadID, handler := range forwarder.responses {
-		if !handler.done && CompareUDPAddress(&handler.addr, sender) { // Match!
-			if minThreadID == 0 || threadID < minThreadID {
-				minThreadID = threadID // Find the "oldest" thread
-			}
-		}
+	if handler, ok := forwarder.responses[string(hash[:])]; ok {
+		return handler.Done
 	}
 
-	if minThreadID != 0 { // We got a match!
-		handler := forwarder.responses[minThreadID]
-		handler.com <- status
-		handler.done = true
-		return true
-	}
-
-	return false
-}
-
-// LookForData - Look for data on the channel dedicated to a particular thread
-func (forwarder *StatusResponseForwarder) LookForData(threadID uint32) *StatusPacket {
-	forwarder.mux.Lock()
-	defer forwarder.mux.Unlock()
-
-	if handler, ok := forwarder.responses[threadID]; ok {
-		select {
-		case response := <-handler.com:
-			return response
-		default:
-			return nil
-		}
-	} else {
-		fmt.Printf("ERROR: Trying to look for data on non-existing timeut handler. ID: %d", threadID)
-		os.Exit(1)
-	}
-
-	return nil
+	panic("CheckResponseReceived(): Trying to check an inexistant handler")
 }

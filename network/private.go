@@ -1,7 +1,6 @@
 package network
 
 import (
-	"Peerster/fail"
 	"Peerster/types"
 	"fmt"
 	"net"
@@ -10,21 +9,17 @@ import (
 )
 
 // OnSendPrivate - Sends a private message
-func OnSendPrivate(g *types.Gossiper, private *types.PrivateMessage, target *net.UDPAddr) error {
+func OnSendPrivate(g *types.Gossiper, private *types.PrivateMessage, target *net.UDPAddr) {
 
 	// Create the packet
 	pkt := types.GossipPacket{Private: private}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
-		return &fail.CustomError{Fun: "OnSendPrivate", Desc: "failed to encode GossipPacket"}
+		return
 	}
 
 	// Send the packet
-	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
-		return &fail.CustomError{Fun: "OnSendPrivate", Desc: "failed to send PrivateMessage"}
-	}
-	return nil
-
+	g.GossipChannel.WriteToUDP(buf, target)
 }
 
 // OnReceiveClientPrivate - Called when a private message is received from the client
@@ -39,8 +34,7 @@ func OnReceiveClientPrivate(g *types.Gossiper, private *types.PrivateMessage) {
 	g.NameIndex.AddPrivateMessage(private)
 
 	// Pick the target (should exist) and send
-	target := g.Router.GetTarget(private.Destination)
-	if target != nil {
+	if target := g.Router.GetTarget(private.Destination); target != nil {
 		OnSendPrivate(g, private, target)
 	}
 
@@ -64,8 +58,7 @@ func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, sender *
 	if private.HopLimit != 0 {
 
 		// Pick the target (should exist) and send
-		target := g.Router.GetTarget(private.Destination)
-		if target != nil {
+		if target := g.Router.GetTarget(private.Destination); target != nil {
 			OnSendPrivate(g, private, target)
 		}
 	}

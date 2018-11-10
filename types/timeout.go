@@ -1,9 +1,7 @@
 package types
 
 import (
-	"fmt"
 	"net"
-	"os"
 	"sync"
 )
 
@@ -43,8 +41,7 @@ func (forwarder *StatusResponseForwarder) AddTimeoutHandler(threadID uint32, sen
 	if _, ok := forwarder.responses[threadID]; !ok {
 		forwarder.responses[threadID] = NewTimeoutHandler(sender)
 	} else {
-		fmt.Printf("ERROR: Trying to add existing threadID %d to the forwarder", threadID)
-		os.Exit(1)
+		panic("AddTimeoutHandler(): Trying to add existing threadID to the forwarder")
 	}
 }
 
@@ -68,9 +65,7 @@ func (forwarder *StatusResponseForwarder) DeleteTimeoutHandler(threadID uint32) 
 		return status
 	}
 
-	fmt.Printf("ERROR: Trying to delete non-existing threadID %d from the forwarder", threadID)
-	os.Exit(1)
-	return nil
+	panic("DeleteTimeoutHandler(): Trying to delete non-existing rumor handler")
 }
 
 // SearchAndForward - Searches the list of handlers for a given sender address. Forwards the packet on match
@@ -110,10 +105,6 @@ func (forwarder *StatusResponseForwarder) LookForData(threadID uint32) *StatusPa
 		default:
 			return nil
 		}
-	} else {
-		fmt.Printf("ERROR: Trying to look for data on non-existing timeut handler. ID: %d", threadID)
-		os.Exit(1)
 	}
-
-	return nil
+	panic("LookForData(): Trying to look for data on non-existing timeut handler")
 }

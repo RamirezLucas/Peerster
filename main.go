@@ -113,10 +113,10 @@ func rumorEntropy(g *types.Gossiper, chanID chan uint32) {
 
 func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 
-	// Create a buffer to store arriving data
-	buf := make([]byte, types.BufSize)
-
 	for {
+
+		// Create a buffer to store arriving data
+		buf := make([]byte, types.BufSize)
 
 		var sender *net.UDPAddr
 		var n int
@@ -161,6 +161,10 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 			}
 		case pkt.Private != nil:
 			go network.OnReceivePrivate(g, pkt.Private, sender)
+		case pkt.DataRequest != nil:
+			go network.OnReceiveDataRequest(g, pkt.DataRequest, sender)
+		case pkt.DataReply != nil:
+			go network.OnReceiveDataReply(g, pkt.DataReply, sender)
 		default:
 			// Should never happen
 		}
@@ -170,10 +174,10 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 
 func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 
-	// Create a buffer to store arriving data
-	buf := make([]byte, types.BufSize)
-
 	for {
+
+		// Create a buffer to store arriving data
+		buf := make([]byte, types.BufSize)
 
 		var n int
 		var err error
@@ -214,8 +218,9 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 				// File index
 				go g.FileIndex.IndexNewFile(pkt.DataRequest.Origin)
 			} else {
-				// Remote file requets
-				// TODO
+				// Remote file request
+				go network.OnRemoteMetaFileRequest(g, pkt.DataRequest.HashValue,
+					pkt.DataRequest.Origin, pkt.DataRequest.Destination)
 			}
 
 		default:
