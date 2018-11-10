@@ -134,46 +134,54 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 	if knownHash.IsMetahash { // Metahash
 		// Update the shared file's metafile
 		g.FileIndex.SetMetafile(knownHash.File.Filename, reply.HashValue, reply.Data)
-		// Request the file's chunks
-		OnRemoteChunksRequest(g, knownHash.File, reply.Origin)
-	} else { // Chunk
-		// Write the chunk
-		g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply.Data)
 	}
+
+	if nbChunks := uint32(len(knownHash.File.Metafile) / types.HashSizeBytes); nbChunks > 0 {
+
+		if knownHash.IsMetahash { // Request first chunk
+			OnRemoteChunkRequest(g, knownHash.File, 0, reply.Origin)
+		} else {
+			// Write received chunk
+			g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply.Data)
+
+			if knownHash.ChunkIndex+1 < nbChunks { // Request the next chunk
+				OnRemoteChunkRequest(g, knownHash.File, knownHash.ChunkIndex+1, reply.Origin)
+			} else { // That was the last chunk
+				fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+			}
+		}
+
+	} else { // Download finished
+		fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+	}
+
 }
 
-// OnRemoteChunksRequest - Request the chunks of a remote file
-func OnRemoteChunksRequest(g *types.Gossiper, file *types.SharedFile, remotePeer string) {
+// OnRemoteChunkRequest - Request the chunks of a remote file
+func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex uint32, remotePeer string) {
 
-	nbChunks := uint32(len(file.Metafile) / types.HashSizeBytes)
+	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
 
-	// Download all chunks
-	for chunkID := uint32(0); chunkID < nbChunks; chunkID++ {
-		fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkID, remotePeer)
+	index := chunkIndex * types.HashSizeBytes
+	hash := file.Metafile[index : index+types.HashSizeBytes]
 
-		index := chunkID * types.HashSizeBytes
-		hash := file.Metafile[index : index+types.HashSizeBytes]
-
-		// Create chunk request
-		request := &types.DataRequest{Origin: g.Args.Name,
-			Destination: remotePeer,
-			HopLimit:    16,
-			HashValue:   hash,
-		}
-
-		// Check that the remote peer exists
-		target := g.Router.GetTarget(remotePeer)
-		if target == nil {
-			return
-		}
-
-		g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, false, chunkID)
-		OnSendTimedDataRequest(g, request, target)
-		g.DataTimeouts.DeleteDataTimeoutHandler(hash)
+	// Create chunk request
+	request := &types.DataRequest{Origin: g.Args.Name,
+		Destination: remotePeer,
+		HopLimit:    16,
+		HashValue:   hash,
 	}
 
-	// Download finished
-	fmt.Printf("RECONSTRUCTED file %s\n", file.Filename)
+	// Check that the remote peer exists
+	target := g.Router.GetTarget(remotePeer)
+	if target == nil {
+		return
+	}
+
+	g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, false, chunkIndex)
+	OnSendTimedDataRequest(g, request, target)
+	g.DataTimeouts.DeleteDataTimeoutHandler(hash)
+
 }
 
 // OnRemoteMetaFileRequest - Request the metafile of a remote file
