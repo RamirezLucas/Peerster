@@ -197,6 +197,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 
 		switch {
 		case pkt.SimpleMsg != nil:
+
 			if g.Args.SimpleMode { // Simple mode
 				go network.OnBroadcastClient(g, pkt.SimpleMsg)
 			} else {
@@ -204,10 +205,19 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 				rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
 				go network.OnReceiveClientRumor(g, &rumor, <-chanID)
 			}
+
 		case pkt.Private != nil:
 			go network.OnReceiveClientPrivate(g, pkt.Private)
 		case pkt.DataRequest != nil:
-			go g.FileIndex.IndexNewFile(pkt.DataRequest.Origin)
+
+			if pkt.DataRequest.HashValue == nil {
+				// File index
+				go g.FileIndex.IndexNewFile(pkt.DataRequest.Origin)
+			} else {
+				// Remote file requets
+				// TODO
+			}
+
 		default:
 			// Should never happen
 		}
