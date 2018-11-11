@@ -2,12 +2,13 @@
 <html>
     <head>
         <meta charset="UTF-8"> 
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
         <link rel="stylesheet" type="text/css" href="contact.css">
         <link rel="stylesheet" type="text/css" href="chat.css">
         <link rel="stylesheet" type="text/css" href="page.css">
         <link rel="stylesheet" type="text/css" href="peer.css">
         <link rel="stylesheet" type="text/css" href="file.css">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript" src="chat.js"></script>
         <script type="text/javascript" src="peer.js"></script>
         <script type="text/javascript" src="file.js"></script>
@@ -36,12 +37,19 @@
                 <div id="send_message_wrap">
                     <textarea rows="3" id="send_message" placeholder="" onkeydown="checkSend(event)"></textarea>
                 </div>
-
+                <div id="request_file_wrap">
+                    <textarea rows="1" id="new_filename" placeholder="> Local filename" onkeydown="suppressEnter(event)"></textarea>
+                    <textarea rows="1" id="metahash" placeholder="> Metahash" onkeydown="suppressEnter(event)"></textarea>
+                    <div id="request_file">
+                        <i class="material-icons" style="font-size:100%;color:lightblue;text-shadow:2px 2px 4px #000000;">cloud</i>
+                        <span>Request file from Alice</span>
+                    </div>
+                </div>
             </div>
             <div id="right_panel">
                 <div class="peers_list_wrap">
                     <div class="peer_header">
-                            <span><em>Known peers</em></span>
+                        <span><em>Known peers</em></span>
                     </div>
                     <div id="peers_scrollable_wrap"></div>
                     <div id="new_peer_wrap">

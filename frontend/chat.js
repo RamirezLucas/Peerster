@@ -1,7 +1,8 @@
 function changeMessageBoxTest(gossipingTo) {
     // Enable textarea
     document.getElementById("send_message_wrap").style.display = "block";
-    // Chnage text    
+    document.getElementById("request_file_wrap").style.display = "block";
+    // Change text    
     document.getElementById("send_message").setAttribute("placeholder", 
         "> Message " + gossipingTo + " (Ctrl + Enter to send)");
 }   
@@ -23,6 +24,16 @@ function checkSend(e) {
 
         // Reset textarea
         document.getElementById("send_message").value = "";
+    }
+
+}
+
+function suppressEnter(e) {
+    
+    var code = (e.keyCode ? e.keyCode : e.which);
+    if (code == 13) {
+        // Don't create a newline
+        e.preventDefault();
     }
 
 }

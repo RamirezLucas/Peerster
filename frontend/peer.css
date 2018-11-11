@@ -53,9 +53,9 @@
     /* positionning/size */
     position: absolute;
     bottom: 0;
+    height: 1.5em;
     width: 100%;
     /* box */
-    padding: 10% 10%;
     box-sizing: border-box;
     /* style */
     background-color: rgb(42, 44, 49);

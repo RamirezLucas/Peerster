@@ -33,6 +33,7 @@
     /* box */
     margin: 10px 0px;
     padding: 40px 0px 10px;
+    box-sizing: border-box;
     /* style */
     font: 0.8em Tahoma,sans-serif,Arial,Helvetica;
     border-color: rgb(62,65,71);

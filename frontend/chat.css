@@ -58,8 +58,9 @@
     /* position/size */
     position: absolute;
     bottom: 0;
+    left: 0;
     height: 10%;
-    width: 100%;
+    width: 70%;
     /* box */
     padding: 20px 50px;
     box-sizing: border-box;
@@ -67,5 +68,41 @@
     border-color: rgb(43, 44, 46);
     border-width: medium;
     border-top-style: solid;
+    border-right-style: solid;
     display: none;
 }
+
+#request_file_wrap {
+    /* position/size */
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    height: 10%;
+    width: 30%;
+    /* box */
+    padding: 10px 50px;
+    box-sizing: border-box;
+    /* style */
+    border-color: rgb(43, 44, 46);
+    border-width: medium;
+    border-top-style: solid;
+    display: none;
+}
+
+#request_file {
+    position: relative;
+    /* box */
+    padding: 10px 10px;
+    box-sizing: border-box;
+    /* style */
+    border-radius: 5px;
+    background-color: rgb(47, 49, 54);
+    color: rgb(105,106,110);
+    cursor: pointer
+}
+
+#request_file:hover {
+    background-color: rgb(66, 70, 77);
+    color: rgb(255,255,255);
+}
+

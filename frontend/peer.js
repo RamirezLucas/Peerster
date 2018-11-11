@@ -6,15 +6,12 @@ function checkNewPeer(e) {
         // Don't create a newline
         e.preventDefault();
 
-        if (e.ctrlKey) {
+        // Send new peer
+        var newPeer = document.getElementById("new_peer").value;
+        sendPeer(newPeer);
 
-            // Send new peer
-            var newPeer = document.getElementById("new_peer").value;
-            sendPeer(newPeer);
-
-            // Reset textarea
-            document.getElementById("new_peer").value = "";
-        }
+        // Reset textarea
+        document.getElementById("new_peer").value = "";
     }
 }
 
