@@ -1,25 +1,36 @@
-function changeMessageBoxTest(gossipingTo) {
+function changeMessageBoxText(gossipingTo) {
     // Enable textarea
     document.getElementById("send_message_wrap").style.display = "block";
     document.getElementById("request_file_wrap").style.display = "block";
     // Change text    
     document.getElementById("send_message").setAttribute("placeholder", 
         "> Message " + gossipingTo + " (Ctrl + Enter to send)");
+    document.getElementById("request_file_btn").innerHTML = 
+        "Request file from " + gossipingTo;
 }   
 
-function checkSend(e) {
+function sendMessage(e) {
     
-    var code = (e.keyCode ? e.keyCode : e.which);
+    let code = (e.keyCode ? e.keyCode : e.which);
     if (e.ctrlKey && code == 13) {
         // Don't create a newline
         e.preventDefault();
 
         // Send message
-        var newMsg = document.getElementById("send_message").value;
+        let newMsg = document.getElementById("send_message").value;
         if (curr_contact.innerHTML === "Global Channel") {
-            sendRumor(newMsg)      
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "/rumor", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            var data = JSON.stringify({"message": newMsg});
+            xhr.send(data);      
         } else {
-            sendPrivateMessage(curr_contact.innerHTML, newMsg)        
+            let xhr = new XMLHttpRequest();
+            xhr.open("POST", "/private", true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            let data = JSON.stringify({ "destination": curr_contact.innerHTML,
+                                        "message": newMsg});
+            xhr.send(data);       
         }
 
         // Reset textarea
@@ -30,35 +41,31 @@ function checkSend(e) {
 
 function suppressEnter(e) {
     
-    var code = (e.keyCode ? e.keyCode : e.which);
+    let code = (e.keyCode ? e.keyCode : e.which);
     if (code == 13) {
         // Don't create a newline
         e.preventDefault();
     }
-
 }
 
-function sendRumor(rumor) {
-    
-    // POST data
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/rumor", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    var data = JSON.stringify({"message": rumor});
-    xhr.send(data);
+function fileRequest() {
+    let filename = document.getElementById("new_filename").innerHTML;
+    let metahash = document.getElementById("metahash").innerHTML;
+    if (filename !== "" && metahash !== "" && curr_contact.innerHTML !== "Global Channel") {
+        
+        // Send remote file request
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/file_request", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        var data = JSON.stringify({ "filename": filename,
+                                    "metahash": metahash,
+                                    "destination": curr_contact.innerHTML});
+        xhr.send(data);
 
-}
-
-function sendPrivateMessage(destination, privateMsg) {
-    
-    // POST data
-    var xhr = new XMLHttpRequest();
-    xhr.open("POST", "/private", true);
-    xhr.setRequestHeader("Content-Type", "application/json");
-    var data = JSON.stringify({"destination": destination,
-                                "message": privateMsg});
-    xhr.send(data);
-
+        // Clear fields
+        document.getElementById("new_filename").innerHTML = ""
+        document.getElementById("metahash").innerHTML = ""
+    }
 }
 
 function appendMessage(channel, sender, msg_content) {
@@ -66,17 +73,16 @@ function appendMessage(channel, sender, msg_content) {
     /* The function assumes that the channel already exists */
 
     // Check who was the last to talk on the channel
-    var conversation = document.getElementById(channel);
-    var childs_conv = conversation.children;
-    var last_monologue = null;
-    var new_monologue = null;
+    let childs_conv = document.getElementById(channel).children;
+    let last_monologue = null;
+    let new_monologue = null;
 
     // No one has talked on this channel yet
     if (childs_conv.length === 1) {
         new_monologue = create_monologue(sender);
     } else {
         last_monologue = childs_conv[childs_conv.length - 1];
-        var last_author = last_monologue.children[0].innerHTML;
+        let last_author = last_monologue.children[0].innerHTML;
         // Check the last person who talked
         if (last_author !== sender) {
             new_monologue = create_monologue(sender);
@@ -84,7 +90,7 @@ function appendMessage(channel, sender, msg_content) {
     }
 
     // Append the message to the last monologue
-    var new_msg = '<div class="message">' + msg_content + '</div>';
+    let new_msg = '<div class="message">' + msg_content + '</div>';
 
     // Append a new monologue if necessary
     if (new_monologue !== null) {
@@ -99,7 +105,7 @@ function appendMessage(channel, sender, msg_content) {
 function create_monologue(author) {
     
     // Create new contact tab
-    var new_contact = document.createElement("div");
+    let new_contact = document.createElement("div");
     new_contact.className = "monologue";
     new_contact.innerHTML = '<div class="author">' + author + '</div>';
     return new_contact;

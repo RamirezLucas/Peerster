@@ -1,15 +1,15 @@
 function getUpdates() {
 
-    var xhr = new XMLHttpRequest();
+    let xhr = new XMLHttpRequest();
     xhr.open("GET", "/updates", true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             if (xhr.responseText !== "") {
-                var json = JSON.parse(xhr.responseText); // Parse JSON
+                let json = JSON.parse(xhr.responseText); // Parse JSON
                 if(json.hasOwnProperty("updates")){ // Check that the key exists
-                    for (var i = 0; i < json.updates.length; i++) {
-                        var update = json.updates[i]; // Get update
+                    for (let i = 0; i < json.updates.length; i++) {
+                        let update = json.updates[i]; // Get update
                         if (update.Rumor !== null) {
                             // This is a rumor
                             appendMessage("Global Channel", update.Rumor.Name, update.Rumor.Msg)
@@ -26,6 +26,13 @@ function getUpdates() {
                         } else if (update.PrivateContact !== null) {
                             // This is a private contact
                             addContact(update.PrivateContact.Name)
+                        } else if (update.IndexedFile !== null) {
+                            // This is a new indexed file
+                            addIndexedFile(update.IndexedFile.Filename, update.IndexedFile.Metahash)
+                            removeConstructingFile(update.IndexedFile.Metahash)
+                        } else if (update.ConstructingFile !== null) {
+                            // This is a new file in construction
+                            addConstructingFile(update.IndexedFile.Filename, update.IndexedFile.Metahash, update.IndexedFile.Origin)
                         }
                     }
                 }            
@@ -38,5 +45,5 @@ function getUpdates() {
 
 function refresh() {
     getUpdates()
-    setTimeout(refresh, 1000);
+    setTimeout(refresh, 500);
 }

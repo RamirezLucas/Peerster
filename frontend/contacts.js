@@ -22,7 +22,7 @@ function switchContact() {
     newConv.style.display = "block"
     
     // Change name in textbox
-    changeMessageBoxTest(this.innerHTML)
+    changeMessageBoxText(this.innerHTML)
 
     // Update current contact
     curr_contact = this
@@ -47,14 +47,14 @@ function contactMouseLeave() {
 function addContact(name) {
 
     // Create new contact tab
-    var newContact = document.createElement("div");
+    let newContact = document.createElement("div");
     newContact.className = "private_contact_wrap";
     newContact.innerHTML = name;
     document.getElementById('contact_scrollable_wrap').appendChild(newContact);
     contact_attach_listeners(newContact);
 
     // Create new chat history
-    var newChat = document.createElement("div");
+    let newChat = document.createElement("div");
     newChat.className = "conversation";
     newChat.id = name;
     newChat.innerHTML =
@@ -66,14 +66,14 @@ function addContact(name) {
 function whoAmI() {
      
     // POST data
-    var xhr = new XMLHttpRequest();
-    var url = "/id";
+    let xhr = new XMLHttpRequest();
+    let url = "/id";
     xhr.open("GET", url, true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.onreadystatechange = function () {
         if (xhr.readyState === 4 && xhr.status === 200) {
             if (xhr.responseText !== "") {
-                var json = JSON.parse(xhr.responseText); // Parse JSON
+                let json = JSON.parse(xhr.responseText); // Parse JSON
                 if(json.hasOwnProperty("name") && json.hasOwnProperty("addr")){ // Check that the keys exist
                     document.getElementById("my_name").innerHTML = json.name
                     document.getElementById("my_address").innerHTML = json.addr                
@@ -84,27 +84,3 @@ function whoAmI() {
     
     xhr.send();
 }
-
-/* ------- ONLOAD ------- */
-
-function contact_attach_listeners(contact) {
-    contact.addEventListener("click", switchContact);
-    contact.addEventListener("mouseenter", contactMouseEnter);
-    contact.addEventListener("mouseleave", contactMouseLeave);
-}
-
-var curr_contact = null
-window.onload = function(){
-    // Attach event listeners to all existing contacts
-    var contacts = document.getElementsByClassName("private_contact_wrap");
-    for (var i = 0 ; i < contacts.length ; i++) {
-        contact_attach_listeners(contacts[i]);
-    }
-
-    // Get my own name and IP:PORT address
-    whoAmI()
-
-    // Initial call to refresh the page
-    refresh()    
-
-};

@@ -12,11 +12,22 @@
 }
 
 .file_header {
-    padding: 5px 0;
+    padding: 5px 10px;
     background-color: rgb(26, 26, 27);
 }
 
-.files_scrollable_wrap {
+.files_indexed_scrollable_wrap {
+    /* position/size */
+    position: relative;
+    height: 100%;
+    /* scrollbar */
+    direction: rtl;
+    overflow: auto;
+    overflow-x: hidden; 
+    /* style */
+}
+
+.files_construct_scrollable_wrap {
     /* position/size */
     position: relative;
     height: 100%;
@@ -43,6 +54,6 @@
     font-size: 0.9em;
 }
 
-.hash {
+.metahash {
     font-size: 0.4em;
 }

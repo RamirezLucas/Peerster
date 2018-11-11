@@ -14,6 +14,7 @@
         <script type="text/javascript" src="file.js"></script>
         <script type="text/javascript" src="communication.js"></script>
         <script type="text/javascript" src="contacts.js"></script>
+        <script type="text/javascript" src="main.js"></script>
     </head>
 
     <body>
@@ -23,9 +24,15 @@
                     <div class="private_contact_wrap" style="font-style:italic">Global Channel</div>
                     <div class="contact_separator">PRIVATE MESSAGES</div>
                 </div>
-                <div id="my_contact">
-                    <div id="my_name"></div>
-                    <div id="my_address"></div>
+                <div id="my_info">
+                    <div id="my_contact">
+                        <div id="my_name">Pimsinoupou</div>
+                        <div id="my_address">127.0.0.1:2000</div>
+                    </div>
+                    <div id="file_explorer" onclick="indexNewFile()">
+                        <input id="file-input" type="file" name="name" style="display: none;" onchange="getFilename()"/>
+                        <i class="material-icons" style="font-size:2em;color:gray;text-shadow:2px 2px 4px #000000;">computer</i>   
+                    </div>
                 </div>
             </div>
             <div class="chat_wrap">
@@ -35,14 +42,14 @@
                     </div>     
                 </div>
                 <div id="send_message_wrap">
-                    <textarea rows="3" id="send_message" placeholder="" onkeydown="checkSend(event)"></textarea>
+                    <textarea rows="3" id="send_message" placeholder="" onkeydown="sendMessage(event)"></textarea>
                 </div>
                 <div id="request_file_wrap">
                     <textarea rows="1" id="new_filename" placeholder="> Local filename" onkeydown="suppressEnter(event)"></textarea>
                     <textarea rows="1" id="metahash" placeholder="> Metahash" onkeydown="suppressEnter(event)"></textarea>
-                    <div id="request_file">
+                    <div id="request_file" onclick="fileRequest()">
                         <i class="material-icons" style="font-size:100%;color:lightblue;text-shadow:2px 2px 4px #000000;">cloud</i>
-                        <span>Request file from Alice</span>
+                        <span id="request_file_btn">Request file from Alice</span>
                     </div>
                 </div>
             </div>
@@ -59,28 +66,15 @@
                 <div id="files_wrap">
                     <div class="file_category_wrap">
                         <div class="file_header">
-                            <!--<div id="add_file">
-                                <img src="add_file.svg">
-                            </div>-->
-                        <div class=file_header_txt>INDEXED FILES</div> 
+                            <span class="file_header_txt">INDEXED FILES</span> 
                         </div>
-                        <div class="files_scrollable_wrap">
-                            <div class="file_wrap">
-                                <div class="filename">hello.txt</div>
-                                <div class="hash">fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972</div>
-                            </div>
-                        </div>
+                        <div id="files_indexed_scrollable_wrap"></div>
                     </div>
                     <div class="file_category_wrap">
                         <div class="file_header">
                             <div class=file_header_txt>RECONSTRUCTING...</div> 
                         </div>
-                        <div class="files_scrollable_wrap">
-                            <div class="file_wrap">
-                                <div class="filename">hello.txt <em>from Alice</em></div>
-                                <div class="hash">fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972</div>
-                            </div>
-                        </div>
+                        <div id="files_construct_scrollable_wrap"></div>
                     </div>
                 </div>
             </div>
