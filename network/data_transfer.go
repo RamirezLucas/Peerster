@@ -152,12 +152,14 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 					OnRemoteChunkRequest(g, knownHash.File, knownHash.ChunkIndex+1, reply.Origin)
 				} else { // That was the last chunk
 					fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+					g.FileIndex.AcknowledgeFileIndexed(knownHash.File.Filename, knownHash.File.Metahash)
 				}
 			}
 
 		} else { // Download finished
 			g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply, knownHash.ChunkIndex, true)
 			fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+			g.FileIndex.AcknowledgeFileIndexed(knownHash.File.Filename, knownHash.File.Metahash)
 		}
 	} else { // Message is fopr someone else
 		// Decrement hop limit

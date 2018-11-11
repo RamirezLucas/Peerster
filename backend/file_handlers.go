@@ -2,6 +2,8 @@ package backend
 
 import (
 	"Peerster/network"
+	"Peerster/types"
+	"encoding/hex"
 	"net/http"
 )
 
@@ -38,6 +40,8 @@ func postFileRequestHandler(w http.ResponseWriter, r *http.Request) {
 		return // Ignore
 	}
 
-	// Starts file reconstruction
-	network.OnRemoteMetaFileRequest(gossiper, []byte(metahash), filename, destination)
+	if decoded, err := hex.DecodeString(metahash); err == nil && len(decoded) == types.HashSizeBytes {
+		// Starts file reconstruction
+		network.OnRemoteMetaFileRequest(gossiper, decoded, filename, destination)
+	}
 }

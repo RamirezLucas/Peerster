@@ -176,6 +176,12 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	return nil
 }
 
+// AcknowledgeFileIndexed - To call when a file has been reconstructed entirely
+func (fileIndex *FileIndex) AcknowledgeFileIndexed(filename string, metahash []byte) {
+	// Send update to frontend
+	FBuffer.AddFrontendIndexedFile(filename, ToHex(metahash[:]))
+}
+
 // WriteReceivedData - Write a received chunk at a file's end
 func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply, chunkIndex uint32, isEmpty bool) {
 	// Grab the file index mutex

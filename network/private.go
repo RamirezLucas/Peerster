@@ -43,6 +43,11 @@ func OnReceiveClientPrivate(g *types.Gossiper, private *types.PrivateMessage) {
 // OnReceivePrivate - Called when a private message is received
 func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, sender *net.UDPAddr) {
 
+	// Update the routing table for private messages
+	if private.Origin != g.Args.Name {
+		g.Router.AddContactIfAbsent(private.Origin, sender)
+	}
+
 	// Check if the message is for me
 	if g.Args.Name == private.Destination {
 		fmt.Printf("%s\n", private.PrivateMessageToString())

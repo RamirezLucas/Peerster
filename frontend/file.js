@@ -9,7 +9,7 @@ function getFilename() {
     
     // Send file index request
     let xhr = new XMLHttpRequest();
-    xhr.open("POST", "/file_index", true);
+    xhr.open("POST", "/fileIndex", true);
     xhr.setRequestHeader("Content-Type", "application/json");
     let data = JSON.stringify({"filename": filename});
     xhr.send(data); 
@@ -52,13 +52,13 @@ function addIndexedFile(filename, metahash) {
 }
 
 function remoteFileRequest() {
-    let filename = document.getElementById("new_filename").innerHTML;
-    let metahash = document.getElementById("metahash").innerHTML;
+    let filename = document.getElementById("new_filename").value;
+    let metahash = document.getElementById("metahash").value;
     if (filename !== "" && metahash !== "" && curr_contact.innerHTML !== "Global Channel") {
         
         // Send remote file request
         var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/file_request", true);
+        xhr.open("POST", "/fileRequest", true);
         xhr.setRequestHeader("Content-Type", "application/json");
         var data = JSON.stringify({ "filename": filename,
                                     "metahash": metahash,
@@ -66,7 +66,7 @@ function remoteFileRequest() {
         xhr.send(data);
 
         // Clear fields
-        document.getElementById("new_filename").innerHTML = ""
-        document.getElementById("metahash").innerHTML = ""
+        document.getElementById("new_filename").value = ""
+        document.getElementById("metahash").value = ""
     }
 }

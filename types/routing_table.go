@@ -36,16 +36,7 @@ func NewNextHop(rawAddr string, udpAddr *net.UDPAddr, updateID uint32) *NextHop 
 
 // AddContactIfAbsent - Adds a new contact to the routing table if it doesn't exist yet
 func (routing *RoutingTable) AddContactIfAbsent(name string, sender *net.UDPAddr) {
-	routing.mux.Lock()
-	defer routing.mux.Unlock()
-
-	if _, ok := routing.table[name]; !ok { // We don't know the sender
-
-		// Add the contact
-		addrStr := UDPAddressToString(sender)
-		routing.table[name] = NewNextHop(addrStr, sender, 0)
-
-	}
+	routing.UpdateTableAndPrint(name, sender, 0)
 }
 
 // UpdateTableAndPrint - Updates the table with a new/updated record and prints it

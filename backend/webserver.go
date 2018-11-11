@@ -28,8 +28,8 @@ func Webserver(g *types.Gossiper, chanID chan uint32) {
 	r.HandleFunc("/rumor", postRumorHandler).Methods("POST")
 	r.HandleFunc("/private", postPrivateHandler).Methods("POST")
 	r.HandleFunc("/node", postNodeHandler).Methods("POST")
-	r.HandleFunc("/file_index", postPrivateHandler).Methods("POST")
-	r.HandleFunc("/file_request", postPrivateHandler).Methods("POST")
+	r.HandleFunc("/fileIndex", postFileIndexHandler).Methods("POST")
+	r.HandleFunc("/fileRequest", postFileRequestHandler).Methods("POST")
 	r.HandleFunc("/private", postPrivateHandler).Methods("POST")
 
 	// Updates

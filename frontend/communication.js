@@ -32,7 +32,7 @@ function getUpdates() {
                             removeConstructingFile(update.IndexedFile.Metahash)
                         } else if (update.ConstructingFile !== null) {
                             // This is a new file in construction
-                            addConstructingFile(update.IndexedFile.Filename, update.IndexedFile.Metahash, update.IndexedFile.Origin)
+                            addConstructingFile(update.ConstructingFile.Filename, update.ConstructingFile.Metahash, update.ConstructingFile.Origin)
                         }
                     }
                 }            
