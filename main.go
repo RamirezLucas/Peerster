@@ -83,6 +83,7 @@ func antiEntropy(g *types.Gossiper) {
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
@@ -102,6 +103,7 @@ func rumorEntropy(g *types.Gossiper, chanID chan uint32) {
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Duration(g.Args.RTimer) * time.Second)
+	defer timer.Stop()
 	for {
 		select {
 		case <-timer.C:
