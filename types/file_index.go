@@ -2,6 +2,7 @@ package types
 
 import (
 	"crypto/sha256"
+	"fmt"
 	"os"
 	"sync"
 )
@@ -36,8 +37,8 @@ func NewFileIndex() *FileIndex {
 	return &fileIndex
 }
 
-// AddNewIndexedFile - Ads a new indexed file to the index
-func (fileIndex *FileIndex) AddNewIndexedFile(filename string, metahash []byte) *SharedFile {
+// AddNewSharedFile - Ads a new indexed file to the index
+func (fileIndex *FileIndex) AddNewSharedFile(filename string, metahash []byte) *SharedFile {
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
@@ -46,7 +47,7 @@ func (fileIndex *FileIndex) AddNewIndexedFile(filename string, metahash []byte) 
 	}
 
 	// Add the file
-	newFile := NewSharedFile(filename, metahash)
+	newFile := NewSharedFile(filename, metahash, true)
 	fileIndex.index[filename] = newFile
 	return newFile
 }
@@ -76,11 +77,10 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 	}
 
 	// Create new SharedFile
-	shared := NewSharedFile(filename, nil)
+	shared := NewSharedFile(filename, nil, false)
 
 	// Compute total number of chunks
-	nbChunks := uint32(fi.Size() / ChunkSizeBytes)
-	shared.Metafile = make([]byte, nbChunks*HashSizeBytes)
+	nbChunks := GetChunksNumberFromRawFile(int(fi.Size()))
 
 	// Buffer for chunk
 	chunkBuffer := make([]byte, ChunkSizeBytes)
@@ -88,6 +88,7 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 
 	// Create the metafile
 	var metafileIndex uint32
+	shared.Metafile = make([]byte, nbChunks*HashSizeBytes)
 	for metafileIndex = 0; metafileIndex < nbChunks; metafileIndex++ {
 
 		// Read the next chunk
@@ -102,19 +103,17 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 		}
 
 		// Add the hash to the set of known hashes
-		fileIndex.knownHashes[string(chunkHash[:])] = NewKnownHash(shared, false, metafileIndex)
+		fileIndex.knownHashes[GetHex(chunkHash[:])] = NewKnownHash(shared, false, metafileIndex)
 	}
 
 	// Create metahash
 	metahash := sha256.Sum256(shared.Metafile[:])
-	if nbCopy := copy(shared.Metahash[0:], metahash[:]); nbCopy != HashSizeBytes {
+	if nbCopy := copy(shared.Metahash, metahash[:]); nbCopy != HashSizeBytes {
 		panic("IndexNewFile(): Metafile could not be generated.")
 	}
-	// Copy the metahash in the shared file structure
-	copy(shared.Metahash[0:], metahash[:])
 
 	// Add the metahash to the set of known hashes
-	fileIndex.knownHashes[string(metahash[:])] = NewKnownHash(shared, true, 0)
+	fileIndex.knownHashes[GetHex(metahash[:])] = NewKnownHash(shared, true, 0)
 
 	// Add the new indexed file to the index
 	fileIndex.index[filename] = shared
@@ -126,7 +125,7 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
-	if knownHash, ok := fileIndex.knownHashes[string(hash[:])]; ok { // We know this hash
+	if knownHash, ok := fileIndex.knownHashes[GetHex(hash[:])]; ok { // We know this hash
 
 		sharedFile := knownHash.File
 
@@ -136,10 +135,18 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 		}
 		// Return one of the file's chunk
 
+		// Compute the filepath
+		path := ""
+		if sharedFile.IsDownloaded {
+			path = PathToDownloadedFiles + sharedFile.Filename
+		} else {
+			path = PathToSharedFiles + sharedFile.Filename
+		}
+
 		// Open the file
 		var f *os.File
 		var err error
-		if f, err = os.Open(PathToSharedFiles + sharedFile.Filename); err != nil {
+		if f, err = os.Open(path); err != nil {
 			return nil
 		}
 		defer f.Close()
@@ -164,7 +171,7 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 }
 
 // WriteReceivedData - Write a received chunk at a file's end
-func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply, chunkIndex uint32) {
+func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply, chunkIndex uint32, isEmpty bool) {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
@@ -178,13 +185,18 @@ func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply,
 		}
 		defer f.Close()
 
+		// Only create the file if it is empty
+		if isEmpty {
+			return
+		}
+
 		// Write the chunk
-		if nbBytesWrote, err := f.Write(reply.Data); err != nil && nbBytesWrote != len(reply.Data) {
+		if nbBytesWrote, err := f.Write(reply.Data); err != nil || nbBytesWrote != len(reply.Data) {
 			panic("WriteReceivedData(): Failed to write into file")
 		}
 
 		// Remember the hash
-		fileIndex.knownHashes[string(reply.HashValue[:])] = NewKnownHash(shared, false, chunkIndex)
+		fileIndex.knownHashes[GetHex(reply.HashValue[:])] = NewKnownHash(shared, false, chunkIndex)
 
 	} else {
 		panic("WriteReceivedData(): Trying to write to non-existent file")
@@ -193,14 +205,40 @@ func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply,
 }
 
 // SetMetafile - Sets the metafile for the file with the given filename
-func (fileIndex *FileIndex) SetMetafile(filename string, metahash, metafile []byte) {
+func (fileIndex *FileIndex) SetMetafile(filename string, reply *DataReply) {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
-	if sharedFile, ok := fileIndex.index[filename]; ok { // We know this hash
+	if sharedFile, ok := fileIndex.index[filename]; ok { // We know this filename
 		// Copy the data
-		copy(sharedFile.Metafile[:], metafile)
-		fileIndex.knownHashes[string(metafile[:])] = NewKnownHash(sharedFile, true, 0)
+		sharedFile.Metafile = make([]byte, len(reply.Data))
+		copy(sharedFile.Metafile[:], reply.Data)
+		// Remember the metahash
+		fileIndex.knownHashes[GetHex(reply.HashValue[:])] = NewKnownHash(sharedFile, true, 0)
 	}
+
+}
+
+// GetHex - Returns the hexadecimal string representations of a hash
+func GetHex(hash []byte) string {
+	return fmt.Sprintf("%x", hash[:])
+}
+
+// GetChunksNumberFromMetafile - Returns the number of chunks from the size of the metafile
+func GetChunksNumberFromMetafile(metafileSize int) uint32 {
+	nbChunks := uint32(metafileSize / HashSizeBytes)
+	if metafileSize%HashSizeBytes != 0 {
+		nbChunks++
+	}
+	return nbChunks
+}
+
+// GetChunksNumberFromRawFile - Returns the number of chunks from the filesize
+func GetChunksNumberFromRawFile(fileSize int) uint32 {
+	nbChunks := uint32(fileSize / ChunkSizeBytes)
+	if fileSize%ChunkSizeBytes != 0 {
+		nbChunks++
+	}
+	return nbChunks
 }

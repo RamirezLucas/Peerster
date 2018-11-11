@@ -74,7 +74,7 @@ func OnSendDataReply(g *types.Gossiper, reply *types.DataReply, target *net.UDPA
 func OnReceiveDataRequest(g *types.Gossiper, request *types.DataRequest, sender *net.UDPAddr) {
 
 	if g.Args.Name == request.Destination { // Message is for me
-		// Add the conttact to our routing table
+		// Add the contact to our routing table
 		g.Router.AddContactIfAbsent(request.Origin, sender)
 
 		if request.HashValue != nil {
@@ -120,7 +120,7 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 	if g.Args.Name == reply.Destination { // Message is for me
 		// Check that the data contained in the message corresponds to the hash
 		receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
-		if string(reply.HashValue[:]) != string(receivedDataHash[:]) {
+		if types.GetHex(reply.HashValue[:]) != types.GetHex(receivedDataHash[:]) {
 			// Ignore
 			return
 		}
@@ -134,16 +134,19 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 
 		if knownHash.IsMetahash { // Metahash
 			// Update the shared file's metafile
-			g.FileIndex.SetMetafile(knownHash.File.Filename, reply.HashValue, reply.Data)
+			g.FileIndex.SetMetafile(knownHash.File.Filename, reply)
 		}
 
-		if nbChunks := uint32(len(knownHash.File.Metafile) / types.HashSizeBytes); nbChunks > 0 {
+		// Compute number of chunks
+		nbChunks := types.GetChunksNumberFromMetafile(len(knownHash.File.Metafile))
+
+		if nbChunks > 0 {
 
 			if knownHash.IsMetahash { // Request first chunk
 				OnRemoteChunkRequest(g, knownHash.File, 0, reply.Origin)
 			} else {
 				// Write received chunk
-				g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply, knownHash.ChunkIndex)
+				g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply, knownHash.ChunkIndex, false)
 
 				if knownHash.ChunkIndex+1 < nbChunks { // Request the next chunk
 					OnRemoteChunkRequest(g, knownHash.File, knownHash.ChunkIndex+1, reply.Origin)
@@ -153,6 +156,7 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 			}
 
 		} else { // Download finished
+			g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply, knownHash.ChunkIndex, true)
 			fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
 		}
 	} else { // Message is fopr someone else
@@ -175,7 +179,11 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 // OnRemoteChunkRequest - Request the chunks of a remote file
 func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex uint32, remotePeer string) {
 
-	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
+	// Check that the remote peer exists
+	target := g.Router.GetTarget(remotePeer)
+	if target == nil {
+		return
+	}
 
 	index := chunkIndex * types.HashSizeBytes
 	hash := file.Metafile[index : index+types.HashSizeBytes]
@@ -187,12 +195,9 @@ func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex 
 		HashValue:   hash,
 	}
 
-	// Check that the remote peer exists
-	target := g.Router.GetTarget(remotePeer)
-	if target == nil {
-		return
-	}
+	fmt.Printf("Requesting hash %s\n", types.GetHex(hash[:]))
 
+	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
 	g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, false, chunkIndex)
 	OnSendTimedDataRequest(g, request, target)
 	g.DataTimeouts.DeleteDataTimeoutHandler(hash)
@@ -209,7 +214,7 @@ func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, 
 	}
 
 	// Create a shared file
-	sharedFile := g.FileIndex.AddNewIndexedFile(localFilename, metahash)
+	sharedFile := g.FileIndex.AddNewSharedFile(localFilename, metahash)
 	if sharedFile == nil {
 		// Error: filename already exists
 		return
@@ -221,6 +226,8 @@ func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, 
 		HopLimit:    16,
 		HashValue:   metahash,
 	}
+
+	fmt.Printf("Requesting hash %s\n", types.GetHex(metahash[:]))
 
 	fmt.Printf("DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
 	g.DataTimeouts.AddDataTimeoutHandler(metahash, remotePeer, sharedFile, true, 0)

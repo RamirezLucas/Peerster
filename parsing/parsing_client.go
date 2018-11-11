@@ -3,6 +3,7 @@ package parsing
 import (
 	"Peerster/fail"
 	"Peerster/types"
+	"encoding/hex"
 	"fmt"
 	"net"
 	"os"
@@ -66,8 +67,9 @@ func ParseArgumentsClient() (*types.Client, error) {
 			}
 
 			// Validate
-			client.Request = []byte(arg[9:])
-			if len(client.Request) != 32 {
+			if decoded, err := hex.DecodeString(arg[9:]); err == nil && len(decoded) == 32 {
+				client.Request = decoded
+			} else {
 				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "hash isn't 32 bytes long"}
 			}
 			reqDone = true
@@ -77,8 +79,8 @@ func ParseArgumentsClient() (*types.Client, error) {
 	}
 
 	// The client must have a message
-	if !msgDone {
-		return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "the client has no message to transmit"}
+	if !msgDone && !fileDone {
+		return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "the client has nothing to do"}
 	}
 
 	// Create default values for missing parameters
@@ -88,6 +90,9 @@ func ParseArgumentsClient() (*types.Client, error) {
 			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot resolve UDP address"}
 		}
 		client.Addr = udpAddr
+	}
+	if !reqDone {
+		client.Request = nil
 	}
 
 	return &client, nil

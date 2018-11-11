@@ -214,7 +214,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 			go network.OnReceiveClientPrivate(g, pkt.Private)
 		case pkt.DataRequest != nil:
 
-			if pkt.DataRequest.HashValue == nil {
+			if pkt.DataRequest.HopLimit == 0 {
 				// File index
 				go g.FileIndex.IndexNewFile(pkt.DataRequest.Origin)
 			} else {
@@ -275,11 +275,11 @@ func main() {
 
 	if !gossiper.Args.SimpleMode {
 		// Anti Entropy
-		go antiEntropy(gossiper)
+		//go antiEntropy(gossiper)
 
 		// RouteRumor
 		if gossiper.Args.RTimer != 0 {
-			go rumorEntropy(gossiper, chanID)
+			//go rumorEntropy(gossiper, chanID)
 		}
 	}
 

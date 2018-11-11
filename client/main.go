@@ -24,11 +24,11 @@ func main() {
 	switch {
 	// File request for someone else
 	case client.Filename != "" && client.Dst != "" && client.Request != nil:
-		fileRequest := types.DataRequest{Destination: client.Dst, HashValue: client.Request, Origin: client.Filename}
+		fileRequest := types.DataRequest{HopLimit: 1, Destination: client.Dst, HashValue: client.Request, Origin: client.Filename}
 		pkt = types.GossipPacket{DataRequest: &fileRequest}
 	// File index
 	case client.Filename != "":
-		fileRequest := types.DataRequest{Origin: client.Filename}
+		fileRequest := types.DataRequest{HopLimit: 0, Origin: client.Filename}
 		pkt = types.GossipPacket{DataRequest: &fileRequest}
 	// Private message
 	case client.Dst != "" && client.Msg != "":
