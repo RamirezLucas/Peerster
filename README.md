@@ -26,5 +26,8 @@ Below is a screenshot of the GUI as well as some remarks concerning its utilizat
 ![Image](GUI_screenshot.png "icon")
 
 Some remarks:
-* The webpage will not behave properly if its corresponding gossiper is stopped and then restarted. In that case one must reopen a new browser tab and relaunch the webpage on the right port.
+* The webpage will not behave properly if its corresponding gossiper is stopped and then restarted. In that case one must:
+1. Close the existing browser tab 
+2. Relaunch the gossiper
+3. Open a new browser tab on the right port (e.g. `127.0.0.1:2000`)
 * The webpage will not behave properly if it is refreshed while its corresponding gossiper is running.
