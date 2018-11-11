@@ -15,18 +15,6 @@ function getFilename() {
     xhr.send(data); 
 }
 
-function addIndexedFile(filename, metahash) {
-
-    // Create new indexed file
-    let newFile = document.createElement("div");
-    newFile.className = "file_wrap";
-    newFile.innerHTML = '<div class="filename">' + filename + '</div>\
-                        <div class="metahash">' + metahash + '</div>'
-
-    document.getElementById('files_indexed_scrollable_wrap').appendChild(newFile);
-
-}
-
 function addConstructingFile(filename, metahash, origin) {
 
     // Create new indexed file
@@ -48,5 +36,37 @@ function removeConstructingFile(metahash) {
             constructingFiles.removeChild(children[i]);
             return
         }
+    }
+}
+
+function addIndexedFile(filename, metahash) {
+
+    // Create new indexed file
+    let newFile = document.createElement("div");
+    newFile.className = "file_wrap";
+    newFile.innerHTML = '<div class="filename">' + filename + '</div>\
+                        <div class="metahash">' + metahash + '</div>'
+
+    document.getElementById('files_indexed_scrollable_wrap').appendChild(newFile);
+
+}
+
+function remoteFileRequest() {
+    let filename = document.getElementById("new_filename").innerHTML;
+    let metahash = document.getElementById("metahash").innerHTML;
+    if (filename !== "" && metahash !== "" && curr_contact.innerHTML !== "Global Channel") {
+        
+        // Send remote file request
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", "/file_request", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        var data = JSON.stringify({ "filename": filename,
+                                    "metahash": metahash,
+                                    "destination": curr_contact.innerHTML});
+        xhr.send(data);
+
+        // Clear fields
+        document.getElementById("new_filename").innerHTML = ""
+        document.getElementById("metahash").innerHTML = ""
     }
 }

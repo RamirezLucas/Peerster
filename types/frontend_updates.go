@@ -36,12 +36,27 @@ type FrontendPrivateContact struct {
 	Name string // Peer's name
 }
 
+// FrontendIndexedFile - An indexed file for the frontend
+type FrontendIndexedFile struct {
+	Filename string // The filename
+	Metahash string // The associated metahash
+}
+
+// FrontendConstructingFile - A constructing file for the frontend
+type FrontendConstructingFile struct {
+	Filename string // The filename
+	Metahash string // The associated metahash
+	Origin   string // The peer distributing the file
+}
+
 // FrontendUpdate - An update for the
 type FrontendUpdate struct {
-	Rumor          *FrontendRumor          // A rumor
-	Peer           *FrontendPeer           // A peer
-	PrivateMessage *FrontendPrivateMessage // A private message
-	PrivateContact *FrontendPrivateContact // A private contact
+	Rumor            *FrontendRumor            // A rumor
+	Peer             *FrontendPeer             // A peer
+	PrivateMessage   *FrontendPrivateMessage   // A private message
+	PrivateContact   *FrontendPrivateContact   // A private contact
+	IndexedFile      *FrontendIndexedFile      // An indexed file
+	ConstructingFile *FrontendConstructingFile // A constructing file
 }
 
 // FBuffer - A buffer of updates for the frontend
@@ -114,6 +129,28 @@ func (buffer *FrontendBuffer) AddFrontendPrivateContact(name string) {
 	// Create update
 	newPrivateContact := &FrontendPrivateContact{Name: name}
 	newUpdate := &FrontendUpdate{PrivateContact: newPrivateContact}
+	buffer.updates = append(buffer.updates, newUpdate)
+}
+
+// AddFrontendIndexedFile - Adds an indexed file to the buffer
+func (buffer *FrontendBuffer) AddFrontendIndexedFile(filename, metahash string) {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+
+	// Create update
+	newIndexedFile := &FrontendIndexedFile{Filename: filename, Metahash: metahash}
+	newUpdate := &FrontendUpdate{IndexedFile: newIndexedFile}
+	buffer.updates = append(buffer.updates, newUpdate)
+}
+
+// AddFrontendConstructingFile - Adds a constructing file to the buffer
+func (buffer *FrontendBuffer) AddFrontendConstructingFile(filename, metahash, origin string) {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+
+	// Create update
+	newConstructingFile := &FrontendConstructingFile{Filename: filename, Metahash: metahash, Origin: origin}
+	newUpdate := &FrontendUpdate{ConstructingFile: newConstructingFile}
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 

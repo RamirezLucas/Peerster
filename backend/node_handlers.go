@@ -38,15 +38,3 @@ func postNodeHandler(w http.ResponseWriter, r *http.Request) {
 	gossiper.PeerIndex.AddPeerIfAbsent(udpAddr)
 
 }
-
-// func getInitNodeHandler(w http.ResponseWriter, r *http.Request) {
-
-// 	// Get data
-// 	data := gossiper.PeerIndex.GetEverything()
-
-// 	// Send JSON data
-// 	w.WriteHeader(http.StatusOK)
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.Write(*data)
-
-// }

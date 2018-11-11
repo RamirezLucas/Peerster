@@ -48,26 +48,6 @@ function suppressEnter(e) {
     }
 }
 
-function fileRequest() {
-    let filename = document.getElementById("new_filename").innerHTML;
-    let metahash = document.getElementById("metahash").innerHTML;
-    if (filename !== "" && metahash !== "" && curr_contact.innerHTML !== "Global Channel") {
-        
-        // Send remote file request
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/file_request", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        var data = JSON.stringify({ "filename": filename,
-                                    "metahash": metahash,
-                                    "destination": curr_contact.innerHTML});
-        xhr.send(data);
-
-        // Clear fields
-        document.getElementById("new_filename").innerHTML = ""
-        document.getElementById("metahash").innerHTML = ""
-    }
-}
-
 function appendMessage(channel, sender, msg_content) {
 
     /* The function assumes that the channel already exists */

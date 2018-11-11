@@ -38,13 +38,16 @@ func NewFileIndex() *FileIndex {
 }
 
 // AddNewSharedFile - Ads a new indexed file to the index
-func (fileIndex *FileIndex) AddNewSharedFile(filename string, metahash []byte) *SharedFile {
+func (fileIndex *FileIndex) AddNewSharedFile(filename, origin string, metahash []byte) *SharedFile {
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
 	if _, ok := fileIndex.index[filename]; ok { // We already have a file indexed with this name
 		return nil
 	}
+
+	// Send update to frontend
+	FBuffer.AddFrontendConstructingFile(filename, ToHex(metahash[:]), origin)
 
 	// Add the file
 	newFile := NewSharedFile(filename, metahash, true)
@@ -103,7 +106,7 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 		}
 
 		// Add the hash to the set of known hashes
-		fileIndex.knownHashes[GetHex(chunkHash[:])] = NewKnownHash(shared, false, metafileIndex)
+		fileIndex.knownHashes[ToHex(chunkHash[:])] = NewKnownHash(shared, false, metafileIndex)
 	}
 
 	// Create metahash
@@ -113,10 +116,13 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 	}
 
 	// Add the metahash to the set of known hashes
-	fileIndex.knownHashes[GetHex(metahash[:])] = NewKnownHash(shared, true, 0)
+	fileIndex.knownHashes[ToHex(metahash[:])] = NewKnownHash(shared, true, 0)
 
 	// Add the new indexed file to the index
 	fileIndex.index[filename] = shared
+
+	// Send update to frontend
+	FBuffer.AddFrontendIndexedFile(filename, ToHex(metahash[:]))
 }
 
 // GetDataFromHash - Gets data corresponding to a given hash. Returns nil if the hash is unknown
@@ -125,7 +131,7 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
-	if knownHash, ok := fileIndex.knownHashes[GetHex(hash[:])]; ok { // We know this hash
+	if knownHash, ok := fileIndex.knownHashes[ToHex(hash[:])]; ok { // We know this hash
 
 		sharedFile := knownHash.File
 
@@ -196,7 +202,7 @@ func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply,
 		}
 
 		// Remember the hash
-		fileIndex.knownHashes[GetHex(reply.HashValue[:])] = NewKnownHash(shared, false, chunkIndex)
+		fileIndex.knownHashes[ToHex(reply.HashValue[:])] = NewKnownHash(shared, false, chunkIndex)
 
 	} else {
 		panic("WriteReceivedData(): Trying to write to non-existent file")
@@ -215,13 +221,13 @@ func (fileIndex *FileIndex) SetMetafile(filename string, reply *DataReply) {
 		sharedFile.Metafile = make([]byte, len(reply.Data))
 		copy(sharedFile.Metafile[:], reply.Data)
 		// Remember the metahash
-		fileIndex.knownHashes[GetHex(reply.HashValue[:])] = NewKnownHash(sharedFile, true, 0)
+		fileIndex.knownHashes[ToHex(reply.HashValue[:])] = NewKnownHash(sharedFile, true, 0)
 	}
 
 }
 
-// GetHex - Returns the hexadecimal string representations of a hash
-func GetHex(hash []byte) string {
+// ToHex - Returns the hexadecimal string representations of a hash
+func ToHex(hash []byte) string {
 	return fmt.Sprintf("%x", hash[:])
 }
 

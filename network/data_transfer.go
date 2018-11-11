@@ -120,7 +120,7 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 	if g.Args.Name == reply.Destination { // Message is for me
 		// Check that the data contained in the message corresponds to the hash
 		receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
-		if types.GetHex(reply.HashValue[:]) != types.GetHex(receivedDataHash[:]) {
+		if types.ToHex(reply.HashValue[:]) != types.ToHex(receivedDataHash[:]) {
 			// Ignore
 			return
 		}
@@ -212,7 +212,7 @@ func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, 
 	}
 
 	// Create a shared file
-	sharedFile := g.FileIndex.AddNewSharedFile(localFilename, metahash)
+	sharedFile := g.FileIndex.AddNewSharedFile(localFilename, remotePeer, metahash)
 	if sharedFile == nil {
 		// Error: filename already exists
 		return
