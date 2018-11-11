@@ -1,4 +1,4 @@
-.peers_list_wrap {
+#right_panel {
     /* position/size */
     position: relative;
     float: left;
@@ -6,15 +6,24 @@
     height: 100vh;
     /* style */
     background-color: rgb(47, 49, 54);
+    text-align: right;
+}
+
+.peers_list_wrap {
+    /* position/size */
+    position: relative;
+    height: 70%;
 }
 
 #peers_scrollable_wrap {
-    height: 93%;
+    /* position/size */
+    height: 100%;
+    /* box */
     padding: 10px 20px;
+    /* scrollbar */
     direction: rtl;
     overflow: auto;
     overflow-x: hidden; 
-    text-align: right;
 }
 
 .peer_wrap {
@@ -44,10 +53,9 @@
     /* positionning/size */
     position: absolute;
     bottom: 0;
-    height: 7%;
     width: 100%;
     /* box */
-    padding: 30px 50px;
+    padding: 10% 10%;
     box-sizing: border-box;
     /* style */
     background-color: rgb(42, 44, 49);

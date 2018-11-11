@@ -6,9 +6,11 @@
         <link rel="stylesheet" type="text/css" href="chat.css">
         <link rel="stylesheet" type="text/css" href="page.css">
         <link rel="stylesheet" type="text/css" href="peer.css">
+        <link rel="stylesheet" type="text/css" href="file.css">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <script type="text/javascript" src="chat.js"></script>
         <script type="text/javascript" src="peer.js"></script>
+        <script type="text/javascript" src="file.js"></script>
         <script type="text/javascript" src="communication.js"></script>
         <script type="text/javascript" src="contacts.js"></script>
     </head>
@@ -36,14 +38,42 @@
                 </div>
 
             </div>
-            <div class="peers_list_wrap">
-                <div id="peers_scrollable_wrap">
+            <div id="right_panel">
+                <div class="peers_list_wrap">
                     <div class="peer_header">
-                        <span><em>Known peers</em></span>
+                            <span><em>Known peers</em></span>
+                    </div>
+                    <div id="peers_scrollable_wrap"></div>
+                    <div id="new_peer_wrap">
+                        <textarea rows="1" maxlength="21" id="new_peer" placeholder="> ip:port" onkeydown="checkNewPeer(event)"></textarea>
                     </div>
                 </div>
-                <div id="new_peer_wrap">
-                    <textarea rows="1" maxlength="21" id="new_peer" placeholder="> ip:port (Ctrl + Enter)" onkeydown="checkNewPeer(event)"></textarea>
+                <div id="files_wrap">
+                    <div class="file_category_wrap">
+                        <div class="file_header">
+                            <!--<div id="add_file">
+                                <img src="add_file.svg">
+                            </div>-->
+                        <div class=file_header_txt>INDEXED FILES</div> 
+                        </div>
+                        <div class="files_scrollable_wrap">
+                            <div class="file_wrap">
+                                <div class="filename">hello.txt</div>
+                                <div class="hash">fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="file_category_wrap">
+                        <div class="file_header">
+                            <div class=file_header_txt>RECONSTRUCTING...</div> 
+                        </div>
+                        <div class="files_scrollable_wrap">
+                            <div class="file_wrap">
+                                <div class="filename">hello.txt <em>from Alice</em></div>
+                                <div class="hash">fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972fd54eac4835ca972</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
