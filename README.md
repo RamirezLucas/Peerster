@@ -1,3 +1,6 @@
+Milestone 1
+=======
+
 ## How to use the GUI (webserver)
 
 My implementation allows to use both the webserver and the CL client at the same time.  
@@ -15,20 +18,13 @@ For testing purposes I also created a new flag `-GUIPort` (default value `8080`)
 The following command launches a gossiper that can use both the CL client on port `8080` and the GUI on port `8090`:  
 `./Peerster -UIPort=8080 -GUIPort=8090 -gossipAddr=127.0.0.1:2000 -name=Alice`  
 
---- 
+Milestone 2
+=======
 
-## Webserver Implementation
+Below is a screenshot of the GUI as well as some remarks concerning its utilization.
 
-Requests handlers:  
+![Image](GUI_screenshot.png "icon")
 
-    * POST request to /message:    send a message
-    * POST request to /node:       add a peer
-    * GET request to  /message:    retrieve all non-displayed messages (polls every 3 seconds)
-    * GET request to  /node:       retrieve all non-displayed peers (polls every 3 seconds)
-    * GET request to  /id:         get the gossiper's name (displayed on top on chat window)
-
-    * GET request to  /in_message: retrieve all messages (used once when the page loads)
-    * GET request to  /in_node:    retrieve all peers (used once when the page loads)
-
-
-The implementation doesn't use `JQuery`, only standard `Javascript`.
+Some remarks:
+* The webpage will not behave properly if its corresponding gossiper is stopped and then restarted. In that case one must reopen a new browser tab and relaunch the webpage on the right port.
+* The webpage will not behave properly if it is refreshed while its corresponding gossiper is running.
