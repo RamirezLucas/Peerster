@@ -117,42 +117,57 @@ func OnReceiveDataRequest(g *types.Gossiper, request *types.DataRequest, sender 
 // OnReceiveDataReply - Called when a data reply is received
 func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.UDPAddr) {
 
-	// Check that the data contained in the message corresponds to the hash
-	receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
-	if string(reply.HashValue[:]) != string(receivedDataHash[:]) {
-		// Ignore
-		return
-	}
-
-	// Look for the corresponding data request
-	knownHash := g.DataTimeouts.SearchHashAndForward(reply.HashValue, reply.Origin)
-	if knownHash == nil {
-		// Ignore
-		return
-	}
-
-	if knownHash.IsMetahash { // Metahash
-		// Update the shared file's metafile
-		g.FileIndex.SetMetafile(knownHash.File.Filename, reply.HashValue, reply.Data)
-	}
-
-	if nbChunks := uint32(len(knownHash.File.Metafile) / types.HashSizeBytes); nbChunks > 0 {
-
-		if knownHash.IsMetahash { // Request first chunk
-			OnRemoteChunkRequest(g, knownHash.File, 0, reply.Origin)
-		} else {
-			// Write received chunk
-			g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply.Data)
-
-			if knownHash.ChunkIndex+1 < nbChunks { // Request the next chunk
-				OnRemoteChunkRequest(g, knownHash.File, knownHash.ChunkIndex+1, reply.Origin)
-			} else { // That was the last chunk
-				fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
-			}
+	if g.Args.Name == reply.Destination { // Message is for me
+		// Check that the data contained in the message corresponds to the hash
+		receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
+		if string(reply.HashValue[:]) != string(receivedDataHash[:]) {
+			// Ignore
+			return
 		}
 
-	} else { // Download finished
-		fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+		// Look for the corresponding data request
+		knownHash := g.DataTimeouts.SearchHashAndForward(reply.HashValue, reply.Origin)
+		if knownHash == nil {
+			// Ignore
+			return
+		}
+
+		if knownHash.IsMetahash { // Metahash
+			// Update the shared file's metafile
+			g.FileIndex.SetMetafile(knownHash.File.Filename, reply.HashValue, reply.Data)
+		}
+
+		if nbChunks := uint32(len(knownHash.File.Metafile) / types.HashSizeBytes); nbChunks > 0 {
+
+			if knownHash.IsMetahash { // Request first chunk
+				OnRemoteChunkRequest(g, knownHash.File, 0, reply.Origin)
+			} else {
+				// Write received chunk
+				g.FileIndex.WriteReceivedData(knownHash.File.Filename, reply, knownHash.ChunkIndex)
+
+				if knownHash.ChunkIndex+1 < nbChunks { // Request the next chunk
+					OnRemoteChunkRequest(g, knownHash.File, knownHash.ChunkIndex+1, reply.Origin)
+				} else { // That was the last chunk
+					fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+				}
+			}
+
+		} else { // Download finished
+			fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+		}
+	} else { // Message is fopr someone else
+		// Decrement hop limit
+		reply.HopLimit--
+
+		// Send/Relay private message if hop-limit not exhausted
+		if reply.HopLimit != 0 {
+
+			// Pick the target (should exist) and send
+			target := g.Router.GetTarget(reply.Destination)
+			if target != nil {
+				OnSendDataReply(g, reply, target)
+			}
+		}
 	}
 
 }

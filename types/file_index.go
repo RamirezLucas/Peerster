@@ -164,12 +164,12 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 }
 
 // WriteReceivedData - Write a received chunk at a file's end
-func (fileIndex *FileIndex) WriteReceivedData(filename string, data []byte) {
+func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *DataReply, chunkIndex uint32) {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
-	if _, ok := fileIndex.index[filename]; ok { // We know the file
+	if shared, ok := fileIndex.index[filename]; ok { // We know the file
 
 		// Open the file in write mode
 		f, err := os.OpenFile(PathToDownloadedFiles+filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
@@ -179,9 +179,12 @@ func (fileIndex *FileIndex) WriteReceivedData(filename string, data []byte) {
 		defer f.Close()
 
 		// Write the chunk
-		if nbBytesWrote, err := f.Write(data); err != nil && nbBytesWrote != len(data) {
+		if nbBytesWrote, err := f.Write(reply.Data); err != nil && nbBytesWrote != len(reply.Data) {
 			panic("WriteReceivedData(): Failed to write into file")
 		}
+
+		// Remember the hash
+		fileIndex.knownHashes[string(reply.HashValue[:])] = NewKnownHash(shared, false, chunkIndex)
 
 	} else {
 		panic("WriteReceivedData(): Trying to write to non-existent file")
