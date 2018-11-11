@@ -195,8 +195,6 @@ func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex 
 		HashValue:   hash,
 	}
 
-	fmt.Printf("Requesting hash %s\n", types.GetHex(hash[:]))
-
 	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
 	g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, false, chunkIndex)
 	OnSendTimedDataRequest(g, request, target)
@@ -226,8 +224,6 @@ func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, 
 		HopLimit:    16,
 		HashValue:   metahash,
 	}
-
-	fmt.Printf("Requesting hash %s\n", types.GetHex(metahash[:]))
 
 	fmt.Printf("DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
 	g.DataTimeouts.AddDataTimeoutHandler(metahash, remotePeer, sharedFile, true, 0)
