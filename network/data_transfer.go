@@ -197,7 +197,7 @@ func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex 
 		HashValue:   hash,
 	}
 
-	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
+	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex+1, remotePeer)
 	g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, false, chunkIndex)
 	OnSendTimedDataRequest(g, request, target)
 	g.DataTimeouts.DeleteDataTimeoutHandler(hash)
