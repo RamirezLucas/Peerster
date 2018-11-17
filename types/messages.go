@@ -4,32 +4,32 @@ import (
 	"fmt"
 )
 
-// SimpleMessage - Represents a simple message
+// SimpleMessage represents a simple message
 type SimpleMessage struct {
 	OriginalName  string // Name of original sender
 	RelayPeerAddr string // Address of last relayer
 	Contents      string // Message content
 }
 
-// RumorMessage - Represents a rumor
+// RumorMessage represents a rumor message
 type RumorMessage struct {
 	Origin string // Name of original sender
 	ID     uint32 // Message id (sequential)
 	Text   string // Message content
 }
 
-// PeerStatus - Represent the status of a particular peer for a given gossiper
+// PeerStatus represent the status of a particular peer for a given gossiper
 type PeerStatus struct {
 	Identifier string // Name of original sender
 	NextID     uint32 // Next expected message ID for this sender
 }
 
-// StatusPacket - Represents the status of all known peers of a given gossiper (vector clock)
+// StatusPacket represents the status of all known peers of a given gossiper (vector clock)
 type StatusPacket struct {
 	Want []PeerStatus // Vector clock
 }
 
-// PrivateMessage - Represents a private message between 2 peers
+// PrivateMessage represents a private message between 2 peers
 type PrivateMessage struct {
 	Origin      string // The sender's name
 	ID          uint32 // The message ID (not important for now as sequence order isn't enforced)
@@ -38,7 +38,7 @@ type PrivateMessage struct {
 	HopLimit    uint32 // The maximum number of hops the message is allowed to go through
 }
 
-// DataRequest - Represents a data request
+// DataRequest represents a data request
 type DataRequest struct {
 	Origin      string // The message's origin
 	Destination string // The message's destination
@@ -46,7 +46,7 @@ type DataRequest struct {
 	HashValue   []byte // The requeted hash value
 }
 
-// DataReply - Represents a data reply
+// DataReply represents a data reply
 type DataReply struct {
 	Origin      string // The message's origin
 	Destination string // The message's destination
@@ -55,29 +55,53 @@ type DataReply struct {
 	Data        []byte // Data
 }
 
-// GossipPacket -- Structure that is exchanged between gossipers (only one of the 4-fields can be non-nil)
-type GossipPacket struct {
-	SimpleMsg   *SimpleMessage  // A plain message
-	Rumor       *RumorMessage   // A rumor
-	Status      *StatusPacket   // A vector clock
-	Private     *PrivateMessage // A private message
-	DataRequest *DataRequest    // A data request
-	DataReply   *DataReply      // A data reply
+// SearchRequest represents a search request
+type SearchRequest struct {
+	Origin   string   // The message's origin
+	Budget   uint64   // The budget allocated to this request
+	Keywords []string // A list of keywords to research
 }
 
-// SimpleMessageToString - Returns a textual representation of a SimpleMessage
+// SearchReply represents a search reply
+type SearchReply struct {
+	Origin      string          // The message's origin
+	Destination string          // The message's destination
+	HopLimit    uint32          // The maximum number of hops the message is allowed to go through
+	Results     []*SearchResult // A list of search results
+}
+
+// SearchResult represents a search result
+type SearchResult struct {
+	FileName     string   // The filename associated to the result
+	MetafileHash []byte   // The file's metahash
+	ChunkMap     []uint64 // The indices of the chunks that the replying peer contains locally
+}
+
+// GossipPacket is the structure that is exchanged between gossipers (only one of the fields can be non-nil)
+type GossipPacket struct {
+	SimpleMsg     *SimpleMessage  // A plain message
+	Rumor         *RumorMessage   // A rumor message
+	Status        *StatusPacket   // A vector clock
+	Private       *PrivateMessage // A private message
+	DataRequest   *DataRequest    // A data request
+	DataReply     *DataReply      // A data reply
+	SearchRequest *SearchRequest  // A search request
+	SearchReply   *SearchReply    // A search reply
+}
+
+// SimpleMessageToString returns a textual representation of a SimpleMessage
 func (pkt *SimpleMessage) SimpleMessageToString() string {
 	return fmt.Sprintf("SIMPLE MESSAGE origin %s from %s contents %s",
 		pkt.OriginalName, pkt.RelayPeerAddr, pkt.Contents)
 }
 
-// RumorMessageToString - Returns a textual representation of a RumorMessage
+// RumorMessageToString returns a textual representation of a RumorMessage
 func (pkt *RumorMessage) RumorMessageToString(relayAddr string) string {
 	return fmt.Sprintf("RUMOR origin %s from %s ID %d contents %s",
 		pkt.Origin, relayAddr, pkt.ID, pkt.Text)
 }
 
-// StatusPacketToString - Returns a textual representation of a StatusPacket
+// StatusPacketToString returns a textual representation of a StatusPacket
 func (pkt *StatusPacket) StatusPacketToString(relayAddr string) string {
 	s := fmt.Sprintf("STATUS from %s", relayAddr)
 	for _, peer := range pkt.Want {
@@ -86,7 +110,7 @@ func (pkt *StatusPacket) StatusPacketToString(relayAddr string) string {
 	return s
 }
 
-// PrivateMessageToString - Returns a textual representation of a PrivateMessage
+// PrivateMessageToString returns a textual representation of a PrivateMessage
 func (pkt *PrivateMessage) PrivateMessageToString() string {
 	return fmt.Sprintf("PRIVATE origin %s hop_limit %d contents %s",
 		pkt.Origin, pkt.HopLimit, pkt.Text)
