@@ -2,14 +2,14 @@ package data
 
 import "fmt"
 
-// Bitmap - Represents a bitmap of arbitrary size (NOT thread-safe)
+// Bitmap represents a bitmap of arbitrary size (NOT thread-safe)
 type Bitmap struct {
-	size uint32 // Bitmap's size in bits
+	size uint64 // Bitmap's size in bits
 	data []byte // Byte array containing the actual bitmap
 }
 
-// NewBitmap - Creates a new instance of NameIndex
-func NewBitmap(size uint32) *Bitmap {
+// NewBitmap creates a new instance of NameIndex with the indicated size
+func NewBitmap(size uint64) *Bitmap {
 	if size == 0 {
 		return nil
 	}
@@ -27,7 +27,7 @@ func NewBitmap(size uint32) *Bitmap {
 }
 
 // GetSize returns the bitmap's size
-func (bitmap *Bitmap) GetSize() uint32 {
+func (bitmap *Bitmap) GetSize() uint64 {
 	if bitmap == nil {
 		panic("GetSize called on nil Bitmap")
 	}
@@ -35,7 +35,7 @@ func (bitmap *Bitmap) GetSize() uint32 {
 }
 
 // GetBit returns the bit's value at index as a boolean (true for 1, false for 0)
-func (bitmap *Bitmap) GetBit(index uint32) bool {
+func (bitmap *Bitmap) GetBit(index uint64) bool {
 	if bitmap == nil {
 		panic("GetBit called on nil Bitmap")
 	}
@@ -47,7 +47,7 @@ func (bitmap *Bitmap) GetBit(index uint32) bool {
 }
 
 // SetBit sets the bit at index and returns the old value as a boolean (true for 1, false for 0)
-func (bitmap *Bitmap) SetBit(index uint32) bool {
+func (bitmap *Bitmap) SetBit(index uint64) bool {
 	if bitmap == nil {
 		panic("SetBit called on nil Bitmap")
 	}
@@ -65,7 +65,7 @@ func (bitmap *Bitmap) SetBit(index uint32) bool {
 }
 
 // UnsetBit unsets the bit at index and returns the old value as a boolean (true for 1, false for 0)
-func (bitmap *Bitmap) UnsetBit(index uint32) bool {
+func (bitmap *Bitmap) UnsetBit(index uint64) bool {
 	if bitmap == nil {
 		panic("UnsetBit called on nil Bitmap")
 	}
@@ -83,7 +83,7 @@ func (bitmap *Bitmap) UnsetBit(index uint32) bool {
 }
 
 // CountLeadingBits returns the number of bits set up to (and excluding) upToIndex
-func (bitmap *Bitmap) CountLeadingBits(upToIndex uint32) uint32 {
+func (bitmap *Bitmap) CountLeadingBits(upToIndex uint64) uint64 {
 	if bitmap == nil {
 		panic("CountLeadingBits called on nil Bitmap")
 	}
@@ -91,7 +91,7 @@ func (bitmap *Bitmap) CountLeadingBits(upToIndex uint32) uint32 {
 		panic(fmt.Sprintf("CountLeadingBits called on non-existent bit %d in bitmap of size %d\n", upToIndex, bitmap.size))
 	}
 
-	count := uint32(0)
+	count := uint64(0)
 
 	arraySize := upToIndex / 8
 	lastElement := int(upToIndex % 8)
@@ -100,7 +100,7 @@ func (bitmap *Bitmap) CountLeadingBits(upToIndex uint32) uint32 {
 	}
 
 	// Iterate over array elements
-	for i := uint32(0); i < arraySize; i++ {
+	for i := uint64(0); i < arraySize; i++ {
 
 		// Get element and set up bitmask
 		data := bitmap.data[i]

@@ -12,7 +12,7 @@ const BitmapSize = 15
 func TestNewBitmap(t *testing.T) {
 
 	values := []struct {
-		size   uint32
+		size   uint64
 		isNull bool
 	}{
 		{0, true},
@@ -36,7 +36,7 @@ func TestGetSetUnsetBadArguments(t *testing.T) {
 
 	values := []struct {
 		bitmap *data.Bitmap
-		index  uint32
+		index  uint64
 	}{
 		{nil, 0},
 		{b, BitmapSize},
@@ -63,7 +63,7 @@ func TestCountLeadingBitsBadArguments(t *testing.T) {
 
 	values := []struct {
 		bitmap *data.Bitmap
-		index  uint32
+		index  uint64
 	}{
 		{nil, 0},
 		{b, BitmapSize + 1},
@@ -80,7 +80,7 @@ func TestGetAndSet(t *testing.T) {
 	b := data.NewBitmap(BitmapSize)
 
 	setValues := []struct {
-		index    uint32
+		index    uint64
 		expected bool
 	}{
 		{0, false},
@@ -94,7 +94,7 @@ func TestGetAndSet(t *testing.T) {
 	}
 
 	getValues := []struct {
-		index    uint32
+		index    uint64
 		expected bool
 	}{
 		{0, true},
@@ -115,7 +115,7 @@ func TestSetAndUnset(t *testing.T) {
 	b := data.NewBitmap(BitmapSize)
 
 	setValues := []struct {
-		index    uint32
+		index    uint64
 		expected bool
 	}{
 		{4, false},
@@ -128,7 +128,7 @@ func TestSetAndUnset(t *testing.T) {
 	}
 
 	unsetValues := []struct {
-		index    uint32
+		index    uint64
 		expected bool
 	}{
 		{4, true},
@@ -142,7 +142,7 @@ func TestSetAndUnset(t *testing.T) {
 	}
 
 	getValues := []struct {
-		index    uint32
+		index    uint64
 		expected bool
 	}{
 		{4, false},
@@ -162,20 +162,20 @@ func TestLeadingCountBits(t *testing.T) {
 	b := data.NewBitmap(BitmapSize)
 
 	// Set values
-	setValues := []uint32{0, 1, 2, 3, 8, 9, 10, 12, 14}
+	setValues := []uint64{0, 1, 2, 3, 8, 9, 10, 12, 14}
 	for _, val := range setValues {
 		b.SetBit(val)
 	}
 
 	indexCount := []struct {
-		index    uint32
-		expected uint32
+		index    uint64
+		expected uint64
 	}{
 		{0, 0},
 		{3, 3},
 		{5, 4},
 		{13, 8},
-		{BitmapSize, uint32(len(setValues))},
+		{BitmapSize, uint64(len(setValues))},
 	}
 
 	for _, val := range indexCount {
