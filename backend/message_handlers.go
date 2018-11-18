@@ -1,8 +1,8 @@
 package backend
 
 import (
+	"Peerster/messages"
 	"Peerster/network"
-	"Peerster/types"
 	"net/http"
 )
 
@@ -20,7 +20,7 @@ func postRumorHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Accept the new message
-	rumor := &types.RumorMessage{Text: msg}
+	rumor := &messages.RumorMessage{Text: msg}
 	network.OnReceiveClientRumor(gossiper, rumor, <-(*idChannel))
 
 }
@@ -40,6 +40,6 @@ func postPrivateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Accept the new message
-	privateMessage := &types.PrivateMessage{Destination: dst, Text: msg}
+	privateMessage := &messages.PrivateMessage{Destination: dst, Text: msg}
 	network.OnReceiveClientPrivate(gossiper, privateMessage)
 }

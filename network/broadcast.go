@@ -1,7 +1,8 @@
 package network
 
 import (
-	"Peerster/types"
+	"Peerster/entities"
+	"Peerster/messages"
 	"fmt"
 	"net"
 
@@ -9,7 +10,7 @@ import (
 )
 
 // OnBroadcastClient -
-func OnBroadcastClient(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
+func OnBroadcastClient(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) {
 
 	// Print to the console
 	fmt.Printf("CLIENT MESSAGE %s\n%s\n", simpleMsg.Contents, g.PeerIndex.PeersToString())
@@ -19,7 +20,7 @@ func OnBroadcastClient(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 	simpleMsg.RelayPeerAddr = g.Args.GossipAddr
 
 	// Create the packet
-	pkt := types.GossipPacket{SimpleMsg: simpleMsg}
+	pkt := messages.GossipPacket{SimpleMsg: simpleMsg}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return
@@ -31,7 +32,7 @@ func OnBroadcastClient(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 }
 
 // OnBroadcastNetwork -
-func OnBroadcastNetwork(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
+func OnBroadcastNetwork(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) {
 
 	// Resolve the address
 	udpAddr, err := net.ResolveUDPAddr("udp4", simpleMsg.RelayPeerAddr)
@@ -55,7 +56,7 @@ func OnBroadcastNetwork(g *types.Gossiper, simpleMsg *types.SimpleMessage) {
 	simpleMsg.RelayPeerAddr = g.Args.GossipAddr
 
 	// Create the packet
-	pkt := types.GossipPacket{SimpleMsg: simpleMsg}
+	pkt := messages.GossipPacket{SimpleMsg: simpleMsg}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return

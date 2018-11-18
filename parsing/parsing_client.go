@@ -1,8 +1,8 @@
 package parsing
 
 import (
+	"Peerster/entities"
 	"Peerster/fail"
-	"Peerster/types"
 	"encoding/hex"
 	"fmt"
 	"net"
@@ -11,9 +11,9 @@ import (
 )
 
 // ParseArgumentsClient - Parses the arguments for the client
-func ParseArgumentsClient() (*types.Client, error) {
+func ParseArgumentsClient() (*entities.Client, error) {
 
-	var client types.Client
+	var client entities.Client
 	var uiPortDone, msgDone, destDone, fileDone, reqDone bool
 
 	for _, arg := range os.Args[1:] {

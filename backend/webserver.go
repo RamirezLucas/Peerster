@@ -1,7 +1,8 @@
 package backend
 
 import (
-	"Peerster/types"
+	"Peerster/entities"
+	"Peerster/frontend"
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
@@ -10,13 +11,13 @@ import (
 )
 
 // Used to make the gossiper visible from everywhere in the file
-var gossiper *types.Gossiper
+var gossiper *entities.Gossiper
 
 // Used to make the TID channel from everywhere in the file
 var idChannel *chan uint32
 
 // Webserver - Lauch a webserver on port 8080
-func Webserver(g *types.Gossiper, chanID chan uint32) {
+func Webserver(g *entities.Gossiper, chanID chan uint32) {
 
 	// Make the gossiper and channel visible
 	gossiper = g
@@ -87,7 +88,7 @@ func getIDHandler(w http.ResponseWriter, r *http.Request) {
 func getUpdatesHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Get data
-	data := types.FBuffer.GetDataAndEmpty()
+	data := frontend.FBuffer.GetDataAndEmpty()
 
 	// Send JSON data
 	w.WriteHeader(http.StatusOK)

@@ -1,8 +1,10 @@
 package network
 
 import (
+	"Peerster/entities"
 	"Peerster/fail"
-	"Peerster/types"
+	"Peerster/messages"
+	"Peerster/peers"
 	"fmt"
 	"net"
 
@@ -10,10 +12,10 @@ import (
 )
 
 // OnSendStatus - Sends a status
-func OnSendStatus(vectorClock *types.StatusPacket, channel *net.UDPConn, target *net.UDPAddr) error {
+func OnSendStatus(vectorClock *messages.StatusPacket, channel *net.UDPConn, target *net.UDPAddr) error {
 
 	// Create the packet
-	pkt := types.GossipPacket{Status: vectorClock}
+	pkt := messages.GossipPacket{Status: vectorClock}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return &fail.CustomError{Fun: "OnSendStatus", Desc: "failed to encode GossipPacket"}
@@ -27,13 +29,13 @@ func OnSendStatus(vectorClock *types.StatusPacket, channel *net.UDPConn, target 
 }
 
 // OnReceiveStatus - Called when a status is received
-func OnReceiveStatus(g *types.Gossiper, status *types.StatusPacket, sender *net.UDPAddr, threadID uint32) {
+func OnReceiveStatus(g *entities.Gossiper, status *messages.StatusPacket, sender *net.UDPAddr, threadID uint32) {
 
 	// Attempt to add the sending peer to the list of neighbors
 	g.PeerIndex.AddPeerIfAbsent(sender)
 
 	// Print to the console
-	fmt.Printf("%s\n%s\n", status.StatusPacketToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
+	fmt.Printf("%s\n%s\n", status.StatusPacketToString(peers.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
 
 	// See if we must propagate a rumor
 	rumorToPropagate := g.NameIndex.GetUnknownMessageTarget(status)

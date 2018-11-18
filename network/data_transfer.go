@@ -1,8 +1,10 @@
 package network
 
 import (
+	"Peerster/entities"
 	"Peerster/fail"
-	"Peerster/types"
+	"Peerster/files"
+	"Peerster/messages"
 	"crypto/sha256"
 	"fmt"
 	"net"
@@ -12,10 +14,10 @@ import (
 )
 
 // OnSendDataRequest - Sends a data request
-func OnSendDataRequest(g *types.Gossiper, request *types.DataRequest, target *net.UDPAddr) error {
+func OnSendDataRequest(g *entities.Gossiper, request *messages.DataRequest, target *net.UDPAddr) error {
 
 	// Create the packet
-	pkt := types.GossipPacket{DataRequest: request}
+	pkt := messages.GossipPacket{DataRequest: request}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return &fail.CustomError{Fun: "OnSendDataRequest", Desc: "failed to encode DataRequest"}
@@ -30,7 +32,7 @@ func OnSendDataRequest(g *types.Gossiper, request *types.DataRequest, target *ne
 }
 
 // OnSendTimedDataRequest - Sends a data request with timeout
-func OnSendTimedDataRequest(g *types.Gossiper, request *types.DataRequest, target *net.UDPAddr) error {
+func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest, target *net.UDPAddr) error {
 
 	for {
 		// Send the request
@@ -57,10 +59,10 @@ func OnSendTimedDataRequest(g *types.Gossiper, request *types.DataRequest, targe
 }
 
 // OnSendDataReply - Sends a data reply
-func OnSendDataReply(g *types.Gossiper, reply *types.DataReply, target *net.UDPAddr) {
+func OnSendDataReply(g *entities.Gossiper, reply *messages.DataReply, target *net.UDPAddr) {
 
 	// Create the packet
-	pkt := types.GossipPacket{DataReply: reply}
+	pkt := messages.GossipPacket{DataReply: reply}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return
@@ -71,7 +73,7 @@ func OnSendDataReply(g *types.Gossiper, reply *types.DataReply, target *net.UDPA
 }
 
 // OnReceiveDataRequest - Called when a data request is received
-func OnReceiveDataRequest(g *types.Gossiper, request *types.DataRequest, sender *net.UDPAddr) {
+func OnReceiveDataRequest(g *entities.Gossiper, request *messages.DataRequest, sender *net.UDPAddr) {
 
 	if g.Args.Name == request.Destination { // Message is for me
 		// Add the contact to our routing table
@@ -83,7 +85,7 @@ func OnReceiveDataRequest(g *types.Gossiper, request *types.DataRequest, sender 
 			data := g.FileIndex.GetDataFromHash(request.HashValue)
 
 			// Craft DataReply
-			reply := &types.DataReply{Origin: g.Args.Name,
+			reply := &messages.DataReply{Origin: g.Args.Name,
 				Destination: request.Origin,
 				HopLimit:    16,
 				HashValue:   request.HashValue,
@@ -115,12 +117,12 @@ func OnReceiveDataRequest(g *types.Gossiper, request *types.DataRequest, sender 
 }
 
 // OnReceiveDataReply - Called when a data reply is received
-func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.UDPAddr) {
+func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender *net.UDPAddr) {
 
 	if g.Args.Name == reply.Destination { // Message is for me
 		// Check that the data contained in the message corresponds to the hash
 		receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
-		if types.ToHex(reply.HashValue[:]) != types.ToHex(receivedDataHash[:]) {
+		if files.ToHex(reply.HashValue[:]) != files.ToHex(receivedDataHash[:]) {
 			// Ignore
 			return
 		}
@@ -138,7 +140,7 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 		}
 
 		// Compute number of chunks
-		nbChunks := types.GetChunksNumberFromMetafile(len(knownHash.File.Metafile))
+		nbChunks := files.GetChunksNumberFromMetafile(len(knownHash.File.Metafile))
 
 		if nbChunks > 0 {
 
@@ -179,7 +181,7 @@ func OnReceiveDataReply(g *types.Gossiper, reply *types.DataReply, sender *net.U
 }
 
 // OnRemoteChunkRequest - Request the chunks of a remote file
-func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex uint32, remotePeer string) {
+func OnRemoteChunkRequest(g *entities.Gossiper, file *files.SharedFile, chunkIndex uint32, remotePeer string) {
 
 	// Check that the remote peer exists
 	target := g.Router.GetTarget(remotePeer)
@@ -187,11 +189,11 @@ func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex 
 		return
 	}
 
-	index := chunkIndex * types.HashSizeBytes
-	hash := file.Metafile[index : index+types.HashSizeBytes]
+	index := chunkIndex * files.HashSizeBytes
+	hash := file.Metafile[index : index+files.HashSizeBytes]
 
 	// Create chunk request
-	request := &types.DataRequest{Origin: g.Args.Name,
+	request := &messages.DataRequest{Origin: g.Args.Name,
 		Destination: remotePeer,
 		HopLimit:    16,
 		HashValue:   hash,
@@ -205,7 +207,7 @@ func OnRemoteChunkRequest(g *types.Gossiper, file *types.SharedFile, chunkIndex 
 }
 
 // OnRemoteMetaFileRequest - Request the metafile of a remote file
-func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, remotePeer string) {
+func OnRemoteMetaFileRequest(g *entities.Gossiper, metahash []byte, localFilename, remotePeer string) {
 
 	// Check that the remote peer exists
 	target := g.Router.GetTarget(remotePeer)
@@ -221,7 +223,7 @@ func OnRemoteMetaFileRequest(g *types.Gossiper, metahash []byte, localFilename, 
 	}
 
 	// Create metafile request
-	request := &types.DataRequest{Origin: g.Args.Name,
+	request := &messages.DataRequest{Origin: g.Args.Name,
 		Destination: remotePeer,
 		HopLimit:    16,
 		HashValue:   metahash,

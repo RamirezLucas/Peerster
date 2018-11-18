@@ -1,7 +1,8 @@
 package network
 
 import (
-	"Peerster/types"
+	"Peerster/entities"
+	"Peerster/messages"
 	"fmt"
 	"net"
 
@@ -9,10 +10,10 @@ import (
 )
 
 // OnSendPrivate - Sends a private message
-func OnSendPrivate(g *types.Gossiper, private *types.PrivateMessage, target *net.UDPAddr) {
+func OnSendPrivate(g *entities.Gossiper, private *messages.PrivateMessage, target *net.UDPAddr) {
 
 	// Create the packet
-	pkt := types.GossipPacket{Private: private}
+	pkt := messages.GossipPacket{Private: private}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return
@@ -23,7 +24,7 @@ func OnSendPrivate(g *types.Gossiper, private *types.PrivateMessage, target *net
 }
 
 // OnReceiveClientPrivate - Called when a private message is received from the client
-func OnReceiveClientPrivate(g *types.Gossiper, private *types.PrivateMessage) {
+func OnReceiveClientPrivate(g *entities.Gossiper, private *messages.PrivateMessage) {
 
 	// Fill in remaining fields
 	private.Origin = g.Args.Name
@@ -41,7 +42,7 @@ func OnReceiveClientPrivate(g *types.Gossiper, private *types.PrivateMessage) {
 }
 
 // OnReceivePrivate - Called when a private message is received
-func OnReceivePrivate(g *types.Gossiper, private *types.PrivateMessage, sender *net.UDPAddr) {
+func OnReceivePrivate(g *entities.Gossiper, private *messages.PrivateMessage, sender *net.UDPAddr) {
 
 	// Update the routing table for private messages
 	if private.Origin != g.Args.Name {

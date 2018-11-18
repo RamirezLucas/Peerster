@@ -2,10 +2,11 @@ package main
 
 import (
 	"Peerster/backend"
+	"Peerster/entities"
 	"Peerster/fail"
+	"Peerster/messages"
 	"Peerster/network"
 	"Peerster/parsing"
-	"Peerster/types"
 	"fmt"
 	"net"
 	"os"
@@ -15,6 +16,9 @@ import (
 
 	"github.com/dedis/protobuf"
 )
+
+// BufSize - Size of the UDP buffer
+const BufSize = 16384
 
 func threadIDGenerator(chanID chan uint32) {
 	threadID := uint32(1)
@@ -40,7 +44,7 @@ func openUDPChannel(s string) (*net.UDPConn, error) {
 	return udpConn, nil
 }
 
-func isPacketValid(pkt *types.GossipPacket, isClientSide bool, isSimpleMode bool) bool {
+func isPacketValid(pkt *messages.GossipPacket, isClientSide bool, isSimpleMode bool) bool {
 
 	// Exactly one field of the packet must be non-nil
 	counter := 0
@@ -79,7 +83,7 @@ func isPacketValid(pkt *types.GossipPacket, isClientSide bool, isSimpleMode bool
 	return true
 }
 
-func antiEntropy(g *types.Gossiper) {
+func antiEntropy(g *entities.Gossiper) {
 
 	// Create a timeout timer
 	timer := time.NewTicker(time.Second)
@@ -97,7 +101,7 @@ func antiEntropy(g *types.Gossiper) {
 	}
 }
 
-func rumorEntropy(g *types.Gossiper, chanID chan uint32) {
+func rumorEntropy(g *entities.Gossiper, chanID chan uint32) {
 
 	go network.OnSendRouteRumor(g, <-chanID)
 
@@ -113,12 +117,12 @@ func rumorEntropy(g *types.Gossiper, chanID chan uint32) {
 
 }
 
-func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
+func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 
 	for {
 
 		// Create a buffer to store arriving data
-		buf := make([]byte, types.BufSize)
+		buf := make([]byte, BufSize)
 
 		var sender *net.UDPAddr
 		var n int
@@ -130,7 +134,7 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 		}
 
 		// Decode the packet
-		var pkt types.GossipPacket
+		var pkt messages.GossipPacket
 		if err := protobuf.Decode(buf[:n], &pkt); err != nil {
 			// Error: ignore the packet
 			continue
@@ -174,12 +178,12 @@ func udpDispatcherGossip(g *types.Gossiper, chanID chan uint32) {
 	}
 }
 
-func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
+func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 
 	for {
 
 		// Create a buffer to store arriving data
-		buf := make([]byte, types.BufSize)
+		buf := make([]byte, BufSize)
 
 		var n int
 		var err error
@@ -189,7 +193,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 		}
 
 		// Decode the packet
-		var pkt types.GossipPacket
+		var pkt messages.GossipPacket
 		if err := protobuf.Decode(buf[:n], &pkt); err != nil {
 			// Error: ignore the packet
 			continue
@@ -208,7 +212,7 @@ func udpDispatcherClient(g *types.Gossiper, chanID chan uint32) {
 				go network.OnBroadcastClient(g, pkt.SimpleMsg)
 			} else {
 				// Promote SimpleMessage to RumorMessage
-				rumor := types.RumorMessage{Text: pkt.SimpleMsg.Contents}
+				rumor := messages.RumorMessage{Text: pkt.SimpleMsg.Contents}
 				go network.OnReceiveClientRumor(g, &rumor, <-chanID)
 			}
 
@@ -243,7 +247,7 @@ func main() {
 	}
 
 	// Create the gossiper
-	gossiper := types.NewGossiper(args)
+	gossiper := entities.NewGossiper(args)
 
 	// Add myself to the named peer list
 	gossiper.NameIndex.AddName(gossiper.Args.Name)

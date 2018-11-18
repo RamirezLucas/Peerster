@@ -1,8 +1,10 @@
 package network
 
 import (
+	"Peerster/entities"
 	"Peerster/fail"
-	"Peerster/types"
+	"Peerster/messages"
+	"Peerster/peers"
 	"fmt"
 	"math/rand"
 	"net"
@@ -12,13 +14,13 @@ import (
 )
 
 // OnSendRouteRumor - Sends a route rumor
-func OnSendRouteRumor(g *types.Gossiper, threadID uint32) {
+func OnSendRouteRumor(g *entities.Gossiper, threadID uint32) {
 
 	// Pick a random target and send a RouteRumor message
 	target := g.PeerIndex.GetRandomPeer(nil)
 
 	// Create a RouteRumor message
-	routeRumor := &types.RumorMessage{Text: ""}
+	routeRumor := &messages.RumorMessage{Text: ""}
 
 	if target != nil {
 		// Store the new message
@@ -29,10 +31,10 @@ func OnSendRouteRumor(g *types.Gossiper, threadID uint32) {
 }
 
 // OnSendRumor - Sends a rumor
-func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAddr, threadID uint32) error {
+func OnSendRumor(g *entities.Gossiper, rumor *messages.RumorMessage, target *net.UDPAddr, threadID uint32) error {
 
 	// Create the packet
-	pkt := types.GossipPacket{Rumor: rumor}
+	pkt := messages.GossipPacket{Rumor: rumor}
 	buf, err := protobuf.Encode(&pkt)
 	if err != nil {
 		return &fail.CustomError{Fun: "OnSendRumor", Desc: "failed to encode RumorMessage"}
@@ -85,7 +87,7 @@ func OnSendRumor(g *types.Gossiper, rumor *types.RumorMessage, target *net.UDPAd
 }
 
 // OnReceiveClientRumor - Called when a rumor is received from the client
-func OnReceiveClientRumor(g *types.Gossiper, rumor *types.RumorMessage, threadID uint32) {
+func OnReceiveClientRumor(g *entities.Gossiper, rumor *messages.RumorMessage, threadID uint32) {
 
 	// Print to console
 	fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, g.PeerIndex.PeersToString())
@@ -105,7 +107,7 @@ func OnReceiveClientRumor(g *types.Gossiper, rumor *types.RumorMessage, threadID
 }
 
 // OnReceiveRumor - Called when a rumor is received
-func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UDPAddr, threadID uint32) {
+func OnReceiveRumor(g *entities.Gossiper, rumor *messages.RumorMessage, sender *net.UDPAddr, threadID uint32) {
 
 	// Is the message a RouteRumor ?
 	isRouteRumor := (rumor.Text == "")
@@ -114,7 +116,7 @@ func OnReceiveRumor(g *types.Gossiper, rumor *types.RumorMessage, sender *net.UD
 	g.PeerIndex.AddPeerIfAbsent(sender)
 
 	if !isRouteRumor {
-		fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(types.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
+		fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(peers.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
 	}
 
 	// Update the routing table for private messages

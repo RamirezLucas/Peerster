@@ -1,8 +1,8 @@
 package parsing
 
 import (
+	"Peerster/entities"
 	"Peerster/fail"
-	"Peerster/types"
 	"fmt"
 	"os"
 	"strconv"
@@ -10,9 +10,9 @@ import (
 )
 
 // ParseArgumentsGossiper - Parses the arguments for the gossiper
-func ParseArgumentsGossiper() (*types.CLArgsGossiper, error) {
+func ParseArgumentsGossiper() (*entities.CLArgsGossiper, error) {
 
-	var args types.CLArgsGossiper
+	var args entities.CLArgsGossiper
 
 	var uiPortDone, guiPortDone, gossipAddrDone, nameDone, peersDone, simpleDone, rTimerDone bool
 
