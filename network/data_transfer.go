@@ -181,7 +181,7 @@ func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender 
 }
 
 // OnRemoteChunkRequest - Request the chunks of a remote file
-func OnRemoteChunkRequest(g *entities.Gossiper, file *files.SharedFile, chunkIndex uint32, remotePeer string) {
+func OnRemoteChunkRequest(g *entities.Gossiper, file *files.SharedFile, chunkIndex uint64, remotePeer string) {
 
 	// Check that the remote peer exists
 	target := g.Router.GetTarget(remotePeer)

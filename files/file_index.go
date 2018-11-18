@@ -92,9 +92,8 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 	nbBytesRead := 0
 
 	// Create the metafile
-	var metafileIndex uint32
 	shared.Metafile = make([]byte, nbChunks*HashSizeBytes)
-	for metafileIndex = 0; metafileIndex < nbChunks; metafileIndex++ {
+	for metafileIndex := uint64(0); metafileIndex < nbChunks; metafileIndex++ {
 
 		// Read the next chunk
 		if nbBytesRead, err = f.Read(chunkBuffer); err != nil {
@@ -185,7 +184,7 @@ func (fileIndex *FileIndex) AcknowledgeFileIndexed(filename string, metahash []b
 }
 
 // WriteReceivedData - Write a received chunk at a file's end
-func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *messages.DataReply, chunkIndex uint32, isEmpty bool) {
+func (fileIndex *FileIndex) WriteReceivedData(filename string, reply *messages.DataReply, chunkIndex uint64, isEmpty bool) {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
@@ -240,8 +239,8 @@ func ToHex(hash []byte) string {
 }
 
 // GetChunksNumberFromMetafile - Returns the number of chunks from the size of the metafile
-func GetChunksNumberFromMetafile(metafileSize int) uint32 {
-	nbChunks := uint32(metafileSize / HashSizeBytes)
+func GetChunksNumberFromMetafile(metafileSize int) uint64 {
+	nbChunks := uint64(metafileSize / HashSizeBytes)
 	if metafileSize%HashSizeBytes != 0 {
 		nbChunks++
 	}
@@ -249,8 +248,8 @@ func GetChunksNumberFromMetafile(metafileSize int) uint32 {
 }
 
 // GetChunksNumberFromRawFile - Returns the number of chunks from the filesize
-func GetChunksNumberFromRawFile(fileSize int) uint32 {
-	nbChunks := uint32(fileSize / ChunkSizeBytes)
+func GetChunksNumberFromRawFile(fileSize int) uint64 {
+	nbChunks := uint64(fileSize / ChunkSizeBytes)
 	if fileSize%ChunkSizeBytes != 0 {
 		nbChunks++
 	}

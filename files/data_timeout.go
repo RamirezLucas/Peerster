@@ -25,7 +25,7 @@ func NewDataResponseForwarder() *DataResponseForwarder {
 }
 
 // NewDataTimeoutHandler - Creates a new instance of DataTimeoutHandler
-func NewDataTimeoutHandler(origin string, file *SharedFile, isMetahash bool, chunkIndex uint32) *DataTimeoutHandler {
+func NewDataTimeoutHandler(origin string, file *SharedFile, isMetahash bool, chunkIndex uint64) *DataTimeoutHandler {
 	var handler DataTimeoutHandler
 	handler.Origin = origin
 	handler.Done = false
@@ -35,7 +35,7 @@ func NewDataTimeoutHandler(origin string, file *SharedFile, isMetahash bool, chu
 
 // AddDataTimeoutHandler - Adds a DataTimeoutHandler to the forwarder
 func (forwarder *DataResponseForwarder) AddDataTimeoutHandler(hash []byte, origin string,
-	file *SharedFile, isMetahash bool, chunkIndex uint32) *DataTimeoutHandler {
+	file *SharedFile, isMetahash bool, chunkIndex uint64) *DataTimeoutHandler {
 
 	forwarder.mux.Lock()
 	defer forwarder.mux.Unlock()

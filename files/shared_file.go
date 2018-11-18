@@ -4,7 +4,7 @@ package files
 type KnownHash struct {
 	File       *SharedFile // A pointer to the shared file with this hash
 	IsMetahash bool        // Indicates whether this is a metahash
-	ChunkIndex uint32      // Indicates the chunk index in case this isn't a metahash
+	ChunkIndex uint64      // Indicates the chunk index in case this isn't a metahash
 }
 
 // SharedFile - Represents a file indexed by the gossiper
@@ -16,7 +16,7 @@ type SharedFile struct {
 }
 
 // NewKnownHash - Creates a new instance of KnownHash
-func NewKnownHash(file *SharedFile, isMetahash bool, chunkIndex uint32) *KnownHash {
+func NewKnownHash(file *SharedFile, isMetahash bool, chunkIndex uint64) *KnownHash {
 	var knownHash KnownHash
 	knownHash.File = file
 	knownHash.IsMetahash = isMetahash
