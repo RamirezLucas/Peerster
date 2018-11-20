@@ -4,8 +4,8 @@ import (
 	"Peerster/frontend"
 	"Peerster/messages"
 	"crypto/sha256"
-	"fmt"
 	"os"
+	"strings"
 	"sync"
 )
 
@@ -126,6 +126,32 @@ func (fileIndex *FileIndex) IndexNewFile(filename string) {
 	frontend.FBuffer.AddFrontendIndexedFile(filename, ToHex(metahash[:]))
 }
 
+// GetMatchingFiles returns the list of SearchResult's corresponding to files whose
+// filename contains at least one of the keyword contained in the keywords slice.
+func (fileIndex *FileIndex) GetMatchingFiles(keywords []string) []*messages.SearchResult {
+	// Grab the mutex
+	fileIndex.mux.Lock()
+	defer fileIndex.mux.Unlock()
+
+	results := make([]*messages.SearchResult, 0)
+
+	// Iterate over all known files
+	for filename, shared := range fileIndex.index {
+
+		// Search for a keyword in the filename
+		for _, k := range keywords {
+			if strings.Contains(filename, k) {
+				// We have a match
+				results = append(results, shared.GetFileSearchInfo())
+				break
+			}
+		}
+
+	}
+
+	return results
+}
+
 // GetDataFromHash - Gets data corresponding to a given hash. Returns nil if the hash is unknown
 func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	// Grab the file index mutex
@@ -231,27 +257,4 @@ func (fileIndex *FileIndex) SetMetafile(filename string, reply *messages.DataRep
 		fileIndex.knownHashes[ToHex(reply.HashValue[:])] = NewKnownHash(sharedFile, true, 0)
 	}
 
-}
-
-// ToHex - Returns the hexadecimal string representations of a hash
-func ToHex(hash []byte) string {
-	return fmt.Sprintf("%x", hash[:])
-}
-
-// GetChunksNumberFromMetafile - Returns the number of chunks from the size of the metafile
-func GetChunksNumberFromMetafile(metafileSize int) uint64 {
-	nbChunks := uint64(metafileSize / HashSizeBytes)
-	if metafileSize%HashSizeBytes != 0 {
-		nbChunks++
-	}
-	return nbChunks
-}
-
-// GetChunksNumberFromRawFile - Returns the number of chunks from the filesize
-func GetChunksNumberFromRawFile(fileSize int) uint64 {
-	nbChunks := uint64(fileSize / ChunkSizeBytes)
-	if fileSize%ChunkSizeBytes != 0 {
-		nbChunks++
-	}
-	return nbChunks
 }

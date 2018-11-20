@@ -52,7 +52,6 @@ func OnReceivePrivate(g *entities.Gossiper, private *messages.PrivateMessage, se
 	// Check if the message is for me
 	if g.Args.Name == private.Destination {
 		fmt.Printf("%s\n", private.PrivateMessageToString())
-		g.Router.AddContactIfAbsent(private.Origin, sender)
 		g.NameIndex.AddPrivateMessage(private)
 		return
 	}
@@ -60,7 +59,7 @@ func OnReceivePrivate(g *entities.Gossiper, private *messages.PrivateMessage, se
 	// Decrement hop limit
 	private.HopLimit--
 
-	// Send/Relay private message if hop-limit not exhausted
+	// Relay private message if hop-limit not exhausted
 	if private.HopLimit != 0 {
 
 		// Pick the target (should exist) and send
