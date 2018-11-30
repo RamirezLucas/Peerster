@@ -2,77 +2,77 @@ package files
 
 import (
 	"Peerster/messages"
+	"crypto/sha256"
 	"fmt"
+	"strings"
 	"sync"
 )
 
-// Unique ID to identify a SearchRequestEntry
-var uniqueID = uint64(0)
-
 // SearchRequestMemory represents the set of pending timeouts for received search requests
 type SearchRequestMemory struct {
-	requests map[string][]*SearchRequestEntry // An index of peer name to a list of SearchRequestEntry
-	mux      sync.Mutex                       // Mutex to manipulate the structure from different threads
+	requests map[string]emptyStruct // An index of previously received SearchRequests (origin and keywords hashed)
+	mux      sync.Mutex             // Mutex to manipulate the structure from different threads
 }
 
-// SearchRequestEntry represents an old SearchRequest
-type SearchRequestEntry struct {
-	keywords *[]string // A list of keywords
-	uid      uint64    // Unique ID for this entry
+type emptyStruct struct {
 }
 
 // NewSearchRequestMemory creates a new instance of SearchRequestMemory
 func NewSearchRequestMemory() *SearchRequestMemory {
 	var memory SearchRequestMemory
-	memory.requests = make(map[string][]*SearchRequestEntry)
+	memory.requests = make(map[string]emptyStruct)
 	return &memory
 }
 
-// NewSearchRequestEntry creates a new instance of SearchRequestEntry The function must be called
-// while holding the mutex on the SearchRequestMemory object.
-func NewSearchRequestEntry(keywords *[]string) *SearchRequestEntry {
-	var entry SearchRequestEntry
-	entry.keywords = keywords
-	entry.uid = uniqueID
-	uniqueID++
-	return &entry
-}
-
-// AddSearchRequestEntry adds a SearchRequest to a SearchRequestMemory
-func (memory *SearchRequestMemory) AddSearchRequestEntry(request *messages.SearchRequest) uint64 {
+// AddSearchRequest adds a SearchRequest to a SearchRequestMemory
+func (memory *SearchRequestMemory) AddSearchRequest(request *messages.SearchRequest) string {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()
 
-	// Create a new entry
-	newRequest := NewSearchRequestEntry(&request.Keywords)
+	// Compute hash based on SearchRequest's origin and keywords
+	hashStr := hashSearchRequest(request)
 
-	if entries, ok := memory.requests[request.Origin]; ok { // We know this name
-		entries = append(entries, newRequest)
-	} else { // We don't know this name
-		var oldRequests []*SearchRequestEntry
-		oldRequests = append(oldRequests, newRequest)
-		memory.requests[request.Origin] = oldRequests
+	if _, ok := memory.requests[hashStr]; ok { // We already know this SearchRequest
+		return ""
 	}
 
-	return newRequest.uid
+	// Add the SearchRequest to the SearchRequestMemory and return the hash
+	memory.requests[hashStr] = emptyStruct{}
+	return hashStr
 }
 
-// RemoveSearchRequestEntry removes a SearchRequest from a SearchRequestMemory. The function
-// panics if uidRemove doesn't coresspond to any known SearchRequestEntry.
-func (memory *SearchRequestMemory) RemoveSearchRequestEntry(origin string, uidRemove uint64) {
+// RemoveSearchRequest removes the SearchRequest represented by the given hashStr
+// from the SearchRequestMemory.
+func (memory *SearchRequestMemory) RemoveSearchRequest(hashStr string) {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()
 
-	if entries, ok := memory.requests[origin]; ok { // We know this name
-		for _, entry := range entries {
-			if entry.uid == uidRemove {
-
-			}
-		}
+	if _, ok := memory.requests[hashStr]; ok { // We know this hash
+		delete(memory.requests, hashStr)
 	}
 
-	panic(fmt.Sprintf("RemoveSearchRequestEntry(): Trying to remove inexistant handler %d", uid))
+	panic(fmt.Sprintf("RemoveSearchRequestEntry(): Trying to remove inexistant SearchRequest %s\n", hashStr))
+}
 
+// FindSearchRequest attempts to find a SearchRequest in the SearchRequestMemory
+func (memory *SearchRequestMemory) FindSearchRequest(request *messages.SearchRequest) bool {
+	// Grab the mutex
+	memory.mux.Lock()
+	defer memory.mux.Unlock()
+
+	// Compute hash based on SearchRequest's origin and keywords
+	hashStr := hashSearchRequest(request)
+
+	// Returns the search result
+	_, foundHash := memory.requests[hashStr]
+	return foundHash
+}
+
+// hashSearchRequest returns the hash of a SearchRequest
+func hashSearchRequest(request *messages.SearchRequest) string {
+	data := []byte(request.Origin + strings.Join(request.Keywords, ","))
+	hash := sha256.Sum256(data[:])
+	return ToHex(hash[:])
 }

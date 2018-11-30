@@ -75,6 +75,7 @@ type SearchResult struct {
 	FileName     string   // The filename associated to the result
 	MetafileHash []byte   // The file's metahash
 	ChunkMap     []uint64 // The indices of the chunks that the replying peer contains locally
+	ChunkCount   uint64   // Number of chunks for this file
 }
 
 // GossipPacket is the structure that is exchanged between gossipers (only one of the fields can be non-nil)
