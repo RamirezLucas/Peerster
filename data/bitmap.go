@@ -10,9 +10,6 @@ type Bitmap struct {
 
 // NewBitmap creates a new instance of NameIndex with the indicated size
 func NewBitmap(size uint64) *Bitmap {
-	if size == 0 {
-		return nil
-	}
 
 	// Compute required size for data array
 	dataSize := size / 8

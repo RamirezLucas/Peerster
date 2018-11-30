@@ -15,7 +15,7 @@ func TestNewBitmap(t *testing.T) {
 		size   uint64
 		isNull bool
 	}{
-		{0, true},
+		{0, false},
 		{8, false},
 		{15, false},
 	}

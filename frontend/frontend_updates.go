@@ -6,6 +6,9 @@ import (
 	"sync"
 )
 
+// FBuffer - A buffer of updates for the frontend
+var FBuffer = NewFrontendBuffer()
+
 // FrontendBuffer - A buffer of updates for the frontend
 type FrontendBuffer struct {
 	updates []*FrontendUpdate // An array of FrontendUpdate
@@ -58,9 +61,6 @@ type FrontendUpdate struct {
 	IndexedFile      *FrontendIndexedFile      // An indexed file
 	ConstructingFile *FrontendConstructingFile // A constructing file
 }
-
-// FBuffer - A buffer of updates for the frontend
-var FBuffer = NewFrontendBuffer()
 
 // NewFrontendBuffer - Creates a new instance of FrontendBuffer
 func NewFrontendBuffer() *FrontendBuffer {

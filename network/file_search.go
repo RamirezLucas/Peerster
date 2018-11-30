@@ -71,7 +71,7 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 		Origin:      gossiper.Args.Name,
 		Destination: search.Origin,
 		HopLimit:    10,
-		Results:     gossiper.FileIndex.GetMatchingFiles(search.Keywords),
+		Results:     gossiper.FileIndex.HandleSearchRequest(search.Keywords),
 	}
 
 	// Reply to sender

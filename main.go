@@ -222,7 +222,7 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 
 			if pkt.DataRequest.HopLimit == 0 {
 				// File index
-				go g.FileIndex.IndexNewFile(pkt.DataRequest.Origin)
+				go g.FileIndex.AddLocalFile(pkt.DataRequest.Origin)
 			} else {
 				// Remote file request
 				go network.OnRemoteMetaFileRequest(g, pkt.DataRequest.HashValue,

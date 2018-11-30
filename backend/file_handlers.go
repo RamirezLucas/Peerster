@@ -21,7 +21,7 @@ func postFileIndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Index the new file
-	gossiper.FileIndex.IndexNewFile(filename)
+	gossiper.FileIndex.AddLocalFile(filename)
 
 }
 

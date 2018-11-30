@@ -53,7 +53,7 @@ func (memory *SearchRequestMemory) RemoveSearchRequest(hashStr string) {
 		delete(memory.requests, hashStr)
 	}
 
-	panic(fmt.Sprintf("RemoveSearchRequestEntry(): Trying to remove inexistant SearchRequest %s\n", hashStr))
+	panic(fmt.Sprintf("RemoveSearchRequestEntry(): Trying to remove inexistant SearchRequest %s", hashStr))
 }
 
 // FindSearchRequest attempts to find a SearchRequest in the SearchRequestMemory
