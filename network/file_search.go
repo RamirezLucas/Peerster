@@ -12,7 +12,7 @@ import (
 
 // OnInitiateFileSearch initiates a file search on the network.
 func OnInitiateFileSearch() {
-
+	//@TODO
 }
 
 // OnSendSearchRequest sends a SearchRequest on the network.
@@ -78,6 +78,8 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 	if target := gossiper.Router.GetTarget(search.Origin); target != nil {
 		OnSendSearchReply(gossiper.GossipChannel, reply, target)
 	}
+
+	// @TODO: set up timeout for particular request
 }
 
 /* ================ SEARCH REPLY ================ */
@@ -105,14 +107,14 @@ func OnReceiveSearchReply(gossiper *entities.Gossiper, reply *messages.SearchRep
 		gossiper.Router.AddContactIfAbsent(reply.Origin, sender)
 	}
 
-	if gossiper.Args.Name == reply.Destination { // Messahe is for me
+	if gossiper.Args.Name == reply.Destination { // Message is for me
 		// TODO: process it !
 		// TODO: process it !
 		// TODO: process it !
 		// TODO: process it !
-		
+
 	} else { // Message is for someone else
-		
+
 		// Decrement hop limit
 		reply.HopLimit--
 
@@ -123,8 +125,7 @@ func OnReceiveSearchReply(gossiper *entities.Gossiper, reply *messages.SearchRep
 			if target := gossiper.Router.GetTarget(reply.Destination); target != nil {
 				OnSendSearchReply(gossiper.GossipChannel, reply, target)
 			}
+		}
 	}
-
-	
 
 }
