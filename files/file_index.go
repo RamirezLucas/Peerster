@@ -180,11 +180,11 @@ func (fileIndex *FileIndex) HandleSearchRequest(keywords []string) []*messages.S
 	results := make([]*messages.SearchResult, 0)
 
 	// Iterate over all known files
-	for filename, shared := range fileIndex.index {
+	for _, shared := range fileIndex.index {
 
 		// Search for a keyword in the filename
 		for _, k := range keywords {
-			if strings.Contains(filename, k) {
+			if strings.Contains(shared.Filename, k) {
 				// We have a match
 				if ret := shared.GetFileSearchInfo(); ret != nil {
 					results = append(results, ret)
