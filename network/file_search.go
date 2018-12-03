@@ -2,8 +2,12 @@ package network
 
 import (
 	"Peerster/entities"
+	"Peerster/fail"
+	"Peerster/files"
 	"Peerster/messages"
 	"net"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -44,6 +48,7 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, keywords string) {
 			// Wait some time and check the number of total matches
 			time.Sleep(SearchRepeatIntervalSec * time.Second)
 			if gossiper.SReqTotalMatch.CheckThresholdAndDelete(search, ThresholdTotalMatches) {
+				fail.LeveledPrint(0, "", "SEARCH FINISHED")
 				return
 			}
 
@@ -152,9 +157,24 @@ func OnReceiveSearchReply(gossiper *entities.Gossiper, reply *messages.SearchRep
 	}
 
 	if gossiper.Args.Name == reply.Destination { // Message is for me
-
 		for _, result := range reply.Results { // For each result
-			if gossiper.FileIndex.HandleSearchResult(result, reply.Origin) { // Handle the SearchResult
+
+			// Create sorted list of chunk indices
+			sort.Slice(result.ChunkMap, func(i, j int) bool { return result.ChunkMap[i] < result.ChunkMap[j] })
+			strChunkMap := ""
+			for _, index := range result.ChunkMap {
+				strChunkMap += strconv.FormatUint(index, 10) + ","
+			}
+			if len(strChunkMap) > 0 {
+				strChunkMap = strChunkMap[:len(strChunkMap)-1]
+			}
+
+			// Print to the console
+			fail.LeveledPrint(0, "", "FOUND match %s at %s metafile=%s chunks=%s",
+				result.Filename, reply.Origin, files.ToHex(result.MetafileHash[:]), strChunkMap)
+
+			// Handle the SearchResult
+			if gossiper.FileIndex.HandleSearchResult(result, reply.Origin) {
 				// We just had a total match
 				gossiper.SReqTotalMatch.UpdateIndexOnTotalMatch(result.Filename)
 			}

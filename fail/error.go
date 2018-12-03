@@ -24,7 +24,9 @@ func CustomPanic(fun, format string, a ...interface{}) {
 // LeveledPrint prints text to the console depending on its importance level and
 // on the globally set variable GlobalPrintLevel
 func LeveledPrint(level int, fun, format string, a ...interface{}) {
-	if level <= GlobalPrintLevel {
+	if level == 0 {
+		fmt.Printf(format+"\n", a...)
+	} else if level <= GlobalPrintLevel {
 		fmt.Printf(fun+"() : "+format+"\n", a...)
 	}
 }
