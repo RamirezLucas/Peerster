@@ -15,14 +15,19 @@ const (
 	PathToDownloadedFiles = "_Downloads/"
 )
 
-// FileIndex represents a file index.
+/*FileIndex represents the set of files indexed or known by the gossiper. The object contains an index
+mapping each known metahash to its corresponding `SharedFile` (`index`). The object also contains a mapping
+from every known hash (metahash or chunk hash) to its corresponding `SharedFile` (`hashes`).
+
+A FileIndex object should be created by calling `NewFileIndex()`. Once created, the object is thread-safe,
+meaning that several threads may manipulate the object through its API simultaneously.*/
 type FileIndex struct {
 	index  map[string]*SharedFile // A mapping from metahash to SharedFile structures
-	hashes map[string]*HashRef    // A mapping from a known hash to its corresponding file index
+	hashes map[string]*HashRef    // A mapping from a known hash to its corresponding SharedFile
 	mux    sync.Mutex             // Mutex to manipulate the structure from different threads
 }
 
-// NewFileIndex creates a new instance of FileIndex.
+/*NewFileIndex creates a new instance of NewFileIndex.*/
 func NewFileIndex() *FileIndex {
 	var fileIndex FileIndex
 	fileIndex.index = make(map[string]*SharedFile)
@@ -30,8 +35,17 @@ func NewFileIndex() *FileIndex {
 	return &fileIndex
 }
 
-// AddMonoSourceFile adds a monosourced file named filename to the index with a given metahash.
-// The file will be exlusively fetched from the peer origin.
+/*AddMonoSourceFile adds a monosourced file to the `FileIndex`. This file must be fetched from a single
+source `origin` that is determined by the user.
+
+`filename` The filename under which the file will be written to disk.
+
+`origin` The peer from whom to download the file.
+
+`metahash` The file's metahash.
+
+The function returns a pointer to the created `SharedFile` on success, or `nil` if a file with the same
+metahash already exists. */
 func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash []byte) *SharedFile {
 
 	newFile := NewSharedFileMonoSource(filename, metahash[:])
@@ -52,29 +66,11 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 	return newFile
 }
 
-// AddMultiSourceFile adds a multisoured file with chunkCount chunks to the index with a given metahash.
-// The file will be able to be fetched from multiple peers on the network.
-func (fileIndex *FileIndex) AddMultiSourceFile(filename string, chunkCount uint64, metahash []byte) *SharedFile {
+/*AddLocalFile adds a locally stored file to the `FileIndex`. This file must be stored in the
+`PathToSharedFiles` directory. All of the hashes (metahash and chunk hashes) generated from this
+file are stored in the `FileIndex`'s `hashes` map.
 
-	newFile := NewSharedFileMultiSource(filename, chunkCount, metahash)
-	hash := ToHex(metahash[:])
-
-	// Grab the mutex on the index
-	fileIndex.mux.Lock()
-	if _, ok := fileIndex.index[hash]; ok { // We already have a file indexed with this metahash
-		return nil
-	}
-	// Index the new file and unlock the mutex
-	fileIndex.index[hash] = newFile
-	fileIndex.mux.Unlock()
-
-	// @]TODO Send update to frontend
-
-	return newFile
-}
-
-// AddLocalFile indexes a new local file with the given filename. The file must
-// located in the PathToDownloadedFiles folder.
+`filename` The file to index's filename. */
 func (fileIndex *FileIndex) AddLocalFile(filename string) {
 
 	// Create new shared file
@@ -110,7 +106,12 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) {
 	shared.AcknowledgeFileReconstructed()
 }
 
-// GetDataFromHash gets data corresponding to a given hash. Returns nil if the hash is unknown.
+/*GetDataFromHash reads the bytes corresponding to a provided hash (metafile or file chunk).
+The `hash` is looked for in the `FileIndex`'s `hashes` map.
+
+`hash` The hash to look for.
+
+The function returns a slice of bytes containing the requested data on success, or `nil` on failure.*/
 func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
@@ -126,16 +127,25 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	return nil
 }
 
-// HandleDataReply handles a DataReply for a DataRequest represented by HashRef. Depending on the
-// DataRequest either the metafile or a chunk is written. The function returns the next chunk to fetch
-// for this file if there is one (indices start at 1), as well as the peer to fetch it from. If there
-// is no next chunk to fetch the function returns (0, "").
+/*HandleDataReply handles an incoming `DataReply` for which the gossiper found the associated `DataRequest`
+that originated it. The file concerned by this reply is passed in a `HashRef`. Depending on the value of
+`ref.ChunkID` either the metafile or one of the file's chunk is written.
+
+`ref` A `HashRef` referencing the file concerned by this reply.
+
+`reply` A received `DataReply` that originated from a known `DataRequest`
+
+If the corresponding file is still incomplete after taking into account the new `DataReply` the function
+returns a tuple indicating which chunk ID to request next and to whom. If `reply` caused file reconstruction
+to complete then (0, "") is returned.
+*/
 func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataReply) (uint64, string) {
 
 	shared := ref.File
 	if ref.ChunkIndex == 0 { // Metafile in reply.Data
 		if shared.SetMetafile(reply) { // Reconstruction complete (empty file)
-			fileIndex.AddHashRef(ToHex(reply.HashValue[:]), &HashRef{File: shared, ChunkIndex: 0})
+			ref := NewHashRef(shared, 0)
+			fileIndex.addHashRef(ToHex(reply.HashValue[:]), ref)
 			return 0, "" // Stop requesting
 		}
 
@@ -152,7 +162,8 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 
 	// Chunk in reply.Data
 	if shared.WriteChunk(ref.ChunkIndex, reply.Data) {
-		fileIndex.AddHashRef(ToHex(reply.HashValue[:]), &HashRef{File: shared, ChunkIndex: ref.ChunkIndex})
+		ref := NewHashRef(shared, ref.ChunkIndex)
+		fileIndex.addHashRef(ToHex(reply.HashValue[:]), ref)
 		return 0, "" // Stop requesting
 	}
 
@@ -170,9 +181,15 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 	return 0, ""
 }
 
-// HandleSearchRequest returns the list of SearchResult's corresponding to files whose
-// filename contains at least one of the keyword contained in the keywords slice.
-func (fileIndex *FileIndex) HandleSearchRequest(keywords []string) []*messages.SearchResult {
+/*HandleSearchRequest handles an incoming `SearchRequest` by searching the `FileIndex` for any
+filename containing any of the keywords contained in the `SearchRequest.Keywords` slice. This function
+is destined to be used when sending a `SearchReply`.
+
+`search` The SearchRequest to evaluate.
+
+The function returns a slice of `SearchResult`'s containing all matching files according to the
+above criteria. The function returns `nil` if no matches were found. */
+func (fileIndex *FileIndex) HandleSearchRequest(search *messages.SearchRequest) []*messages.SearchResult {
 	// Grab the mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
@@ -183,7 +200,7 @@ func (fileIndex *FileIndex) HandleSearchRequest(keywords []string) []*messages.S
 	for _, shared := range fileIndex.index {
 
 		// Search for a keyword in the filename
-		for _, k := range keywords {
+		for _, k := range search.Keywords {
 			if strings.Contains(shared.Filename, k) {
 				// We have a match
 				if ret := shared.GetFileSearchInfo(); ret != nil {
@@ -197,7 +214,15 @@ func (fileIndex *FileIndex) HandleSearchRequest(keywords []string) []*messages.S
 	return results
 }
 
-/*HandleSearchResult @TODO*/
+/*HandleSearchResult handles a `SearchResult` contained in an incoming `SearchReply`. The function
+updates the remote chunk mappings for the concerned file (or create them if they don't exist yet)
+with the newest mappings contained in `result`.
+
+`result` The `SearchResult` from which new mappings are taken.
+
+`origin` The `SearchResult`'s origin.
+
+The function returns true if the added mappings just triggered a complete match, or false otherwise.*/
 func (fileIndex *FileIndex) HandleSearchResult(result *messages.SearchResult, origin string) bool {
 	// Grab the mutex
 	fileIndex.mux.Lock()
@@ -219,8 +244,7 @@ func (fileIndex *FileIndex) HandleSearchResult(result *messages.SearchResult, or
 	return newFile.UpdateChunkMappings(result.ChunkMap, origin)
 }
 
-// AddHashRef adds a hash to the index of known hashes.
-func (fileIndex *FileIndex) AddHashRef(hash string, ref *HashRef) {
+func (fileIndex *FileIndex) addHashRef(hash string, ref *HashRef) {
 	// Grab the mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()

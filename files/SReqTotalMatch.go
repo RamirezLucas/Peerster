@@ -7,11 +7,11 @@ import (
 )
 
 /*SReqTotalMatch is used to count the number of total matches associated to an emmited
-SearchRequest. A SearchRequest is identified by its list of keywords. Each time a SearchReply is
-received and triggers a total match, any SearchRequest including a keyword that is contained in the
+`SearchRequest`. A `SearchRequest` is identified by its list of keywords. Each time a `SearchReply` is
+received and triggers a total match, any `SearchRequest` including a keyword that is contained in the
 SearchReply's `filename` field will see its number of total matches incremented by 1.
 
-A TimeoutSearchReply object should be created by calling NewTimeoutSearchRequest(). Once created, the
+A SReqTotalMatch object should be created by calling `NewSReqTotalMatch()`. Once created, the
 object is thread-safe, meaning that several threads may manipulate the object through its API simultaneously.*/
 type SReqTotalMatch struct {
 	requests map[string]uint64 // An index associating a SearchRequest to its number of associated total matches
