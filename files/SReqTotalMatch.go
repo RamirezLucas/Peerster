@@ -25,9 +25,9 @@ func NewSReqTotalMatch() *SReqTotalMatch {
 	return &timeout
 }
 
-/*AddEmittedSearchRequest adds a SearchRequest to the index. If an identical SearchRequest
+/*AddSearchRequest adds a SearchRequest to the index. If an identical SearchRequest
 was already registered simply reset the number of associated total matches to 0. */
-func (timeout *SReqTotalMatch) AddEmittedSearchRequest(request *messages.SearchRequest) {
+func (timeout *SReqTotalMatch) AddSearchRequest(request *messages.SearchRequest) {
 	// Grab the mutex
 	timeout.mux.Lock()
 	defer timeout.mux.Unlock()

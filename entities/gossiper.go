@@ -18,10 +18,10 @@ type Gossiper struct {
 	Timeouts      *peers.StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
 
 	/* File transfer */
-	FileIndex       *files.FileIndex             // A file index containing all indexed files (Shared, thread-safe)
-	DataTimeouts    *files.DataResponseForwarder // Timeouts for DataReplies (Shared, thread-safe)
-	SReqTotalMatch  *files.SReqTotalMatch        // Keeps track of how many total matches were received for each SeachRequest (Shared, thread-safe)
-	TOSearchRequest *files.TOSearchRequest       // Timeouts for received SearchRequest's (Shared, thread-safe)
+	FileIndex       *files.FileIndex       // A file index containing all indexed files (Shared, thread-safe)
+	TODataRequest   *files.TODataRequest   // Timeouts for DataReplies (Shared, thread-safe)
+	SReqTotalMatch  *files.SReqTotalMatch  // Keeps track of how many total matches were received for each SeachRequest (Shared, thread-safe)
+	TOSearchRequest *files.TOSearchRequest // Timeouts for received SearchRequest's (Shared, thread-safe)
 }
 
 // CLArgsGossiper - Command line arguments for the gossiper
@@ -46,7 +46,7 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 
 	/* File transfer */
 	gossip.FileIndex = files.NewFileIndex()
-	gossip.DataTimeouts = files.NewDataResponseForwarder()
+	gossip.TODataRequest = files.NewTODataRequest()
 	gossip.SReqTotalMatch = files.NewSReqTotalMatch()
 	gossip.TOSearchRequest = files.NewTOSearchRequest()
 

@@ -13,6 +13,9 @@ import (
 	"github.com/dedis/protobuf"
 )
 
+// DataRequestRepeatIntervalSec represents the amount of time after which a DataRequest is resent if it wasn't answered
+const DataRequestRepeatIntervalSec = 5
+
 // OnSendDataRequest - Sends a data request
 func OnSendDataRequest(g *entities.Gossiper, request *messages.DataRequest, target *net.UDPAddr) error {
 
@@ -32,27 +35,26 @@ func OnSendDataRequest(g *entities.Gossiper, request *messages.DataRequest, targ
 }
 
 // OnSendTimedDataRequest - Sends a data request with timeout
-func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest, target *net.UDPAddr) error {
+func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest,
+	ref *files.HashRef, target *net.UDPAddr) {
+
+	// Attempt to add the DataRequest to the index of pending requests
+	if !g.TODataRequest.AddDataRequest(request, ref) {
+		return
+	}
 
 	for {
 		// Send the request
 		if err := OnSendDataRequest(g, request, target); err != nil {
-			return &fail.CustomError{Fun: "OnSendTimedDataRequest", Desc: "failed to send DataRequest"}
+			return
 		}
 
-		// Create a timeout timer
-		timer := time.NewTicker(time.Duration(5) * time.Second)
-
-		// Wait for the timeout
-		select {
-		case <-timer.C: // Timeout expired
-		}
-		// Stop the timer
-		timer.Stop()
+		// Wait for some time
+		time.Sleep(DataRequestRepeatIntervalSec * time.Second)
 
 		// Check if the response was received
-		if g.DataTimeouts.CheckResponseReceived(request.HashValue) {
-			return nil
+		if g.TODataRequest.CheckResponseAndDelete(request.HashValue) {
+			return
 		}
 	}
 
@@ -130,12 +132,12 @@ func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender 
 		}
 
 		// Look for the corresponding data request
-		if knownHash := g.DataTimeouts.SearchHashAndForward(reply.HashValue, reply.Origin); knownHash != nil {
+		if ref := g.TODataRequest.SearchHashAndAcknowledge(reply); ref != nil {
 			// Handle the reply and request next chunk if there is one
-			if nextChunk, target := g.FileIndex.HandleDataReply(knownHash, reply); nextChunk != 0 {
-				OnRemoteChunkRequest(g, knownHash.File, nextChunk, target)
+			if nextChunk, target := g.FileIndex.HandleDataReply(ref, reply); nextChunk != 0 {
+				OnRemoteChunkRequest(g, ref.File, nextChunk, target)
 			} else {
-				fmt.Printf("RECONSTRUCTED file %s\n", knownHash.File.Filename)
+				fmt.Printf("RECONSTRUCTED file %s\n", ref.File.Filename)
 			}
 		}
 
@@ -177,11 +179,9 @@ func OnRemoteChunkRequest(g *entities.Gossiper, file *files.SharedFile, chunkInd
 	}
 
 	// Send with timeout
-	fmt.Printf("DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
-	g.DataTimeouts.AddDataTimeoutHandler(hash, remotePeer, file, chunkIndex)
-	OnSendTimedDataRequest(g, request, target)
-	g.DataTimeouts.DeleteDataTimeoutHandler(hash)
-
+	ref := files.NewHashRef(file, chunkIndex)
+	fail.LeveledPrint(0, "", "DOWNLOADING %s chunk %d from %s\n", file.Filename, chunkIndex, remotePeer)
+	OnSendTimedDataRequest(g, request, ref, target)
 }
 
 // OnRemoteMetaFileRequest - Request the metafile of a remote file
@@ -208,9 +208,7 @@ func OnRemoteMetaFileRequest(g *entities.Gossiper, metahash []byte, localFilenam
 	}
 
 	// Send with timeout
-	fmt.Printf("DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
-	g.DataTimeouts.AddDataTimeoutHandler(metahash, remotePeer, sharedFile, 0)
-	OnSendTimedDataRequest(g, request, target)
-	g.DataTimeouts.DeleteDataTimeoutHandler(metahash)
-
+	ref := files.NewHashRef(sharedFile, 0)
+	fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
+	OnSendTimedDataRequest(g, request, ref, target)
 }

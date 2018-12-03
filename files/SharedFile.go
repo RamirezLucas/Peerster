@@ -40,12 +40,6 @@ const (
 	MaxFileSizeBytes = MaxNbChunks * ChunkSizeBytes
 )
 
-// KnownHash represents a known hash.
-type KnownHash struct {
-	File       *SharedFile // A pointer to the shared file concerned by this hash
-	ChunkIndex uint64      // Indicates the chunk index in case (0 in case of metahash)
-}
-
 // SharedFile represents a file indexed by the gossiper
 type SharedFile struct {
 	Filename string              // The filename
@@ -62,14 +56,6 @@ type SharedFile struct {
 	IsMonosource bool       // Indicates whether the file is downloaded from a single source
 
 	mux sync.Mutex // Mutex to manipulate the structure from different threads
-}
-
-// NewKnownHash creates a new instance of KnownHash
-func NewKnownHash(file *SharedFile, chunkIndex uint64) *KnownHash {
-	var knownHash KnownHash
-	knownHash.File = file
-	knownHash.ChunkIndex = chunkIndex
-	return &knownHash
 }
 
 // NewSharedFileLocal creates a new instance of SharedFile for a file located on the local machine.

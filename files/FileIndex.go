@@ -17,16 +17,16 @@ const (
 
 // FileIndex represents a file index.
 type FileIndex struct {
-	index       map[string]*SharedFile // A mapping from metahash to SharedFile structures
-	knownHashes map[string]*KnownHash  // A mapping from a known hash to its corresponding file index
-	mux         sync.Mutex             // Mutex to manipulate the structure from different threads
+	index  map[string]*SharedFile // A mapping from metahash to SharedFile structures
+	hashes map[string]*HashRef    // A mapping from a known hash to its corresponding file index
+	mux    sync.Mutex             // Mutex to manipulate the structure from different threads
 }
 
 // NewFileIndex creates a new instance of FileIndex.
 func NewFileIndex() *FileIndex {
 	var fileIndex FileIndex
 	fileIndex.index = make(map[string]*SharedFile)
-	fileIndex.knownHashes = make(map[string]*KnownHash)
+	fileIndex.hashes = make(map[string]*HashRef)
 	return &fileIndex
 }
 
@@ -97,11 +97,11 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) {
 	// Add the chunk hashes to the set of known hashes
 	for i := uint64(0); i < shared.ChunkCount; i++ {
 		chunkHash := shared.Metafile[i*ChunkSizeBytes : (i+1)*ChunkSizeBytes]
-		fileIndex.knownHashes[ToHex(chunkHash[:])] = NewKnownHash(shared, i+1)
+		fileIndex.hashes[ToHex(chunkHash[:])] = NewHashRef(shared, i+1)
 	}
 
 	// Add the metahash to the set of known hashes
-	fileIndex.knownHashes[ToHex32(shared.Metahash)] = NewKnownHash(shared, 0)
+	fileIndex.hashes[ToHex32(shared.Metahash)] = NewHashRef(shared, 0)
 
 	// Add the new indexed file to the index
 	fileIndex.index[ToHex32(shared.Metahash)] = shared
@@ -115,10 +115,10 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
 
-	if knownHash, ok := fileIndex.knownHashes[ToHex(hash[:])]; ok { // We know this hash
+	if HashRef, ok := fileIndex.hashes[ToHex(hash[:])]; ok { // We know this hash
 		// Unlock mutex and get the chunk
 		fileIndex.mux.Unlock()
-		return knownHash.File.GetChunk(knownHash.ChunkIndex)
+		return HashRef.File.GetChunk(HashRef.ChunkIndex)
 	}
 
 	// Unlock mutex and return
@@ -126,16 +126,16 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	return nil
 }
 
-// HandleDataReply handles a DataReply for a DataRequest represented by knownHash. Depending on the
+// HandleDataReply handles a DataReply for a DataRequest represented by HashRef. Depending on the
 // DataRequest either the metafile or a chunk is written. The function returns the next chunk to fetch
 // for this file if there is one (indices start at 1), as well as the peer to fetch it from. If there
 // is no next chunk to fetch the function returns (0, "").
-func (fileIndex *FileIndex) HandleDataReply(knownHash *KnownHash, reply *messages.DataReply) (uint64, string) {
+func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataReply) (uint64, string) {
 
-	shared := knownHash.File
-	if knownHash.ChunkIndex == 0 { // Metafile in reply.Data
+	shared := ref.File
+	if ref.ChunkIndex == 0 { // Metafile in reply.Data
 		if shared.SetMetafile(reply) { // Reconstruction complete (empty file)
-			fileIndex.AddKnownHash(ToHex(reply.HashValue[:]), &KnownHash{File: shared, ChunkIndex: 0})
+			fileIndex.AddHashRef(ToHex(reply.HashValue[:]), &HashRef{File: shared, ChunkIndex: 0})
 			return 0, "" // Stop requesting
 		}
 
@@ -151,20 +151,20 @@ func (fileIndex *FileIndex) HandleDataReply(knownHash *KnownHash, reply *message
 	}
 
 	// Chunk in reply.Data
-	if shared.WriteChunk(knownHash.ChunkIndex, reply.Data) {
-		fileIndex.AddKnownHash(ToHex(reply.HashValue[:]), &KnownHash{File: shared, ChunkIndex: knownHash.ChunkIndex})
+	if shared.WriteChunk(ref.ChunkIndex, reply.Data) {
+		fileIndex.AddHashRef(ToHex(reply.HashValue[:]), &HashRef{File: shared, ChunkIndex: ref.ChunkIndex})
 		return 0, "" // Stop requesting
 	}
 
 	// Decide to whom to request the next chunk
 	if shared.IsMonosource {
-		return knownHash.ChunkIndex + 1, reply.Origin // Request next chunk
+		return ref.ChunkIndex + 1, reply.Origin // Request next chunk
 	}
 	if target, ok := shared.RemoteChunks[1]; ok {
-		return knownHash.ChunkIndex + 1, target // Request next chunk
+		return ref.ChunkIndex + 1, target // Request next chunk
 	}
 	fail.CustomPanic("HandleDataReply", "No known target for file %s chunk %d",
-		shared.Filename, knownHash.ChunkIndex+1)
+		shared.Filename, ref.ChunkIndex+1)
 
 	// Unreachable
 	return 0, ""
@@ -219,11 +219,11 @@ func (fileIndex *FileIndex) HandleSearchResult(result *messages.SearchResult, or
 	return newFile.UpdateChunkMappings(result.ChunkMap, origin)
 }
 
-// AddKnownHash adds a hash to the index of known hashes.
-func (fileIndex *FileIndex) AddKnownHash(hash string, knownHash *KnownHash) {
+// AddHashRef adds a hash to the index of known hashes.
+func (fileIndex *FileIndex) AddHashRef(hash string, ref *HashRef) {
 	// Grab the mutex
 	fileIndex.mux.Lock()
 	defer fileIndex.mux.Unlock()
 
-	fileIndex.knownHashes[hash] = knownHash
+	fileIndex.hashes[hash] = ref
 }

@@ -43,7 +43,7 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 	}
 
 	// Register the SearchRequest in the gossiper to count the number of total matches
-	gossiper.SReqTotalMatch.AddEmittedSearchRequest(search)
+	gossiper.SReqTotalMatch.AddSearchRequest(search)
 
 	for search.Budget <= MaximumBudget {
 		// Pick a random neighbor and send it the SearchRequest
