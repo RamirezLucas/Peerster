@@ -22,17 +22,36 @@ func main() {
 	var pkt messages.GossipPacket
 
 	switch {
+	// File search
+	case client.Keywords != nil:
+		search := messages.SearchRequest{
+			Origin:   "",
+			Budget:   client.Budget,
+			Keywords: client.Keywords,
+		}
+		pkt = messages.GossipPacket{SearchRequest: &search}
 	// File request for someone else
 	case client.Filename != "" && client.Dst != "" && client.Request != nil:
-		fileRequest := messages.DataRequest{HopLimit: 1, Destination: client.Dst, HashValue: client.Request, Origin: client.Filename}
+		fileRequest := messages.DataRequest{
+			HopLimit:    1,
+			Destination: client.Dst,
+			HashValue:   client.Request,
+			Origin:      client.Filename,
+		}
 		pkt = messages.GossipPacket{DataRequest: &fileRequest}
 	// File index
 	case client.Filename != "":
-		fileRequest := messages.DataRequest{HopLimit: 0, Origin: client.Filename}
+		fileRequest := messages.DataRequest{
+			HopLimit: 0,
+			Origin:   client.Filename,
+		}
 		pkt = messages.GossipPacket{DataRequest: &fileRequest}
 	// Private message
 	case client.Dst != "" && client.Msg != "":
-		privateMsg := messages.PrivateMessage{Text: client.Msg, Destination: client.Dst}
+		privateMsg := messages.PrivateMessage{
+			Text:        client.Msg,
+			Destination: client.Dst,
+		}
 		pkt = messages.GossipPacket{Private: &privateMsg}
 	// Simple rumor
 	case client.Msg != "":

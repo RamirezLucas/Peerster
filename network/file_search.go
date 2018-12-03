@@ -8,7 +8,6 @@ import (
 	"net"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/dedis/protobuf"
@@ -28,13 +27,19 @@ const (
 /* ================ SEARCH REQUEST ================ */
 
 // OnInitiateFileSearch initiates a file search on the network.
-func OnInitiateFileSearch(gossiper *entities.Gossiper, keywords string) {
+func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, keywords []string) {
+
+	// Set budget
+	initBudget := InitialBudget
+	if defaultBudget != 0 {
+		initBudget = defaultBudget
+	}
 
 	// Create a SearchRequest
 	search := &messages.SearchRequest{
 		Origin:   gossiper.Args.Name,
-		Budget:   InitialBudget,
-		Keywords: strings.Split(keywords, ","),
+		Budget:   initBudget,
+		Keywords: keywords,
 	}
 
 	// Register the SearchRequest in the gossiper to count the number of total matches

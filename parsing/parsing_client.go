@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -14,7 +15,7 @@ import (
 func ParseArgumentsClient() (*entities.Client, error) {
 
 	var client entities.Client
-	var uiPortDone, msgDone, destDone, fileDone, reqDone bool
+	var uiPortDone, msgDone, destDone, fileDone, reqDone, keyDone, budgetDone bool
 
 	for _, arg := range os.Args[1:] {
 		switch {
@@ -73,6 +74,26 @@ func ParseArgumentsClient() (*entities.Client, error) {
 				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "hash isn't 32 bytes long"}
 			}
 			reqDone = true
+		case strings.HasPrefix(arg, "-keywords="):
+			if keyDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "keywords defined twice"}
+			}
+
+			// Validate
+			client.Keywords = strings.Split(arg[10:], ",")
+			keyDone = true
+		case strings.HasPrefix(arg, "-budget="):
+			if budgetDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "budget defined twice"}
+			}
+
+			// Validate
+			if parsed, err := strconv.ParseInt(arg[8:], 10, 32); err == nil {
+				client.Budget = uint64(parsed)
+			} else {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot parsed budget"}
+			}
+			budgetDone = true
 		default:
 			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unknown argument"}
 		}

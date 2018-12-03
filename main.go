@@ -66,15 +66,21 @@ func isPacketValid(pkt *messages.GossipPacket, isClientSide bool, isSimpleMode b
 	if pkt.DataReply != nil {
 		counter++
 	}
+	if pkt.SearchRequest != nil {
+		counter++
+	}
+	if pkt.SearchReply != nil {
+		counter++
+	}
 	if counter != 1 {
 		return false
 	}
 
-	// The client only sends SimpleMessage and PrivateMessage and DataRequest
-	if isClientSide && (pkt.SimpleMsg == nil && pkt.Private == nil && pkt.DataRequest == nil) {
+	// The client only sends SimpleMessage and PrivateMessage and DataRequest and SearchRequest
+	if isClientSide && (pkt.SimpleMsg == nil && pkt.Private == nil &&
+		pkt.DataRequest == nil && pkt.SearchRequest == nil) {
 		return false
 	}
-
 	// In simple mode only accept simple messages
 	if isSimpleMode && pkt.SimpleMsg == nil {
 		return false
@@ -149,18 +155,15 @@ func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 		// Select the right callback
 		switch {
 		case pkt.SimpleMsg != nil:
-
 			// Make sure the client isn't talking on the network port
 			if pkt.SimpleMsg.RelayPeerAddr == "" {
 				// Error: ignore the packet
 				continue
 			}
-
 			network.OnBroadcastNetwork(g, pkt.SimpleMsg)
 		case pkt.Rumor != nil:
 			go network.OnReceiveRumor(g, pkt.Rumor, sender, <-chanID)
 		case pkt.Status != nil:
-
 			isPacketHandled := g.Timeouts.SearchAndForward(sender, pkt.Status)
 			if !isPacketHandled {
 				go network.OnReceiveStatus(g, pkt.Status, sender, <-chanID)
@@ -171,6 +174,10 @@ func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 			go network.OnReceiveDataRequest(g, pkt.DataRequest, sender)
 		case pkt.DataReply != nil:
 			go network.OnReceiveDataReply(g, pkt.DataReply, sender)
+		case pkt.SearchRequest != nil:
+			go network.OnReceiveSearchRequest(g, pkt.SearchRequest, sender)
+		case pkt.SearchReply != nil:
+			go network.OnReceiveSearchReply(g, pkt.SearchReply, sender)
 		default:
 			// Should never happen
 		}
@@ -229,6 +236,8 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 					pkt.DataRequest.Origin, pkt.DataRequest.Destination)
 			}
 
+		case pkt.SearchRequest != nil:
+			go network.OnInitiateFileSearch(g, pkt.SearchRequest.Budget, pkt.SearchRequest.Keywords)
 		default:
 			// Should never happen
 		}
