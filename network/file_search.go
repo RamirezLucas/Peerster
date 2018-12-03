@@ -4,15 +4,55 @@ import (
 	"Peerster/entities"
 	"Peerster/messages"
 	"net"
+	"strings"
+	"time"
 
 	"github.com/dedis/protobuf"
+)
+
+const (
+	// InitialBudget represents the initial budget when a new SearchRequest is created
+	InitialBudget = uint64(2)
+	// MaximumBudget represents the maximum budget any SearchRequest can reach
+	MaximumBudget = uint64(32)
+	// SearchRepeatIntervalSec represents the interval of time between two consecutive SearchRequest's
+	SearchRepeatIntervalSec = 1
+	// ThresholdTotalMatches represents the number of total matches required to stop a SearchRequest
+	ThresholdTotalMatches = 1
 )
 
 /* ================ SEARCH REQUEST ================ */
 
 // OnInitiateFileSearch initiates a file search on the network.
-func OnInitiateFileSearch() {
-	//@TODO
+func OnInitiateFileSearch(gossiper *entities.Gossiper, keywords string) {
+
+	// Create a SearchRequest
+	search := &messages.SearchRequest{
+		Origin:   gossiper.Args.Name,
+		Budget:   InitialBudget,
+		Keywords: strings.Split(keywords, ","),
+	}
+
+	// Register the SearchRequest in the gossiper to count the number of total matches
+	gossiper.SReqTotalMatch.AddEmittedSearchRequest(search)
+
+	for search.Budget <= MaximumBudget {
+		// Pick a random neighbor and send it the SearchRequest
+		if neighbor := gossiper.PeerIndex.GetRandomPeer(nil); neighbor != nil {
+			OnSendSearchRequest(gossiper.GossipChannel, search, neighbor)
+
+			// Wait some time and check the number of total matches
+			time.Sleep(SearchRepeatIntervalSec * time.Second)
+			if gossiper.SReqTotalMatch.CheckThresholdAndDelete(search, ThresholdTotalMatches) {
+				return
+			}
+
+			// Double the budget and resend
+			search.Budget *= 2
+		} else {
+			return
+		}
+	}
 }
 
 // OnSendSearchRequest sends a SearchRequest on the network.
@@ -79,7 +119,11 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 		OnSendSearchReply(gossiper.GossipChannel, reply, target)
 	}
 
-	// @TODO: set up timeout for particular request
+	// Set up timeout for particular request and delete it after 0.5 second
+	if hash := gossiper.TOSearchRequest.AddSearchRequest(search); hash != "" {
+		time.Sleep(500 * time.Millisecond)
+		gossiper.TOSearchRequest.RemoveSearchRequest(hash)
+	}
 }
 
 /* ================ SEARCH REPLY ================ */
@@ -108,10 +152,13 @@ func OnReceiveSearchReply(gossiper *entities.Gossiper, reply *messages.SearchRep
 	}
 
 	if gossiper.Args.Name == reply.Destination { // Message is for me
-		// TODO: process it !
-		// TODO: process it !
-		// TODO: process it !
-		// TODO: process it !
+
+		for _, result := range reply.Results { // For each result
+			if gossiper.FileIndex.HandleSearchResult(result, reply.Origin) { // Handle the SearchResult
+				// We just had a total match
+				gossiper.SReqTotalMatch.UpdateIndexOnTotalMatch(result.Filename)
+			}
+		}
 
 	} else { // Message is for someone else
 

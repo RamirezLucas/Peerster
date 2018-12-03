@@ -8,8 +8,8 @@ import (
 	"sync"
 )
 
-// SearchRequestMemory represents the set of pending timeouts for received search requests
-type SearchRequestMemory struct {
+// TOSearchRequest represents the set of pending timeouts for received search requests
+type TOSearchRequest struct {
 	requests map[string]emptyStruct // An index of previously received SearchRequests (origin and keywords hashed)
 	mux      sync.Mutex             // Mutex to manipulate the structure from different threads
 }
@@ -17,15 +17,15 @@ type SearchRequestMemory struct {
 type emptyStruct struct {
 }
 
-// NewSearchRequestMemory creates a new instance of SearchRequestMemory
-func NewSearchRequestMemory() *SearchRequestMemory {
-	var memory SearchRequestMemory
+// NewTOSearchRequest creates a new instance of TOSearchRequest
+func NewTOSearchRequest() *TOSearchRequest {
+	var memory TOSearchRequest
 	memory.requests = make(map[string]emptyStruct)
 	return &memory
 }
 
-// AddSearchRequest adds a SearchRequest to a SearchRequestMemory
-func (memory *SearchRequestMemory) AddSearchRequest(request *messages.SearchRequest) string {
+// AddSearchRequest adds a SearchRequest to a TOSearchRequest
+func (memory *TOSearchRequest) AddSearchRequest(request *messages.SearchRequest) string {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()
@@ -37,14 +37,14 @@ func (memory *SearchRequestMemory) AddSearchRequest(request *messages.SearchRequ
 		return ""
 	}
 
-	// Add the SearchRequest to the SearchRequestMemory and return the hash
+	// Add the SearchRequest to the TOSearchRequest and return the hash
 	memory.requests[hashStr] = emptyStruct{}
 	return hashStr
 }
 
 // RemoveSearchRequest removes the SearchRequest represented by the given hashStr
-// from the SearchRequestMemory.
-func (memory *SearchRequestMemory) RemoveSearchRequest(hashStr string) {
+// from the TOSearchRequest.
+func (memory *TOSearchRequest) RemoveSearchRequest(hashStr string) {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()
@@ -56,8 +56,8 @@ func (memory *SearchRequestMemory) RemoveSearchRequest(hashStr string) {
 	panic(fmt.Sprintf("RemoveSearchRequestEntry(): Trying to remove inexistant SearchRequest %s", hashStr))
 }
 
-// FindSearchRequest attempts to find a SearchRequest in the SearchRequestMemory
-func (memory *SearchRequestMemory) FindSearchRequest(request *messages.SearchRequest) bool {
+// FindSearchRequest attempts to find a SearchRequest in the TOSearchRequest
+func (memory *TOSearchRequest) FindSearchRequest(request *messages.SearchRequest) bool {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()

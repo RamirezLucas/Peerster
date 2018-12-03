@@ -54,9 +54,9 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 
 // AddMultiSourceFile adds a multisoured file with chunkCount chunks to the index with a given metahash.
 // The file will be able to be fetched from multiple peers on the network.
-func (fileIndex *FileIndex) AddMultiSourceFile(chunkCount uint64, metahash []byte) *SharedFile {
+func (fileIndex *FileIndex) AddMultiSourceFile(filename string, chunkCount uint64, metahash []byte) *SharedFile {
 
-	newFile := NewSharedFileMultiSource(chunkCount, metahash)
+	newFile := NewSharedFileMultiSource(filename, chunkCount, metahash)
 	hash := ToHex(metahash[:])
 
 	// Grab the mutex on the index
@@ -195,6 +195,28 @@ func (fileIndex *FileIndex) HandleSearchRequest(keywords []string) []*messages.S
 	}
 
 	return results
+}
+
+/*HandleSearchResult @TODO*/
+func (fileIndex *FileIndex) HandleSearchResult(result *messages.SearchResult, origin string) bool {
+	// Grab the mutex
+	fileIndex.mux.Lock()
+
+	if shared, ok := fileIndex.index[ToHex(result.MetafileHash[:])]; ok { // We know this metahash
+		// Unlock the mutex and update the shared file with new remote chunk mappings
+		fileIndex.mux.Unlock()
+		return shared.UpdateChunkMappings(result.ChunkMap, origin)
+	}
+
+	// Create a new multisource shared file and unlock the mutex
+	newFile := NewSharedFileMultiSource(result.Filename, result.ChunkCount, result.MetafileHash)
+	fileIndex.index[ToHex(result.MetafileHash[:])] = newFile
+	fileIndex.mux.Unlock()
+
+	// @TODO what to do with frontend ?
+
+	// Update the shared file with new remote chunk mappings
+	return newFile.UpdateChunkMappings(result.ChunkMap, origin)
 }
 
 // AddKnownHash adds a hash to the index of known hashes.

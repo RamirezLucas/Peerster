@@ -7,9 +7,6 @@ import (
 	"net"
 )
 
-// TimeoutSec - Length of generic timeout
-const TimeoutSec = 1
-
 // Gossiper - Represents a gossiper
 type Gossiper struct {
 	Args          *CLArgsGossiper                // CL arguments for the Gossiper (RO)
@@ -19,8 +16,12 @@ type Gossiper struct {
 	PeerIndex     *peers.PeerIndex               // A dictionnary between <ip:port> and peer addresses (Shared, thread-safe)
 	Router        *peers.RoutingTable            // A routing table associating names with next hop address (Shared, thread-safe)
 	Timeouts      *peers.StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
-	FileIndex     *files.FileIndex               // A file index containing all indexed files (Shared, thread-safe)
-	DataTimeouts  *files.DataResponseForwarder   // Timeouts for DataReplies (Shared, thread-safe)
+
+	/* File transfer */
+	FileIndex       *files.FileIndex             // A file index containing all indexed files (Shared, thread-safe)
+	DataTimeouts    *files.DataResponseForwarder // Timeouts for DataReplies (Shared, thread-safe)
+	SReqTotalMatch  *files.SReqTotalMatch        // Keeps track of how many total matches were received for each SeachRequest (Shared, thread-safe)
+	TOSearchRequest *files.TOSearchRequest       // Timeouts for received SearchRequest's (Shared, thread-safe)
 }
 
 // CLArgsGossiper - Command line arguments for the gossiper
@@ -42,8 +43,12 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 	gossip.PeerIndex = peers.NewPeerIndex()
 	gossip.Router = peers.NewRoutingTable()
 	gossip.Timeouts = peers.NewStatusResponseForwarder()
+
+	/* File transfer */
 	gossip.FileIndex = files.NewFileIndex()
 	gossip.DataTimeouts = files.NewDataResponseForwarder()
+	gossip.SReqTotalMatch = files.NewSReqTotalMatch()
+	gossip.TOSearchRequest = files.NewTOSearchRequest()
 
 	// Copy all the peers from the CLArgs to the PeerIndex
 	for _, peer := range args.Peers {

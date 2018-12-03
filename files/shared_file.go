@@ -123,11 +123,11 @@ func NewSharedFileMonoSource(filename string, metahash []byte) *SharedFile {
 
 // NewSharedFileMultiSource creates a new instance of SharedFile for a file located on the network and
 // fetched from possible multiple sources.
-// In particular, the filename is not known while the number of chunks is known.
-func NewSharedFileMultiSource(chunkCount uint64, metahash []byte) *SharedFile {
+// In particular, the filename and the number of chunks are known.
+func NewSharedFileMultiSource(filename string, chunkCount uint64, metahash []byte) *SharedFile {
 	var shared SharedFile
 
-	shared.Filename = ""
+	shared.Filename = filename
 	copy(shared.Metahash[:], metahash[:])
 	shared.RemoteChunks = make(map[uint64]string)
 	shared.DownloadedChunks = nil
@@ -282,10 +282,15 @@ func (shared *SharedFile) WriteChunk(chunkID uint64, data []byte) bool {
 	if oldVal := shared.ChunkBitmap.SetBit(chunkID - 1); oldVal {
 		fail.CustomPanic("WriteChunk", "Incorrect bitmap at index %d for file %s", chunkID-1, shared.Filename)
 	}
-	// Update list of downloaded chunks and possible updatye status
+	// Update remote chunk map
+	if _, ok := shared.RemoteChunks[chunkID]; ok {
+		delete(shared.RemoteChunks, chunkID)
+	}
+	// Update list of downloaded chunks and possible update status
 	shared.DownloadedChunks = append(shared.DownloadedChunks, chunkID)
 	if uint64(len(shared.DownloadedChunks)) == shared.ChunkCount { // The file has been completly reconstructed
 		shared.Status = Reconstructed
+		shared.RemoteChunks = make(map[uint64]string)
 		shared.AcknowledgeFileReconstructed()
 		return true
 	}
@@ -307,9 +312,7 @@ func (shared *SharedFile) GetFileSearchInfo() *messages.SearchResult {
 	}
 
 	// If the file doesn't have a filename or a true chunk count return nil
-	if shared.Status == UncompleteMatch ||
-		shared.Status == CompleteMatch ||
-		shared.Status == NoMetafileMonoSource {
+	if shared.Status == NoMetafileMonoSource {
 		return nil
 	}
 
@@ -328,7 +331,41 @@ func (shared *SharedFile) GetFileSearchInfo() *messages.SearchResult {
 	return result
 }
 
-// AcknowledgeFileIndexed should be called when a file has been completely reconstructed.
+/*UpdateChunkMappings @TODO*/
+func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) bool {
+	// Grab the mutex
+	shared.mux.Lock()
+	defer shared.mux.Unlock()
+
+	// Check arguments
+	if shared == nil {
+		fail.CustomPanic("UpdateChunkMappings", "Invalid arguments (shared) = (%p)", shared)
+	}
+
+	// Return if mappings is nil or if the file is an incorrect status
+	if mappings == nil || shared.Status == Reconstructed {
+		return false
+	}
+
+	for _, chunkID := range mappings { // For each remote chunk
+		if chunkID != 0 {
+			if !shared.ChunkBitmap.GetBit(chunkID - 1) { // We don't have the chunk
+				// Update remote chunk location with most recently received SearchReply
+				shared.RemoteChunks[chunkID] = origin
+			}
+		}
+	}
+
+	// Check if we now have a complete match
+	if shared.Status == UncompleteMatch && uint64(len(shared.RemoteChunks)) == shared.ChunkCount {
+		shared.Status = CompleteMatch
+		return true
+	}
+
+	return false
+}
+
+// AcknowledgeFileReconstructed should be called when a file has been completely reconstructed.
 func (shared *SharedFile) AcknowledgeFileReconstructed() {
 	// Send update to frontend
 	frontend.FBuffer.AddFrontendIndexedFile(shared.Filename, ToHex32(shared.Metahash))
