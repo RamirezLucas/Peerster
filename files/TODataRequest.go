@@ -8,12 +8,12 @@ import (
 
 // TODataRequest - Represents the set of pending timeouts for data requests
 type TODataRequest struct {
-	responses map[string]*dataRequestHandler // An index of timeout handlers
+	responses map[string]*DataRequestHandler // An index of timeout handlers
 	mux       sync.Mutex                     // Mutex to manipulate the structure from different threads
 }
 
-// dataRequestHandler - Represents a timeout handler for data requests
-type dataRequestHandler struct {
+// DataRequestHandler - Represents a timeout handler for data requests
+type DataRequestHandler struct {
 	Origin string   // The peer's name that should be contained in the Origin field of the DataReply
 	Done   bool     // Acknowledges that the handler has been executed
 	Hash   *HashRef // Information regarding this particular hash
@@ -22,13 +22,13 @@ type dataRequestHandler struct {
 // NewTODataRequest - Creates a new instance of TODataRequest
 func NewTODataRequest() *TODataRequest {
 	var forwarder TODataRequest
-	forwarder.responses = make(map[string]*dataRequestHandler)
+	forwarder.responses = make(map[string]*DataRequestHandler)
 	return &forwarder
 }
 
 // NewDataRequestHandler - Creates a new instance of TODataRequestHandler
-func NewDataRequestHandler(origin string, hash *HashRef) *dataRequestHandler {
-	var handler dataRequestHandler
+func NewDataRequestHandler(origin string, hash *HashRef) *DataRequestHandler {
+	var handler DataRequestHandler
 	handler.Origin = origin
 	handler.Hash = hash
 	return &handler

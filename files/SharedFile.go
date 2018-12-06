@@ -30,7 +30,7 @@ const (
 )
 
 const (
-	// ChunkSizeBytes is th size of a chunk in bytes.
+	// ChunkSizeBytes is the size of a chunk in bytes.
 	ChunkSizeBytes = 8192
 	// HashSizeBytes is the size of a hash in bytes.
 	HashSizeBytes = 32
@@ -40,7 +40,9 @@ const (
 	MaxFileSizeBytes = MaxNbChunks * ChunkSizeBytes
 )
 
-// SharedFile represents a file indexed by the gossiper
+/*SharedFile represents a file for the gossiper. The object contains information about which
+chunks are present locally and which are only present on remote peers, as well as the metafile
+and the metahash. The file maitains its current status in the `Status` field. */
 type SharedFile struct {
 	Filename string              // The filename
 	Metahash [HashSizeBytes]byte // 32-bytes SHA-256 hash of metafile
@@ -58,8 +60,15 @@ type SharedFile struct {
 	mux sync.Mutex // Mutex to manipulate the structure from different threads
 }
 
-// NewSharedFileLocal creates a new instance of SharedFile for a file located on the local machine.
-// In particular, the memory is already allocated for all fields since the number of chunks is known at creation.
+/*NewSharedFileLocal creates a new instance of SharedFile for a file located on the local machine.
+In particular, the memory is already allocated for all fields since the number of chunks is known at creation.
+The metahash should be set by the caller after the object is returned.
+
+`filename` The file to index (must be stored in the PathToSharedFiles folder).
+
+`chunkCount` The number of chunks for this file.
+
+The function returns a pointer to the created `SharedFile`. */
 func NewSharedFileLocal(filename string, chunkCount uint64) *SharedFile {
 	var shared SharedFile
 
@@ -82,9 +91,14 @@ func NewSharedFileLocal(filename string, chunkCount uint64) *SharedFile {
 	return &shared
 }
 
-// NewSharedFileMonoSource creates a new instance of SharedFile for a file located on the network and
-// fetched from a single source.
-// In particular, the filename is already known while the number of chunks is unknown.
+/*NewSharedFileMonoSource creates a new instance of SharedFile for a file located on the network and
+fetched from a single source. In particular, the filename is already known while the number of chunks is unknown.
+
+`filename` The name of the file to index.
+
+`metahash` The file's metahash.
+
+The function returns a pointer to the created `SharedFile`. */
 func NewSharedFileMonoSource(filename string, metahash []byte) *SharedFile {
 	var shared SharedFile
 
@@ -107,9 +121,8 @@ func NewSharedFileMonoSource(filename string, metahash []byte) *SharedFile {
 	return &shared
 }
 
-// NewSharedFileMultiSource creates a new instance of SharedFile for a file located on the network and
-// fetched from possible multiple sources.
-// In particular, the filename and the number of chunks are known.
+/*NewSharedFileMultiSource creates a new instance of SharedFile for a file located on the network and
+fetched from possible multiple sources. In particular, the filename and the number of chunks are known*/
 func NewSharedFileMultiSource(filename string, chunkCount uint64, metahash []byte) *SharedFile {
 	var shared SharedFile
 
@@ -140,8 +153,8 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 	defer shared.mux.Unlock()
 
 	// Check arguments and file status
-	if shared == nil || reply == nil {
-		fail.CustomPanic("SetMetafile", "Invalid arguments (shared, reply) = (%p,%p)", shared, reply)
+	if reply == nil {
+		fail.CustomPanic("SetMetafile", "Invalid arguments (reply) = (%p)", reply)
 	} else if shared.Status != NoMetafileMonoSource && shared.Status != NoMetafileMultiSource {
 		fail.CustomPanic("SetMetafile", "Trying to set metafile of file with incorrect status %d", shared.Status)
 	}
@@ -191,8 +204,8 @@ func (shared *SharedFile) GetChunk(chunkID uint64) []byte {
 	defer shared.mux.Unlock()
 
 	// Check arguments and file status
-	if shared == nil || chunkID > shared.ChunkCount {
-		fail.CustomPanic("GetChunk", "Invalid arguments (shared, chunkID) = (%p,%d)", shared, chunkID)
+	if chunkID > shared.ChunkCount {
+		fail.CustomPanic("GetChunk", "Invalid arguments (chunkID) = (%d)", chunkID)
 	} else if shared.Status != MissingChunks && shared.Status != Reconstructed {
 		fail.CustomPanic("GetChunk", "Trying to get chunk from file with incorrect status %d", shared.Status)
 	}
@@ -246,8 +259,8 @@ func (shared *SharedFile) WriteChunk(chunkID uint64, data []byte) bool {
 	defer shared.mux.Unlock()
 
 	// Check arguments and file status
-	if shared == nil || chunkID == 0 || chunkID > shared.ChunkCount {
-		fail.CustomPanic("GetChunk", "Invalid arguments (shared, chunkID) = (%p,%d)", shared, chunkID)
+	if chunkID == 0 || chunkID > shared.ChunkCount {
+		fail.CustomPanic("GetChunk", "Invalid arguments (chunkID) = (%d)", chunkID)
 	} else if shared.Status != MissingChunks {
 		fail.CustomPanic("GetChunk", "Trying to write chunk to file with incorrect status %d", shared.Status)
 	}
@@ -292,11 +305,6 @@ func (shared *SharedFile) GetFileSearchInfo() *messages.SearchResult {
 	shared.mux.Lock()
 	defer shared.mux.Unlock()
 
-	// Check arguments and file status
-	if shared == nil {
-		fail.CustomPanic("GetFileSearchInfo", "Invalid arguments (shared) = (%p)", shared)
-	}
-
 	// If the file doesn't have a filename or a true chunk count return nil
 	if shared.Status == NoMetafileMonoSource {
 		return nil
@@ -322,11 +330,6 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 	// Grab the mutex
 	shared.mux.Lock()
 	defer shared.mux.Unlock()
-
-	// Check arguments
-	if shared == nil {
-		fail.CustomPanic("UpdateChunkMappings", "Invalid arguments (shared) = (%p)", shared)
-	}
 
 	// Return if mappings is nil or if the file is an incorrect status
 	if mappings == nil || shared.Status == Reconstructed {
