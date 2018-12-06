@@ -72,6 +72,12 @@ func isPacketValid(pkt *messages.GossipPacket, isClientSide bool, isSimpleMode b
 	if pkt.SearchReply != nil {
 		counter++
 	}
+	if pkt.TxPublish != nil {
+		counter++
+	}
+	if pkt.BlockPublish != nil {
+		counter++
+	}
 	if counter != 1 {
 		return false
 	}
@@ -178,6 +184,10 @@ func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 			go network.OnReceiveSearchRequest(g, pkt.SearchRequest, sender)
 		case pkt.SearchReply != nil:
 			go network.OnReceiveSearchReply(g, pkt.SearchReply, sender)
+		case pkt.TxPublish != nil:
+			go network.OnReceiveTransaction(g, pkt.TxPublish, sender)
+		case pkt.BlockPublish != nil:
+			go network.OnReceiveBlock(g, pkt.BlockPublish, sender)
 		default:
 			// Should never happen
 		}

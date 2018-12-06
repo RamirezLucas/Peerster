@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"Peerster/blockchain"
 	"Peerster/files"
 	"Peerster/peers"
 	"fmt"
@@ -9,19 +10,24 @@ import (
 
 // Gossiper - Represents a gossiper
 type Gossiper struct {
-	Args          *CLArgsGossiper                // CL arguments for the Gossiper (RO)
-	ClientChannel *net.UDPConn                   // UDP channel to communicate with the client (Shared, thread-safe)
-	GossipChannel *net.UDPConn                   // UDP channel to communicate with the network (Shared, thread-safe)
-	NameIndex     *peers.NameIndex               // A dictionnary between peer names and received messages (Shared, thread-safe)
-	PeerIndex     *peers.PeerIndex               // A dictionnary between <ip:port> and peer addresses (Shared, thread-safe)
-	Router        *peers.RoutingTable            // A routing table associating names with next hop address (Shared, thread-safe)
-	Timeouts      *peers.StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
+	Args          *CLArgsGossiper // CL arguments for the Gossiper (RO)
+	ClientChannel *net.UDPConn    // UDP channel to communicate with the client (Shared, thread-safe)
+	GossipChannel *net.UDPConn    // UDP channel to communicate with the network (Shared, thread-safe)
+
+	/* Rumors and private messages */
+	NameIndex *peers.NameIndex               // A dictionnary between peer names and received messages (Shared, thread-safe)
+	PeerIndex *peers.PeerIndex               // A dictionnary between <ip:port> and peer addresses (Shared, thread-safe)
+	Router    *peers.RoutingTable            // A routing table associating names with next hop address (Shared, thread-safe)
+	Timeouts  *peers.StatusResponseForwarder // Timeouts for RumorMessage's answer (Shared, thread-safe)
 
 	/* File transfer */
 	FileIndex       *files.FileIndex       // A file index containing all indexed files (Shared, thread-safe)
 	TODataRequest   *files.TODataRequest   // Timeouts for DataReplies (Shared, thread-safe)
 	SReqTotalMatch  *files.SReqTotalMatch  // Keeps track of how many total matches were received for each SeachRequest (Shared, thread-safe)
 	TOSearchRequest *files.TOSearchRequest // Timeouts for received SearchRequest's (Shared, thread-safe)
+
+	/* Blockchain */
+	Blockchain *blockchain.Blockchain // A blockchain for filename-to-metahash claiming (Shared, thread-safe)
 }
 
 // CLArgsGossiper - Command line arguments for the gossiper
@@ -39,10 +45,17 @@ type CLArgsGossiper struct {
 func NewGossiper(args *CLArgsGossiper) *Gossiper {
 	var gossip Gossiper
 	gossip.Args = args
+
+	/* Rumors and private messages */
 	gossip.NameIndex = peers.NewNameIndex()
 	gossip.PeerIndex = peers.NewPeerIndex()
 	gossip.Router = peers.NewRoutingTable()
 	gossip.Timeouts = peers.NewStatusResponseForwarder()
+
+	// Copy all the peers from the CLArgs to the PeerIndex
+	for _, peer := range args.Peers {
+		gossip.PeerIndex.AddPeerIfAbsent(peers.StringToUDPAddress(peer))
+	}
 
 	/* File transfer */
 	gossip.FileIndex = files.NewFileIndex()
@@ -50,10 +63,8 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 	gossip.SReqTotalMatch = files.NewSReqTotalMatch()
 	gossip.TOSearchRequest = files.NewTOSearchRequest()
 
-	// Copy all the peers from the CLArgs to the PeerIndex
-	for _, peer := range args.Peers {
-		gossip.PeerIndex.AddPeerIfAbsent(peers.StringToUDPAddress(peer))
-	}
+	/* Blockchain */
+	gossip.Blockchain = blockchain.NewBlockchain()
 
 	return &gossip
 }
