@@ -78,6 +78,18 @@ type SearchResult struct {
 	ChunkCount   uint64   // Number of chunks for this file
 }
 
+// TxPublish - A name-to-methash mapping for the blockchain
+type TxPublish struct {
+	File     File
+	HopLimit uint32
+}
+
+// BlockPublish - A block for the blockchain
+type BlockPublish struct {
+	Block    Block
+	HopLimit uint32
+}
+
 // GossipPacket is the structure that is exchanged between gossipers (only one of the fields can be non-nil)
 type GossipPacket struct {
 	SimpleMsg     *SimpleMessage  // A plain message
