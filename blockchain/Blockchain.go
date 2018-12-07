@@ -7,9 +7,6 @@ import (
 	"sync"
 )
 
-// Number of zero bytes that every Block hash must start with
-const nbBytesZero = 4
-
 /*Blockchain @TODO*/
 type Blockchain struct {
 	root         *NodeBlock            // The blockchain's root block (empty, no transactions contained)
@@ -42,38 +39,18 @@ func NewBlockchain() *Blockchain {
 /*AddBlock @TODO*/
 func (blockchain *Blockchain) AddBlock(newBlock *messages.Block) bool {
 
-	// Check that the block's hash is valid
-	newBlockHash := newBlock.Hash()
-	for i := 0; i < nbBytesZero; i++ {
-		if newBlockHash[i] != 0 {
-			return false // Invalid hash
-		}
+	// Check that the block has valid hash
+	if !newBlock.CheckHashValid() {
+		return false
 	}
 
 	// Grab the mutex
 	blockchain.mux.Lock()
 	defer blockchain.mux.Unlock()
 
-	// Check that the previous block is known
-	if prevBlock, ok := blockchain.blocks[files.ToHex32(newBlock.PrevHash)]; ok {
+	// Add the block
+	return blockchain.addBlockUnsafe(newBlock)
 
-		// Create a new NodeBlock and append it to the previous node's list of next nodes
-		newNode := NewNodeBlock(prevBlock, newBlock, prevBlock.length+1)
-		prevBlock.next = append(prevBlock.next, newNode)
-		blockchain.blocks[files.ToHex32(newBlockHash)] = newNode
-
-		if prevBlock == blockchain.head { // The new block is the new head
-			blockchain.head = newNode
-			blockchain.addTransactions(newNode)
-		} else if blockchain.head.length < newNode.length { // We have a new longest chain
-			blockchain.fork(newNode)
-		}
-
-		return true
-	}
-
-	// The previous block is unknown: do nothing
-	return false
 }
 
 /*AddPendingTransaction @TODO*/
@@ -92,7 +69,99 @@ func (blockchain *Blockchain) AddPendingTransaction(newTX *messages.File) bool {
 
 	// Add the pending transaction
 	blockchain.pendingTxs[newTX.Name] = newTX
+
 	return true
+}
+
+/*MineNewBlock @TODO*/
+func (blockchain *Blockchain) MineNewBlock() *messages.Block {
+
+	// Grab the mutex
+	blockchain.mux.Lock()
+
+	// Get list of valid pending transactions
+	newTx := make([]messages.TxPublish, 0)
+	for filename, file := range blockchain.pendingTxs {
+		if _, ok := blockchain.transactions[filename]; !ok {
+			// Append the transaction if it isn't in the blockchain
+			newTx = append(newTx, messages.TxPublish{
+				File:     *file,
+				HopLimit: 0,
+			})
+		} else {
+			// Remove the transaction from the pending buffer
+			delete(blockchain.transactions, filename)
+		}
+	}
+
+	// Release the mutex
+	blockchain.mux.Unlock()
+
+	// If there are no new transactions abort
+	if newTx == nil || len(newTx) == 0 {
+		return nil
+	}
+
+	// Generate block
+	var nonce [32]byte
+	newBlock := &messages.Block{
+		PrevHash:     blockchain.head.block.Hash(),
+		Nonce:        nonce,
+		Transactions: newTx,
+	}
+
+	// Change the nonce until the hash is valid
+	for !newBlock.CheckHashValid() {
+		newBlock.ChangeNonceRandomly()
+	}
+
+	// Grab the mutex
+	blockchain.mux.Lock()
+
+	// Check that the blockchain head is still the same
+	if files.ToHex32(newBlock.PrevHash) != files.ToHex32(blockchain.head.block.Hash()) {
+		blockchain.mux.Unlock()
+		return blockchain.MineNewBlock()
+	}
+
+	// Check that the new transactions are still valid
+	for _, tx := range newTx {
+		if _, ok := blockchain.transactions[tx.File.Name]; ok {
+			// One of the pending transaction is now in the blockchain, abort
+			blockchain.mux.Unlock()
+			return blockchain.MineNewBlock()
+		}
+	}
+
+	// Append the block to the blockchain
+	blockchain.addBlockUnsafe(newBlock)
+	blockchain.mux.Unlock()
+	return newBlock
+}
+
+/*AddBlockUnsafe @TODO*/
+func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
+
+	// Check that the previous block is known
+	if prevBlock, ok := blockchain.blocks[files.ToHex32(newBlock.PrevHash)]; ok {
+
+		// Create a new NodeBlock and append it to the previous node's list of next nodes
+		newNode := NewNodeBlock(prevBlock, newBlock, prevBlock.length+1)
+		prevBlock.next = append(prevBlock.next, newNode)
+		blockchain.blocks[files.ToHex32(newBlock.Hash())] = newNode
+
+		if prevBlock == blockchain.head { // The new block is the new head
+			blockchain.head = newNode
+			blockchain.addTransactions(newNode)
+		} else if blockchain.head.length < newNode.length { // We have a new longest chain
+			blockchain.fork(newNode)
+		}
+
+		return true
+	}
+
+	// The previous block is unknown: do nothing
+	return false
 }
 
 /*addTransactions @TODO*/

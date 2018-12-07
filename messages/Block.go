@@ -1,9 +1,13 @@
 package messages
 
 import (
+	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
 )
+
+// Number of zero bytes that every Block hash must start with
+const nbBytesZero = 4
 
 // Block - A blockchain's block
 type Block struct {
@@ -25,4 +29,25 @@ func (b *Block) Hash() [32]byte {
 	}
 	copy(out[:], h.Sum(nil))
 	return out
+}
+
+/*ChangeNonceRandomly genereates a new random nonce for a `Block` and
+writes it in the `Nonce` field of the receiver block. */
+func (b *Block) ChangeNonceRandomly() {
+	rand.Read(b.Nonce[:])
+}
+
+/*CheckHashValid checks whether the block's hash (according the `Hash()`)
+is valid for the blockchain, i.e. starts with enough zeroes.
+
+The function returns true if the hash is valid, or false otherwise. */
+func (b *Block) CheckHashValid() bool {
+
+	hash := b.Hash()
+	for i := 0; i < nbBytesZero; i++ {
+		if hash[i] != 0 {
+			return false // Invalid hash
+		}
+	}
+	return true
 }
