@@ -136,6 +136,10 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 	// Append the block to the blockchain
 	blockchain.addBlockUnsafe(newBlock)
 	blockchain.mux.Unlock()
+
+	// Try to mine a new block
+	go blockchain.MineNewBlock()
+
 	return newBlock
 }
 
