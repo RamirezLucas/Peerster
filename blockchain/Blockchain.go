@@ -94,9 +94,6 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 		}
 	}
 
-	// Release the mutex
-	blockchain.mux.Unlock()
-
 	// If there are no new transactions abort
 	if newTx == nil || len(newTx) == 0 {
 		return nil
@@ -109,6 +106,9 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 		Nonce:        nonce,
 		Transactions: newTx,
 	}
+
+	// Release the mutex
+	blockchain.mux.Unlock()
 
 	// Change the nonce until the hash is valid
 	for !newBlock.CheckHashValid() {
@@ -136,6 +136,7 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 	// Append the block to the blockchain
 	blockchain.addBlockUnsafe(newBlock)
 	blockchain.mux.Unlock()
+	fail.LeveledPrint(0, "", "FOUND-BLOCK %s", files.ToHex32(newBlock.Hash()))
 
 	// Try to mine a new block
 	go blockchain.MineNewBlock()
@@ -157,8 +158,31 @@ func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 		if prevBlock == blockchain.head { // The new block is the new head
 			blockchain.head = newNode
 			blockchain.addTransactions(newNode)
+
+			// Print to the console
+			str := "CHAIN "
+			for node := newNode; node != blockchain.root; node = node.prev {
+				str += node.block.ToString() + " "
+			}
+			fail.LeveledPrint(0, "", str[:len(str)-1])
+
 		} else if blockchain.head.length < newNode.length { // We have a new longest chain
-			blockchain.fork(newNode)
+
+			cntRewind := blockchain.fork(newNode)
+
+			// Print to the console
+			str := "CHAIN "
+			for node := newNode; node != blockchain.root; node = node.prev {
+				str += node.block.ToString() + " "
+			}
+			fail.LeveledPrint(0, "", "FORK-LONGER rewind %d blocks", cntRewind)
+			fail.LeveledPrint(0, "", str[:len(str)-1])
+
+		}
+
+		// We just discovered a new fork
+		if len(prevBlock.next) != 1 {
+			fail.LeveledPrint(0, "", "FORK-SHORTER %s", prevBlock.block.Hash())
 		}
 
 		return true
@@ -191,7 +215,7 @@ func (blockchain *Blockchain) deleteTransactions(node *NodeBlock) {
 }
 
 /*fork @TODO*/
-func (blockchain *Blockchain) fork(newHead *NodeBlock) {
+func (blockchain *Blockchain) fork(newHead *NodeBlock) uint64 {
 
 	// Chexk chains length
 	if newHead.length != blockchain.head.length+1 {
@@ -200,6 +224,8 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) {
 				"\tCurrent chain length: %d\n\tNew chain length: %d",
 			blockchain.head.length, newHead.length)
 	}
+
+	cntRewind := uint64(0)
 
 	// Find the most recent common block between the current head and the new head
 	newPath := newHead.prev
@@ -216,6 +242,7 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) {
 			// Go backward
 			oldPath = oldPath.prev
 			newPath = newPath.prev
+			cntRewind++
 		}
 	}
 
@@ -224,6 +251,7 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) {
 		blockchain.addTransactions(node)
 	}
 
+	return cntRewind
 }
 
 /*createRootBlock creates an empty "root" `Block` meant to be the first block of every

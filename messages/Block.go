@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 )
 
 // Number of zero bytes that every Block hash must start with
@@ -50,4 +51,19 @@ func (b *Block) CheckHashValid() bool {
 		}
 	}
 	return true
+}
+
+/*ToString returns a textual representation of a `Block`.*/
+func (b *Block) ToString() string {
+
+	hash := b.Hash()
+
+	str := fmt.Sprintf("%x", hash[:]) + ","
+	str += fmt.Sprintf("%x", b.PrevHash[:]) + ","
+	for _, tx := range b.Transactions {
+		str += tx.File.Name + ","
+	}
+
+	return str[:len(str)-1]
+
 }
