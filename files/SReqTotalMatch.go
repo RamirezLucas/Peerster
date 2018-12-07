@@ -40,6 +40,20 @@ func (timeout *SReqTotalMatch) AddSearchRequest(request *messages.SearchRequest)
 	timeout.requests[keywordsJoin] = 0
 }
 
+/*DeleteSearchRequest @TODO.*/
+func (timeout *SReqTotalMatch) DeleteSearchRequest(request *messages.SearchRequest) {
+	// Grab the mutex
+	timeout.mux.Lock()
+	defer timeout.mux.Unlock()
+
+	// Join the keywords
+	keywordsJoin := strings.Join(request.Keywords, ",")
+
+	if _, ok := timeout.requests[keywordsJoin]; ok { // We know these keywords
+		delete(timeout.requests, keywordsJoin)
+	}
+}
+
 /*CheckThresholdAndDelete checks whether at least `threshold` total matches have been associated
 to the `request`. If that's the case, then the corresponding entry in the index is deleted and true
 is returned.

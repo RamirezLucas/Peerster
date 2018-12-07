@@ -31,7 +31,8 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 
 	// Set budget
 	initBudget := InitialBudget
-	if defaultBudget != 0 {
+	budgetMultiplication := (defaultBudget == 0)
+	if budgetMultiplication {
 		initBudget = defaultBudget
 	}
 
@@ -60,9 +61,17 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 			// Double the budget and resend
 			search.Budget *= 2
 		} else {
-			return
+			break
+		}
+
+		// Stop after the first request if the budget was specified by the user
+		if !budgetMultiplication {
+			break
 		}
 	}
+
+	// Delete the handler
+	gossiper.SReqTotalMatch.DeleteSearchRequest(search)
 }
 
 // OnSendSearchRequest sends a SearchRequest on the network.
