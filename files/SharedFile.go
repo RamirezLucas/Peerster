@@ -323,7 +323,7 @@ func (shared *SharedFile) GetFileSearchInfo() *messages.SearchResult {
 		ChunkCount:   shared.ChunkCount,
 	}
 	copy(result.MetafileHash[:], shared.Metahash[:])
-	for i := uint64(0); i < shared.ChunkCount; i++ {
+	for i := 0; i < len(shared.DownloadedChunks); i++ {
 		result.ChunkMap[i] = shared.DownloadedChunks[i] + 1
 	}
 

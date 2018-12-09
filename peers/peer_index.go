@@ -1,6 +1,7 @@
 package peers
 
 import (
+	"Peerster/fail"
 	"Peerster/frontend"
 	"fmt"
 	"math/rand"
@@ -80,7 +81,7 @@ func (peerIndex *PeerIndex) GetRandomNeighbors(nbMax int, excludeMe *net.UDPAddr
 	}
 
 	// Create temporary list of peers
-	peersList := make([]*net.UDPAddr, nbPeers)
+	peersList := make([]*net.UDPAddr, 0)
 	i := 0
 	excludeStr := ""
 	if excludeMe != nil {
@@ -88,7 +89,7 @@ func (peerIndex *PeerIndex) GetRandomNeighbors(nbMax int, excludeMe *net.UDPAddr
 	}
 	for addr, peer := range peerIndex.index {
 		if addr != excludeStr {
-			peersList[i] = &peer.udpAddr
+			peersList = append(peersList, &peer.udpAddr)
 			i++
 		}
 	}
@@ -98,19 +99,21 @@ func (peerIndex *PeerIndex) GetRandomNeighbors(nbMax int, excludeMe *net.UDPAddr
 		return nil
 	}
 
+	fail.LeveledPrint(1, "PeerIndex.GetRandomNeighbors", "Filtered peers list has length %d", len(peersList))
+
 	// If the list is smaller than the required number return everything
 	if nbMax >= len(peersList) {
 		return peersList
 	}
 
 	// Pick nbMax neighbors randomly
-	retList := make([]*net.UDPAddr, nbMax)
+	retList := make([]*net.UDPAddr, 0)
 	pickedNeighbors := make(map[int]bool, nbMax)
 	for i := 0; i < nbMax; i++ {
 		for {
 			rNumber := rand.Intn(nbMax)
 			if _, ok := pickedNeighbors[rNumber]; !ok { // We never picked this one
-				retList[i] = peersList[rNumber]
+				retList = append(retList, peersList[rNumber])
 				pickedNeighbors[rNumber] = true
 				break
 			}

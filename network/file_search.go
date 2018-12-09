@@ -5,6 +5,7 @@ import (
 	"Peerster/fail"
 	"Peerster/files"
 	"Peerster/messages"
+	"Peerster/peers"
 	"net"
 	"sort"
 	"strconv"
@@ -32,7 +33,7 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 	// Set budget
 	initBudget := InitialBudget
 	budgetMultiplication := (defaultBudget == 0)
-	if budgetMultiplication {
+	if !budgetMultiplication {
 		initBudget = defaultBudget
 	}
 
@@ -92,6 +93,8 @@ func OnSendSearchRequest(channel *net.UDPConn, search *messages.SearchRequest, t
 // OnReceiveSearchRequest handles an incoming SearchRequest.
 func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.SearchRequest, sender *net.UDPAddr) {
 
+	fail.LeveledPrint(1, "OnReceiveSearchRequest", "Received SearchRequest from %s with budget %d", peers.UDPAddressToString(sender), search.Budget)
+
 	// Update the routing table
 	if search.Origin != gossiper.Args.Name {
 		gossiper.Router.AddContactIfAbsent(search.Origin, sender)
@@ -108,26 +111,30 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 		neighborsSpread := gossiper.PeerIndex.GetRandomNeighbors(int(search.Budget), sender)
 		nbNeighbors := uint64(len(neighborsSpread)) // 0 <= * <= search.Budget
 
-		baseBudget := uint64(1)
-		excessBudget := uint64(0)
+		if nbNeighbors != 0 {
+			baseBudget := uint64(1)
+			excessBudget := uint64(0)
 
-		// The budget is bigger than the number of neighbors
-		if nbNeighbors < search.Budget {
-			baseBudget = search.Budget / nbNeighbors
-			excessBudget = search.Budget % nbNeighbors
-		}
-
-		// Send to all selected neighbors
-		for i, target := range neighborsSpread {
-			// Set correct budget
-			search.Budget = baseBudget
-			if uint64(i) < excessBudget {
-				search.Budget++
+			// The budget is bigger than the number of neighbors
+			if nbNeighbors < search.Budget {
+				baseBudget = search.Budget / nbNeighbors
+				excessBudget = search.Budget % nbNeighbors
 			}
-			// Spread SearchRequest
-			OnSendSearchRequest(gossiper.GossipChannel, search, target)
-		}
 
+			// Send to all selected neighbors
+			for i, target := range neighborsSpread {
+				// Set correct budget
+				search.Budget = baseBudget
+				if uint64(i) < excessBudget {
+					search.Budget++
+				}
+
+				fail.LeveledPrint(1, "OnReceiveSearchRequest", "Sending to %s with budget %d", peers.UDPAddressToString(target), search.Budget)
+
+				// Spread SearchRequest
+				OnSendSearchRequest(gossiper.GossipChannel, search, target)
+			}
+		}
 	}
 
 	// Process the request locally
@@ -140,6 +147,7 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 
 	// Reply to sender
 	if target := gossiper.Router.GetTarget(search.Origin); target != nil {
+		fail.LeveledPrint(1, "OnReceiveSearchRequest", "Replying to %s with %d results", peers.UDPAddressToString(target), len(reply.Results))
 		OnSendSearchReply(gossiper.GossipChannel, reply, target)
 	}
 
@@ -169,6 +177,8 @@ func OnSendSearchReply(channel *net.UDPConn, reply *messages.SearchReply, target
 
 // OnReceiveSearchReply handles an incoming SearchReply.
 func OnReceiveSearchReply(gossiper *entities.Gossiper, reply *messages.SearchReply, sender *net.UDPAddr) {
+
+	fail.LeveledPrint(1, "OnReceiveSearchReply", "Received SearchReply from %s destined to %s with %d results", reply.Origin, reply.Destination, len(reply.Results))
 
 	// Update the routing table
 	if reply.Origin != gossiper.Args.Name {
