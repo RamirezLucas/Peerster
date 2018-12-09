@@ -8,7 +8,7 @@ import (
 	"github.com/dedis/protobuf"
 )
 
-// OnBroadcastClient - @TODO
+// OnBroadcastClient -
 func OnBroadcastClient(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) {
 
 	// Print to the console
@@ -31,7 +31,7 @@ func OnBroadcastClient(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) 
 
 }
 
-// OnBroadcastNetwork - @TODO
+// OnBroadcastNetwork -
 func OnBroadcastNetwork(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) {
 
 	// Print to the console

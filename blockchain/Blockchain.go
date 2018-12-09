@@ -15,7 +15,7 @@ const factorSleepingAfterMining = 2
 // factorSleepingGenesis is the amount of time to wait (in seconds) before publishing the genesis block
 const sleepingGenesisSec = 5
 
-/*Blockchain @TODO*/
+/*Blockchain */
 type Blockchain struct {
 	root         *NodeBlock                 // The blockchain's root block (empty, no transactions contained)
 	head         *NodeBlock                 // The blockchain's current head
@@ -28,7 +28,7 @@ type Blockchain struct {
 	mux sync.Mutex // Mutex to manipulate the structure from different threads
 }
 
-/*NewBlockchain @TODO*/
+/*NewBlockchain */
 func NewBlockchain() *Blockchain {
 	var blockchain Blockchain
 
@@ -43,13 +43,10 @@ func NewBlockchain() *Blockchain {
 	// Add the "root" block to the list of known blocks
 	blockchain.blocks[files.ToHex32(blockchain.root.block.Hash())] = blockchain.root
 
-	// Mine the genesis block
-	go blockchain.MineNewBlock(true)
-
 	return &blockchain
 }
 
-/*AddBlock @TODO*/
+/*AddBlock */
 func (blockchain *Blockchain) AddBlock(newBlock *messages.Block) bool {
 
 	tmpHash := newBlock.Hash()
@@ -69,7 +66,7 @@ func (blockchain *Blockchain) AddBlock(newBlock *messages.Block) bool {
 	return blockchain.addBlockUnsafe(newBlock)
 }
 
-/*AddPendingTransaction @TODO*/
+/*AddPendingTransaction */
 func (blockchain *Blockchain) AddPendingTransaction(newTX *messages.File) bool {
 
 	fail.LeveledPrint(1, "Blockchain.AddPendingTransaction",
@@ -80,11 +77,9 @@ func (blockchain *Blockchain) AddPendingTransaction(newTX *messages.File) bool {
 	defer blockchain.mux.Unlock()
 
 	if _, ok := blockchain.pendingTxs[newTX.Name]; ok { // We already have the transaction pending
-		fail.LeveledPrint(1, "Blockchain.AddPendingTransaction", "Fail 1")
 		return false
 	}
 	if _, ok := blockchain.transactions[newTX.Name]; ok { // The association is already claimed
-		fail.LeveledPrint(1, "Blockchain.AddPendingTransaction", "Fail 2")
 		return false
 	}
 
@@ -97,7 +92,7 @@ func (blockchain *Blockchain) AddPendingTransaction(newTX *messages.File) bool {
 	return true
 }
 
-/*MineNewBlock @TODO*/
+/*MineNewBlock */
 func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 
 	fail.LeveledPrint(1, "Blockchain.MineNewBlock", "Entering MineNewBlock")
@@ -109,14 +104,17 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 	newTx := make([]messages.TxPublish, 0)
 	for filename, file := range blockchain.pendingTxs {
 		if _, ok := blockchain.transactions[filename]; !ok {
+			fail.LeveledPrint(1, "Blockchain.MineNewBlock", "%s not in transactions", filename)
+
 			// Append the transaction if it isn't in the blockchain
 			newTx = append(newTx, messages.TxPublish{
 				File:     *file,
 				HopLimit: 0,
 			})
 		} else {
+			fail.LeveledPrint(1, "Blockchain.MineNewBlock", "%s in transactions", filename)
 			// Remove the transaction from the pending buffer
-			delete(blockchain.transactions, filename)
+			delete(blockchain.pendingTxs, filename)
 		}
 	}
 
@@ -157,7 +155,7 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 	// Check that the blockchain head is still the same
 	if !isGenesis && (files.ToHex32(newBlock.PrevHash) != files.ToHex32(blockchain.head.block.Hash())) {
 		blockchain.mux.Unlock()
-		return blockchain.MineNewBlock(isGenesis)
+		return blockchain.MineNewBlock(false)
 	}
 
 	// Check that the new transactions are still valid
@@ -165,7 +163,7 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 		if _, ok := blockchain.transactions[tx.File.Name]; ok {
 			// One of the pending transaction is now in the blockchain, abort
 			blockchain.mux.Unlock()
-			return blockchain.MineNewBlock(isGenesis)
+			return blockchain.MineNewBlock(false)
 		}
 	}
 
@@ -181,14 +179,10 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 	} else {
 		time.Sleep(2 * elapsed)
 	}
-
-	// Try to mine a new block on another goroutine
-	go blockchain.MineNewBlock(false)
-
 	return newBlock
 }
 
-/*AddBlockUnsafe @TODO*/
+/*AddBlockUnsafe */
 func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 
 	// Determine if this is a genesis block
@@ -222,7 +216,7 @@ func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 		}
 
 		if len(prevBlock.next) != 1 { // We just discovered a new fork
-			fail.LeveledPrint(0, "", "FORK-SHORTER %s", prevBlock.block.Hash())
+			fail.LeveledPrint(0, "", "FORK-SHORTER %s", files.ToHex32(prevBlock.block.Hash()))
 		}
 
 		// See if the block we just added is the predecessor of some previously received one
@@ -239,7 +233,7 @@ func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 	return false
 }
 
-/*addTransactions @TODO*/
+/*addTransactions */
 func (blockchain *Blockchain) addTransactions(node *NodeBlock) {
 	for _, tx := range node.block.Transactions {
 		if _, ok := blockchain.transactions[tx.File.Name]; !ok {
@@ -251,7 +245,7 @@ func (blockchain *Blockchain) addTransactions(node *NodeBlock) {
 	}
 }
 
-/*fork @TODO*/
+/*fork */
 func (blockchain *Blockchain) fork(newHead *NodeBlock) uint64 {
 
 	// Chexk chains length
@@ -354,7 +348,7 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) uint64 {
 	return 0
 }
 
-/*printChain @TODO*/
+/*printChain */
 func (blockchain *Blockchain) printChain(head *NodeBlock) string {
 	str := "CHAIN "
 	for node := head; node != blockchain.root; node = node.prev {

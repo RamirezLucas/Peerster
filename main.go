@@ -243,11 +243,10 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 			if pkt.DataRequest.HopLimit == 0 {
 				// File index
 				if file := g.FileIndex.AddLocalFile(pkt.DataRequest.Origin); file != nil {
-					fail.LeveledPrint(1, "udpDispatcherClient", "Adding transaction to blockchain")
 					// Broadcast the transaction and publish to the blockchain
 					network.OnReceiveTransaction(g, &messages.TxPublish{
 						File:     *file,
-						HopLimit: network.TransactionHopLimit,
+						HopLimit: network.TransactionHopLimit + 1,
 					}, nil)
 				}
 			} else {
@@ -322,6 +321,9 @@ func main() {
 			go rumorEntropy(gossiper, chanID)
 		}
 	}
+
+	// Craft a genesis block for the blockchain
+	go network.CreateGenesisBlock(gossiper)
 
 	// Kill all goroutines before exiting
 	signalChan := make(chan os.Signal, 1)

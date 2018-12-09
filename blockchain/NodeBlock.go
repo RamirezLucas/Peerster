@@ -2,7 +2,7 @@ package blockchain
 
 import "Peerster/messages"
 
-/*NodeBlock @TODO*/
+/*NodeBlock */
 type NodeBlock struct {
 	prev   *NodeBlock
 	next   []*NodeBlock
@@ -10,7 +10,7 @@ type NodeBlock struct {
 	length uint64
 }
 
-/*NewNodeBlock @TODO*/
+/*NewNodeBlock */
 func NewNodeBlock(prev *NodeBlock, block *messages.Block, length uint64) *NodeBlock {
 	var node NodeBlock
 	node.prev = prev

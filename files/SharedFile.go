@@ -321,7 +321,7 @@ func (shared *SharedFile) GetFileSearchInfo() *messages.SearchResult {
 	return result
 }
 
-/*UpdateChunkMappings @TODO*/
+/*UpdateChunkMappings */
 func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) bool {
 	// Grab the mutex
 	shared.mux.Lock()
@@ -353,7 +353,7 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 	return false
 }
 
-/*GetMetafileQueryPeer @TODO*/
+/*GetMetafileQueryPeer */
 func (shared *SharedFile) GetMetafileQueryPeer() string {
 	// Grab the mutex
 	shared.mux.Lock()
@@ -373,7 +373,7 @@ func (shared *SharedFile) GetMetafileQueryPeer() string {
 	return shared.MetafileQueryPeer
 }
 
-/*GetChunkTarget @TODO*/
+/*GetChunkTarget */
 func (shared *SharedFile) GetChunkTarget(nextChunk uint64, lastOrigin string) string {
 	// Grab the mutex
 	shared.mux.Lock()
@@ -395,7 +395,7 @@ func (shared *SharedFile) GetChunkTarget(nextChunk uint64, lastOrigin string) st
 	return ""
 }
 
-/*ChangeName @TODO*/
+/*ChangeName */
 func (shared *SharedFile) ChangeName(newName string) {
 	// Grab the mutex
 	shared.mux.Lock()
@@ -411,7 +411,7 @@ func (shared *SharedFile) ChangeName(newName string) {
 	shared.Filename = newName
 }
 
-/*SwitchMultiToMonoSource @TODO*/
+/*SwitchMultiToMonoSource */
 func (shared *SharedFile) SwitchMultiToMonoSource(newName string) bool {
 	// Grab the mutex
 	shared.mux.Lock()

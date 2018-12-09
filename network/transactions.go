@@ -46,14 +46,25 @@ func OnReceiveTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish, s
 		OnBroadcastTransaction(gossiper, tx)
 
 		// Start mining
-		if newBlock := gossiper.Blockchain.MineNewBlock(false); newBlock != nil {
-			OnBroadcastBlock(gossiper, newBlock)
+		for {
+			if newBlock := gossiper.Blockchain.MineNewBlock(false); newBlock != nil {
+				OnBroadcastBlock(gossiper, newBlock)
+			} else {
+				return
+			}
 		}
 	}
 
 }
 
 /* ================ BLOCKS ================ */
+
+/*CreateGenesisBlock is used to create and broadcast the genesis block for the blockchain.*/
+func CreateGenesisBlock(gossiper *entities.Gossiper) {
+	if newBlock := gossiper.Blockchain.MineNewBlock(true); newBlock != nil {
+		OnBroadcastBlock(gossiper, newBlock)
+	}
+}
 
 /*OnBroadcastBlock is used to broadcast a `Block` on the network.*/
 func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {

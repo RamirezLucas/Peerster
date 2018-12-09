@@ -40,7 +40,7 @@ func (timeout *SReqTotalMatch) AddSearchRequest(request *messages.SearchRequest)
 	timeout.requests[keywordsJoin] = 0
 }
 
-/*DeleteSearchRequest @TODO.*/
+/*DeleteSearchRequest .*/
 func (timeout *SReqTotalMatch) DeleteSearchRequest(request *messages.SearchRequest) {
 	// Grab the mutex
 	timeout.mux.Lock()
