@@ -64,7 +64,8 @@ func (peerIndex *PeerIndex) GetRandomPeer(excludeMe *net.UDPAddr) *net.UDPAddr {
 // the function returns nil. If nb is bigger that the number of neighbors all neighbors except the
 // excludeMe one are returned.
 func (peerIndex *PeerIndex) GetRandomNeighbors(nbMax int, excludeMe *net.UDPAddr) []*net.UDPAddr {
-	if peerIndex == nil || nbMax == 0 {
+
+	if nbMax == 0 {
 		return nil
 	}
 
@@ -109,7 +110,7 @@ func (peerIndex *PeerIndex) GetRandomNeighbors(nbMax int, excludeMe *net.UDPAddr
 		for {
 			rNumber := rand.Intn(nbMax)
 			if _, ok := pickedNeighbors[rNumber]; !ok { // We never picked this one
-				retList = append(retList, peersList[rNumber])
+				retList[i] = peersList[rNumber]
 				pickedNeighbors[rNumber] = true
 				break
 			}

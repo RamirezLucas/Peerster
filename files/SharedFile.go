@@ -160,15 +160,15 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 	}
 
 	// Get number of chunks
-	nbChunks := uint64(len(reply.Data) / ChunkSizeBytes)
+	nbChunks := uint64(len(reply.Data) / HashSizeBytes)
 
 	// If the file is multisource we already know the number of chunks
 	// In that case silently change the number of chunks
 	if shared.Status == NoMetafileMultiSource && shared.ChunkCount != nbChunks {
 		fail.LeveledPrint(1, "SetMetafile", `Received metafile length yields %d chunks which
 			doesn't match expected number %d for file with metahash %s`, ToHex32(shared.Metahash))
-		shared.ChunkCount = nbChunks
 	}
+	shared.ChunkCount = nbChunks
 
 	// Set metafile
 	shared.Metafile = make([]byte, len(reply.Data))
@@ -266,7 +266,7 @@ func (shared *SharedFile) WriteChunk(chunkID uint64, data []byte) bool {
 	}
 
 	// Open the file in write mode
-	f, err := os.OpenFile(PathToDownloadedFiles+shared.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
+	f, err := os.OpenFile(PathToDownloadedFiles+shared.Filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
 		fail.LeveledPrint(1, "WriteChunk", `Failed to open file %s`, shared.Filename)
 	}
@@ -358,4 +358,7 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 func (shared *SharedFile) AcknowledgeFileReconstructed() {
 	// Send update to frontend
 	frontend.FBuffer.AddFrontendIndexedFile(shared.Filename, ToHex32(shared.Metahash))
+
+	fail.LeveledPrint(1, "SharedFile.AcknowledgeFileReconstructed",
+		"Reconstructed %s with metahash %s", shared.Filename, ToHex32(shared.Metahash))
 }

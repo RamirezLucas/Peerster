@@ -103,7 +103,11 @@ func ParseArgumentsGossiper() (*entities.CLArgsGossiper, error) {
 			// Validate
 			args.RTimer = uint(timer)
 			rTimerDone = true
-
+		case strings.HasPrefix(arg, "-debug="):
+			// Set global print level
+			if parsed, err := strconv.ParseInt(arg[7:], 10, 32); err == nil {
+				fail.GlobalPrintLevel = int(parsed)
+			}
 		default:
 			return nil, &fail.CustomError{Fun: "ParseArgumentsGossiper", Desc: "unknown argument"}
 		}

@@ -54,10 +54,16 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 	// Grab the mutex on the index
 	fileIndex.mux.Lock()
 	if _, ok := fileIndex.index[hash]; ok { // We already have a file indexed with this metahash
+		fail.LeveledPrint(1, "FileIndex.AddMonoSourceFile", "Metahash %s already taken", ToHex(metahash))
 		return nil
 	}
-	// Index the new file and unlock the mutex
+	// Index the new file
 	fileIndex.index[hash] = newFile
+
+	// Add the metahash to the set of known hashes
+	fileIndex.hashes[ToHex(metahash[:])] = NewHashRef(newFile, 0)
+
+	// Unlock the mutex
 	fileIndex.mux.Unlock()
 
 	// Send update to frontend
@@ -92,7 +98,7 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) {
 
 	// Add the chunk hashes to the set of known hashes
 	for i := uint64(0); i < shared.ChunkCount; i++ {
-		chunkHash := shared.Metafile[i*ChunkSizeBytes : (i+1)*ChunkSizeBytes]
+		chunkHash := shared.Metafile[i*HashSizeBytes : (i+1)*HashSizeBytes]
 		fileIndex.hashes[ToHex(chunkHash[:])] = NewHashRef(shared, i+1)
 	}
 
@@ -116,10 +122,10 @@ func (fileIndex *FileIndex) GetDataFromHash(hash []byte) []byte {
 	// Grab the file index mutex
 	fileIndex.mux.Lock()
 
-	if HashRef, ok := fileIndex.hashes[ToHex(hash[:])]; ok { // We know this hash
+	if ref, ok := fileIndex.hashes[ToHex(hash[:])]; ok { // We know this hash
 		// Unlock mutex and get the chunk
 		fileIndex.mux.Unlock()
-		return HashRef.File.GetChunk(HashRef.ChunkIndex)
+		return ref.File.GetChunk(ref.ChunkIndex)
 	}
 
 	// Unlock mutex and return
@@ -144,6 +150,7 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 	shared := ref.File
 	if ref.ChunkIndex == 0 { // Metafile in reply.Data
 		if shared.SetMetafile(reply) { // Reconstruction complete (empty file)
+			fail.LeveledPrint(1, "FileIndex.HandleDataReply", "Empty file %s", shared.Filename)
 			ref := NewHashRef(shared, 0)
 			fileIndex.addHashRef(ToHex(reply.HashValue[:]), ref)
 			return 0, "" // Stop requesting

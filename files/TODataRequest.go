@@ -30,6 +30,7 @@ func NewTODataRequest() *TODataRequest {
 func NewDataRequestHandler(origin string, hash *HashRef) *DataRequestHandler {
 	var handler DataRequestHandler
 	handler.Origin = origin
+	handler.Done = false
 	handler.Hash = hash
 	return &handler
 }
@@ -42,7 +43,7 @@ func (forwarder *TODataRequest) AddDataRequest(request *messages.DataRequest, ha
 
 	// Attempt to add a new handler
 	strHash := ToHex(request.HashValue[:])
-	handler := NewDataRequestHandler(request.Origin, hash)
+	handler := NewDataRequestHandler(request.Destination, hash)
 	if _, ok := forwarder.responses[strHash]; ok { // We already have a request pending for this hash
 		return false
 	}
@@ -80,11 +81,14 @@ func (forwarder *TODataRequest) SearchHashAndAcknowledge(reply *messages.DataRep
 	defer forwarder.mux.Unlock()
 
 	if match, ok := forwarder.responses[ToHex(reply.HashValue[:])]; ok { // We were waiting for this hash
+		fail.LeveledPrint(2, "TODataRequest.SearchHashAndAcknowledge", "Expected origin %s, reply's origin %s", match.Origin, reply.Origin)
 		if !match.Done && match.Origin == reply.Origin { // Check that data was sent from the correct peer
 			// Acknowledges to the sender thread and return
 			match.Done = true
+			fail.LeveledPrint(2, "TODataRequest.SearchHashAndAcknowledge", "Found valid handler with hash %s", ToHex(reply.HashValue[:]))
 			return match.Hash
 		}
+		fail.LeveledPrint(2, "TODataRequest.SearchHashAndAcknowledge", "Handler with %s already used", ToHex(reply.HashValue[:]))
 	}
 	return nil
 }
