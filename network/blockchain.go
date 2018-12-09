@@ -46,7 +46,7 @@ func OnReceiveTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish, s
 		OnBroadcastTransaction(gossiper, tx)
 
 		// Start mining
-		if newBlock := gossiper.Blockchain.MineNewBlock(); newBlock != nil {
+		if newBlock := gossiper.Blockchain.MineNewBlock(false); newBlock != nil {
 			OnBroadcastBlock(gossiper, newBlock)
 		}
 	}

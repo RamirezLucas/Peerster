@@ -58,8 +58,8 @@ func (b *Block) ToString() string {
 
 	hash := b.Hash()
 
-	str := fmt.Sprintf("%x", hash[:]) + ","
-	str += fmt.Sprintf("%x", b.PrevHash[:]) + ","
+	str := fmt.Sprintf("%x", hash[:]) + ":"
+	str += fmt.Sprintf("%x", b.PrevHash[:]) + ":"
 	for _, tx := range b.Transactions {
 		str += tx.File.Name + ","
 	}

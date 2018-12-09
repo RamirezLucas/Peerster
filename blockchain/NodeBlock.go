@@ -19,3 +19,15 @@ func NewNodeBlock(prev *NodeBlock, block *messages.Block, length uint64) *NodeBl
 	node.length = length
 	return &node
 }
+
+/*createRootBlock creates an empty "root" `Block` meant to be the first block of every
+instantiated `Blockchain`. This `Block` has a `PrevHash` of 0 and an empty list of
+transactions.*/
+func createRootBlock() *messages.Block {
+	var hash, nounce [32]byte
+	return &messages.Block{
+		PrevHash:     hash,
+		Nonce:        nounce,
+		Transactions: nil,
+	}
+}

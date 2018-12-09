@@ -5,14 +5,23 @@ import (
 	"Peerster/files"
 	"Peerster/messages"
 	"sync"
+	"time"
 )
+
+// factorSleepingAfterMining is the number by which we multiply the mining time to get
+// the waiting time after a block has been mined.
+const factorSleepingAfterMining = 2
+
+// factorSleepingGenesis is the amount of time to wait (in seconds) before publishing the genesis block
+const sleepingGenesisSec = 5
 
 /*Blockchain @TODO*/
 type Blockchain struct {
-	root         *NodeBlock            // The blockchain's root block (empty, no transactions contained)
-	head         *NodeBlock            // The blockchain's current head
-	transactions map[string]string     // A filename-to-metahash mapping
-	blocks       map[string]*NodeBlock // A block's PrevHash-to-NodeBlock mapping
+	root         *NodeBlock                 // The blockchain's root block (empty, no transactions contained)
+	head         *NodeBlock                 // The blockchain's current head
+	transactions map[string]string          // A filename-to-metahash mapping
+	blocks       map[string]*NodeBlock      // A block's PrevHash-to-NodeBlock mapping
+	invalid      map[string]*messages.Block // A set of invalid blocks
 
 	pendingTxs map[string]*messages.File // The set of pending transactions (filename to *File)
 
@@ -28,10 +37,14 @@ func NewBlockchain() *Blockchain {
 
 	blockchain.transactions = make(map[string]string)
 	blockchain.blocks = make(map[string]*NodeBlock)
+	blockchain.invalid = make(map[string]*messages.Block)
 	blockchain.pendingTxs = nil
 
 	// Add the "root" block to the list of known blocks
 	blockchain.blocks[files.ToHex32(blockchain.root.block.PrevHash)] = blockchain.root
+
+	// Mine the genesis block
+	go blockchain.MineNewBlock(true)
 
 	return &blockchain
 }
@@ -50,7 +63,6 @@ func (blockchain *Blockchain) AddBlock(newBlock *messages.Block) bool {
 
 	// Add the block
 	return blockchain.addBlockUnsafe(newBlock)
-
 }
 
 /*AddPendingTransaction @TODO*/
@@ -74,7 +86,7 @@ func (blockchain *Blockchain) AddPendingTransaction(newTX *messages.File) bool {
 }
 
 /*MineNewBlock @TODO*/
-func (blockchain *Blockchain) MineNewBlock() *messages.Block {
+func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 
 	// Grab the mutex
 	blockchain.mux.Lock()
@@ -95,7 +107,7 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 	}
 
 	// If there are no new transactions abort
-	if newTx == nil || len(newTx) == 0 {
+	if !isGenesis && (newTx == nil || len(newTx) == 0) {
 		return nil
 	}
 
@@ -110,10 +122,18 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 	// Release the mutex
 	blockchain.mux.Unlock()
 
-	// Change the nonce until the hash is valid
+	/* **************** Change the nonce until the hash is valid **************** */
+	start := time.Now()
 	for !newBlock.CheckHashValid() {
 		newBlock.ChangeNonceRandomly()
 	}
+	elapsed := time.Since(start)
+	if isGenesis {
+		time.Sleep(5 * time.Second)
+	} else {
+		time.Sleep(2 * elapsed)
+	}
+	/* **************** Change the nonce until the hash is valid **************** */
 
 	// Grab the mutex
 	blockchain.mux.Lock()
@@ -121,7 +141,7 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 	// Check that the blockchain head is still the same
 	if files.ToHex32(newBlock.PrevHash) != files.ToHex32(blockchain.head.block.Hash()) {
 		blockchain.mux.Unlock()
-		return blockchain.MineNewBlock()
+		return blockchain.MineNewBlock(false)
 	}
 
 	// Check that the new transactions are still valid
@@ -129,7 +149,7 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 		if _, ok := blockchain.transactions[tx.File.Name]; ok {
 			// One of the pending transaction is now in the blockchain, abort
 			blockchain.mux.Unlock()
-			return blockchain.MineNewBlock()
+			return blockchain.MineNewBlock(false)
 		}
 	}
 
@@ -139,7 +159,7 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 	fail.LeveledPrint(0, "", "FOUND-BLOCK %s", files.ToHex32(newBlock.Hash()))
 
 	// Try to mine a new block
-	go blockchain.MineNewBlock()
+	go blockchain.MineNewBlock(false)
 
 	return newBlock
 }
@@ -147,48 +167,44 @@ func (blockchain *Blockchain) MineNewBlock() *messages.Block {
 /*AddBlockUnsafe @TODO*/
 func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 
-	// Check that the previous block is known
-	if prevBlock, ok := blockchain.blocks[files.ToHex32(newBlock.PrevHash)]; ok {
+	if prevBlock, ok := blockchain.blocks[files.ToHex32(newBlock.PrevHash)]; ok { // The previous block is known
 
 		// Create a new NodeBlock and append it to the previous node's list of next nodes
 		newNode := NewNodeBlock(prevBlock, newBlock, prevBlock.length+1)
+		blockHash := files.ToHex32(newBlock.Hash())
 		prevBlock.next = append(prevBlock.next, newNode)
-		blockchain.blocks[files.ToHex32(newBlock.Hash())] = newNode
+		blockchain.blocks[blockHash] = newNode
 
 		if prevBlock == blockchain.head { // The new block is the new head
 			blockchain.head = newNode
 			blockchain.addTransactions(newNode)
 
 			// Print to the console
-			str := "CHAIN "
-			for node := newNode; node != blockchain.root; node = node.prev {
-				str += node.block.ToString() + " "
-			}
-			fail.LeveledPrint(0, "", str[:len(str)-1])
+			fail.LeveledPrint(0, "", blockchain.printChain(newNode))
 
 		} else if blockchain.head.length < newNode.length { // We have a new longest chain
 
-			cntRewind := blockchain.fork(newNode)
-
-			// Print to the console
-			str := "CHAIN "
-			for node := newNode; node != blockchain.root; node = node.prev {
-				str += node.block.ToString() + " "
+			if cntRewind := blockchain.fork(newNode); cntRewind != 0 {
+				// Print to the console
+				fail.LeveledPrint(0, "", "FORK-LONGER rewind %d blocks", cntRewind)
+				fail.LeveledPrint(0, "", blockchain.printChain(newNode))
 			}
-			fail.LeveledPrint(0, "", "FORK-LONGER rewind %d blocks", cntRewind)
-			fail.LeveledPrint(0, "", str[:len(str)-1])
-
 		}
 
-		// We just discovered a new fork
-		if len(prevBlock.next) != 1 {
+		if len(prevBlock.next) != 1 { // We just discovered a new fork
 			fail.LeveledPrint(0, "", "FORK-SHORTER %s", prevBlock.block.Hash())
+		}
+
+		// See if the block we just added is the predecessor of some previously received one
+		if invalidBlock, ok := blockchain.invalid[blockHash]; ok {
+			blockchain.addBlockUnsafe(invalidBlock)
 		}
 
 		return true
 	}
 
-	// The previous block is unknown: do nothing
+	// The previous block is not known
+	blockchain.invalid[files.ToHex32(newBlock.PrevHash)] = newBlock
 	return false
 }
 
@@ -196,20 +212,10 @@ func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 func (blockchain *Blockchain) addTransactions(node *NodeBlock) {
 	for _, tx := range node.block.Transactions {
 		if _, ok := blockchain.transactions[tx.File.Name]; !ok {
-			files.ToHex(tx.File.MetafileHash[:])
+			blockchain.transactions[tx.File.Name] = files.ToHex(tx.File.MetafileHash[:])
 		} else {
-			// @TODO: what to do here
-		}
-	}
-}
-
-/*deleteTransactions @TODO*/
-func (blockchain *Blockchain) deleteTransactions(node *NodeBlock) {
-	for _, tx := range node.block.Transactions {
-		if _, ok := blockchain.transactions[tx.File.Name]; ok {
-			delete(blockchain.transactions, tx.File.Name)
-		} else {
-			// @TODO: what to do here (fixing add should solve this too)
+			fail.CustomPanic("Blockchain.fork", "Adding existing transaction %s -> %s",
+				tx.File.Name, files.ToHex(tx.File.MetafileHash[:]))
 		}
 	}
 }
@@ -223,11 +229,17 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) uint64 {
 			"New chain is not exactly one block longer than current longest chain.\n"+
 				"\tCurrent chain length: %d\n\tNew chain length: %d",
 			blockchain.head.length, newHead.length)
+		return 0
 	}
 
+	// Maintain some status
+	newBlocksFork := make([]*NodeBlock, 0)
+	deleteBuffer := make(map[string]*messages.File)
+	addBuffer := make(map[string]string)
 	cntRewind := uint64(0)
 
 	// Find the most recent common block between the current head and the new head
+	newBlocksFork = append(newBlocksFork, newHead)
 	newPath := newHead.prev
 	oldPath := blockchain.head
 
@@ -236,8 +248,11 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) uint64 {
 		if oldPath == newPath { // Found a common block
 			break
 		} else {
-			// Delete the block's transactions on the current chain
-			blockchain.deleteTransactions(oldPath)
+			// Buffer the blocks transactions on the current chain
+			newBlocksFork = append(newBlocksFork, newPath)
+			for _, tx := range oldPath.block.Transactions {
+				deleteBuffer[tx.File.Name] = &tx.File
+			}
 
 			// Go backward
 			oldPath = oldPath.prev
@@ -246,22 +261,73 @@ func (blockchain *Blockchain) fork(newHead *NodeBlock) uint64 {
 		}
 	}
 
-	// Add all transactions from the new longest chain
-	for node := newHead; node != oldPath; node = node.prev {
-		blockchain.addTransactions(node)
+	// Add all transactions from the new longest chain to a buffer
+	nbNewNodes := len(newBlocksFork)
+	validChain := true
+	i := nbNewNodes - 1
+	for ; i >= 0; i-- { // For each block on the new path (from latest to most recent)
+		for _, tx := range newBlocksFork[i].block.Transactions { // For each transaction
+			// Double mapping on the forked chain
+			if _, ok := addBuffer[tx.File.Name]; ok {
+				validChain = false
+				break
+			}
+			// Double mapping (one mapping on the forked chain, another one on the old mappings)
+			if _, ok1 := blockchain.blocks[tx.File.Name]; ok1 {
+				if _, ok2 := deleteBuffer[tx.File.Name]; !ok2 {
+					validChain = false
+					break
+				}
+			}
+			addBuffer[tx.File.Name] = files.ToHex(tx.File.MetafileHash[:])
+		}
 	}
 
-	return cntRewind
+	if validChain { // The new chain is valid
+		// Update the blockchain's head
+		blockchain.head = newHead
+
+		// Apply changes
+		for filename, file := range deleteBuffer {
+			// Delete everything from the delete buffer
+			delete(blockchain.transactions, filename)
+
+			// Transactions that are only deleted should go in the pending transaction buffer
+			if _, ok := addBuffer[filename]; !ok {
+				blockchain.pendingTxs[filename] = file
+			}
+		}
+		for filename, metahash := range addBuffer {
+			// Add everything from the add buffer
+			blockchain.transactions[filename] = metahash
+		}
+		return cntRewind
+	}
+
+	// The new changes are invalid, abort fork and cut out the chain
+	cutOutBlock := newBlocksFork[i].prev
+	for indexFaultyBlock, nextBlock := range cutOutBlock.next {
+		if nextBlock == newBlocksFork[i] { // Find faulty block
+			// Delete node in next list
+			if len(cutOutBlock.next) == 1 {
+				cutOutBlock.next = nil
+			} else {
+				cutOutBlock.next[indexFaultyBlock] = cutOutBlock.next[len(cutOutBlock.next)-1]
+				cutOutBlock.next = cutOutBlock.next[:len(cutOutBlock.next)-1]
+			}
+			break
+		}
+	}
+
+	// Nothing was done
+	return 0
 }
 
-/*createRootBlock creates an empty "root" `Block` meant to be the first block of every
-instantiated `Blockchain`. This `Block` has a `PrevHash` of 0 and an empty list of
-transactions.*/
-func createRootBlock() *messages.Block {
-	var hash, nounce [32]byte
-	return &messages.Block{
-		PrevHash:     hash,
-		Nonce:        nounce,
-		Transactions: nil,
+/*printChain @TODO*/
+func (blockchain *Blockchain) printChain(head *NodeBlock) string {
+	str := "CHAIN "
+	for node := head; node != blockchain.root; node = node.prev {
+		str += node.block.ToString() + " "
 	}
+	return str[:len(str)-1]
 }
