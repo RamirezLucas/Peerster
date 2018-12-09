@@ -21,7 +21,7 @@ const (
 	// SearchRepeatIntervalSec represents the interval of time between two consecutive SearchRequest's
 	SearchRepeatIntervalSec = 1
 	// ThresholdTotalMatches represents the number of total matches required to stop a SearchRequest
-	ThresholdTotalMatches = 1
+	ThresholdTotalMatches = 2
 )
 
 /* ================ SEARCH REQUEST ================ */

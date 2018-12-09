@@ -53,7 +53,15 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 
 	// Grab the mutex on the index
 	fileIndex.mux.Lock()
-	if _, ok := fileIndex.index[hash]; ok { // We already have a file indexed with this metahash
+	if shared, ok := fileIndex.index[hash]; ok { // We already have a file indexed with this metahash
+		// Unlock the mutex and attempts to change the file status
+		fileIndex.mux.Unlock()
+		if shared.SwitchMultiToMonoSource(filename) {
+			fail.LeveledPrint(1, "FileIndex.AddMonoSourceFile", "Changed file %s status", filename)
+			return shared
+		}
+
+		// Failed to change the file status
 		fail.LeveledPrint(1, "FileIndex.AddMonoSourceFile", "Metahash %s already taken", ToHex(metahash))
 		return nil
 	}
@@ -157,14 +165,7 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 		}
 
 		// Decide to whom to request the next chunk
-		if shared.IsMonosource {
-			return 1, reply.Origin // Request first chunk
-		}
-		if target, ok := shared.RemoteChunks[1]; ok {
-			return 1, target // Request first chunk
-		}
-		fail.CustomPanic("FileIndex.HandleDataReply", "No known target for file %s chunk 1.",
-			shared.Filename)
+		return 1, shared.GetChunkTarget(1, reply.Origin)
 	}
 
 	// Chunk in reply.Data
@@ -175,17 +176,7 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 	}
 
 	// Decide to whom to request the next chunk
-	if shared.IsMonosource {
-		return ref.ChunkIndex + 1, reply.Origin // Request next chunk
-	}
-	if target, ok := shared.RemoteChunks[1]; ok {
-		return ref.ChunkIndex + 1, target // Request next chunk
-	}
-	fail.CustomPanic("FileIndex.HandleDataReply", "No known target for file %s chunk %d.",
-		shared.Filename, ref.ChunkIndex+1)
-
-	// Unreachable
-	return 0, ""
+	return ref.ChunkIndex + 1, shared.GetChunkTarget(ref.ChunkIndex+1, reply.Origin)
 }
 
 /*HandleSearchRequest handles an incoming `SearchRequest` by searching the `FileIndex` for any
@@ -268,12 +259,10 @@ func (fileIndex *FileIndex) GetMetafileTargetMultisource(metahash []byte) (strin
 	if shared, ok := fileIndex.index[ToHex(metahash[:])]; ok { // We know this metahash
 		// Unlock the mutex and update the shared file with new remote chunk mappings
 		fileIndex.mux.Unlock()
-		return shared.GetRandomSharingPeer(), shared
+		return shared.GetMetafileQueryPeer(), shared
 	}
 
 	fileIndex.mux.Unlock()
-	fail.CustomPanic("FileIndex.GetMetafileTargetMultisource", "Trying to get metafile target for unknown "+
-		"metahash %s.", ToHex(metahash[:]))
 	return "", nil
 }
 

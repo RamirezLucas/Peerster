@@ -180,7 +180,7 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 
 	// Allocate bitmap
 	shared.ChunkBitmap = data.NewBitmap(nbChunks)
-	fail.LeveledPrint(1, "SharedFile.SetMetafile", "Created bitmap with length %s", nbChunks)
+	fail.LeveledPrint(1, "SharedFile.SetMetafile", "Created bitmap with length %d", nbChunks)
 
 	// Mark SharedFile as having received a metafile
 	if nbChunks == 0 {
@@ -358,8 +358,8 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 	return false
 }
 
-/*GetRandomSharingPeer @TODO*/
-func (shared *SharedFile) GetRandomSharingPeer() string {
+/*GetMetafileQueryPeer @TODO*/
+func (shared *SharedFile) GetMetafileQueryPeer() string {
 	// Grab the mutex
 	shared.mux.Lock()
 	defer shared.mux.Unlock()
@@ -376,6 +376,58 @@ func (shared *SharedFile) GetRandomSharingPeer() string {
 
 	shared.Status = NoMetafileMultiSource
 	return shared.MetafileQueryPeer
+}
+
+/*GetChunkTarget @TODO*/
+func (shared *SharedFile) GetChunkTarget(nextChunk uint64, lastOrigin string) string {
+	// Grab the mutex
+	shared.mux.Lock()
+	defer shared.mux.Unlock()
+
+	// Same origin in case of monosource file
+	if shared.IsMonosource {
+		return lastOrigin
+	}
+
+	// Look into the remote chunk mappings
+	if peer, ok := shared.RemoteChunks[nextChunk]; ok {
+		return peer
+	}
+
+	// Should never happen
+	fail.CustomPanic("SharedFile.GetChunkTarget", "No known target for file %s chunk %d",
+		shared.Filename, nextChunk)
+	return ""
+}
+
+/*ChangeName @TODO*/
+func (shared *SharedFile) ChangeName(newName string) {
+	// Grab the mutex
+	shared.mux.Lock()
+	defer shared.mux.Unlock()
+
+	// Check file state
+	if shared.Status != NoMetafileMultiSource {
+		fail.CustomPanic("SharedFile.ChangeName",
+			"Trying to change name of file with incorrect status %d.", shared.Status)
+	}
+
+	// Change the name
+	shared.Filename = newName
+}
+
+/*SwitchMultiToMonoSource @TODO*/
+func (shared *SharedFile) SwitchMultiToMonoSource(newName string) bool {
+	// Grab the mutex
+	shared.mux.Lock()
+	defer shared.mux.Unlock()
+
+	if shared.Status == CompleteMatch {
+		shared.Status = NoMetafileMonoSource
+		shared.Filename = newName
+		return true
+	}
+	return false
 }
 
 // AcknowledgeFileReconstructed should be called when a file has been completely reconstructed.

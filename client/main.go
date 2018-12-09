@@ -32,6 +32,8 @@ func main() {
 		pkt = messages.GossipPacket{SearchRequest: &search}
 	// File request for someone else
 	case client.Filename != "" && client.Request != nil:
+		fmt.Printf("%s %d\n", client.Filename, len(client.Request))
+
 		fileRequest := messages.DataRequest{
 			HopLimit:    1,
 			Destination: client.Dst,

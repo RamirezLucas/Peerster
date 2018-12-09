@@ -246,9 +246,9 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 			} else {
 				// Remote file request
 				if pkt.DataRequest.Destination == "" {
-					go network.OnRemoteMetaFileRequestMultisource(g, pkt.DataRequest.HashValue)
+					go network.OnRemoteMetafileRequestMultisource(g, pkt.DataRequest.HashValue, pkt.DataRequest.Origin)
 				} else {
-					go network.OnRemoteMetaFileRequestMonosource(g, pkt.DataRequest.HashValue,
+					go network.OnRemoteMetafileRequestMonosource(g, pkt.DataRequest.HashValue,
 						pkt.DataRequest.Origin, pkt.DataRequest.Destination)
 				}
 

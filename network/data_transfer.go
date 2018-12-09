@@ -207,8 +207,8 @@ func OnRemoteChunkRequest(g *entities.Gossiper, file *files.SharedFile, chunkInd
 	OnSendTimedDataRequest(g, request, ref, target)
 }
 
-// OnRemoteMetaFileRequestMonosource - Request the metafile of a remote file
-func OnRemoteMetaFileRequestMonosource(g *entities.Gossiper, metahash []byte, localFilename, remotePeer string) {
+// OnRemoteMetafileRequestMonosource - Request the metafile of a remote file
+func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, localFilename, remotePeer string) {
 
 	// Check that the remote peer exists
 	target := g.Router.GetTarget(remotePeer)
@@ -236,12 +236,15 @@ func OnRemoteMetaFileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 	OnSendTimedDataRequest(g, request, ref, target)
 }
 
-// OnRemoteMetaFileRequestMultisource - Request the metafile of a remometahashte file
-func OnRemoteMetaFileRequestMultisource(g *entities.Gossiper, metahash []byte) {
+// OnRemoteMetafileRequestMultisource - Request the metafile of a remometahashte file
+func OnRemoteMetafileRequestMultisource(g *entities.Gossiper, metahash []byte, localFilename string) {
 
 	// Check if we have a valid target to send the message to
-	if metafileQueryPeer, sharedFile := g.FileIndex.GetMetafileTargetMultisource(metahash); sharedFile != nil {
+	if metafileQueryPeer, sharedFile := g.FileIndex.GetMetafileTargetMultisource(metahash); metafileQueryPeer != "" {
 		if target := g.Router.GetTarget(metafileQueryPeer); target != nil {
+
+			// Change filename
+			sharedFile.ChangeName(localFilename)
 
 			// Create metafile request
 			request := &messages.DataRequest{Origin: g.Args.Name,
@@ -252,7 +255,7 @@ func OnRemoteMetaFileRequestMultisource(g *entities.Gossiper, metahash []byte) {
 
 			// Send with timeout
 			ref := files.NewHashRef(sharedFile, 0)
-			fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", sharedFile.Filename, metafileQueryPeer)
+			fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, metafileQueryPeer)
 			OnSendTimedDataRequest(g, request, ref, target)
 		}
 	}
