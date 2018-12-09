@@ -52,10 +52,11 @@ type SharedFile struct {
 	DownloadedChunks []uint64          // List of downloaded chunks index
 	RemoteChunks     map[uint64]string // Map from chunk indices to peers possessing these chunks
 
-	Status       FileStatus // The file status
-	ChunkCount   uint64     // Number of chunks for this file
-	IsDownloaded bool       // Indicates whether the file was indexed here first or dowloaded
-	IsMonosource bool       // Indicates whether the file is downloaded from a single source
+	Status            FileStatus // The file status
+	ChunkCount        uint64     // Number of chunks for this file
+	IsDownloaded      bool       // Indicates whether the file was indexed here first or dowloaded
+	IsMonosource      bool       // Indicates whether the file is downloaded from a single source
+	MetafileQueryPeer string     // The first peer to reply to a SearchRequest for a multisourced file
 
 	mux sync.Mutex // Mutex to manipulate the structure from different threads
 }
@@ -87,6 +88,7 @@ func NewSharedFileLocal(filename string, chunkCount uint64) *SharedFile {
 	shared.ChunkCount = chunkCount
 	shared.IsDownloaded = false
 	shared.IsMonosource = false
+	shared.MetafileQueryPeer = ""
 
 	return &shared
 }
@@ -113,6 +115,7 @@ func NewSharedFileMonoSource(filename string, metahash []byte) *SharedFile {
 
 	shared.IsDownloaded = true
 	shared.IsMonosource = true
+	shared.MetafileQueryPeer = ""
 
 	// These fields are allocated by SetMetafile when it's called on the SharedFile
 	shared.Metafile = nil
@@ -137,6 +140,7 @@ func NewSharedFileMultiSource(filename string, chunkCount uint64, metahash []byt
 
 	shared.IsDownloaded = true
 	shared.IsMonosource = false
+	shared.MetafileQueryPeer = ""
 
 	// These fields are allocated by SetMetafile when it's called on the SharedFile
 	shared.Metafile = nil
@@ -347,10 +351,31 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 	// Check if we now have a complete match
 	if shared.Status == UncompleteMatch && uint64(len(shared.RemoteChunks)) == shared.ChunkCount {
 		shared.Status = CompleteMatch
+		shared.MetafileQueryPeer = origin
 		return true
 	}
 
 	return false
+}
+
+/*GetRandomSharingPeer @TODO*/
+func (shared *SharedFile) GetRandomSharingPeer() string {
+	// Grab the mutex
+	shared.mux.Lock()
+	defer shared.mux.Unlock()
+
+	// The file must be in the CompleteMatch state
+	if shared.Status != CompleteMatch {
+		return ""
+	}
+
+	// The MetafileQueryPeer muist be defined
+	if shared.MetafileQueryPeer == "" {
+		fail.CustomPanic("SharedFile.GetRandomSharingPeer", "Undefined MetafileQueryPeer.")
+	}
+
+	shared.Status = NoMetafileMultiSource
+	return shared.MetafileQueryPeer
 }
 
 // AcknowledgeFileReconstructed should be called when a file has been completely reconstructed.

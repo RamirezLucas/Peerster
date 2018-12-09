@@ -31,7 +31,7 @@ func main() {
 		}
 		pkt = messages.GossipPacket{SearchRequest: &search}
 	// File request for someone else
-	case client.Filename != "" && client.Dst != "" && client.Request != nil:
+	case client.Filename != "" && client.Request != nil:
 		fileRequest := messages.DataRequest{
 			HopLimit:    1,
 			Destination: client.Dst,

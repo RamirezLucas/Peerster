@@ -45,6 +45,11 @@ func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest,
 		return
 	}
 
+	// Checks whether the hash is already known
+	if g.FileIndex.CheckHashPresent(request.HashValue) != nil {
+		return
+	}
+
 	for {
 		// Send the request
 		if err := OnSendDataRequest(g, request, target); err != nil {
@@ -202,8 +207,8 @@ func OnRemoteChunkRequest(g *entities.Gossiper, file *files.SharedFile, chunkInd
 	OnSendTimedDataRequest(g, request, ref, target)
 }
 
-// OnRemoteMetaFileRequest - Request the metafile of a remote file
-func OnRemoteMetaFileRequest(g *entities.Gossiper, metahash []byte, localFilename, remotePeer string) {
+// OnRemoteMetaFileRequestMonosource - Request the metafile of a remote file
+func OnRemoteMetaFileRequestMonosource(g *entities.Gossiper, metahash []byte, localFilename, remotePeer string) {
 
 	// Check that the remote peer exists
 	target := g.Router.GetTarget(remotePeer)
@@ -229,4 +234,27 @@ func OnRemoteMetaFileRequest(g *entities.Gossiper, metahash []byte, localFilenam
 	ref := files.NewHashRef(sharedFile, 0)
 	fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
 	OnSendTimedDataRequest(g, request, ref, target)
+}
+
+// OnRemoteMetaFileRequestMultisource - Request the metafile of a remometahashte file
+func OnRemoteMetaFileRequestMultisource(g *entities.Gossiper, metahash []byte) {
+
+	// Check if we have a valid target to send the message to
+	if metafileQueryPeer, sharedFile := g.FileIndex.GetMetafileTargetMultisource(metahash); sharedFile != nil {
+		if target := g.Router.GetTarget(metafileQueryPeer); target != nil {
+
+			// Create metafile request
+			request := &messages.DataRequest{Origin: g.Args.Name,
+				Destination: metafileQueryPeer,
+				HopLimit:    16,
+				HashValue:   metahash,
+			}
+
+			// Send with timeout
+			ref := files.NewHashRef(sharedFile, 0)
+			fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", sharedFile.Filename, metafileQueryPeer)
+			OnSendTimedDataRequest(g, request, ref, target)
+		}
+	}
+
 }

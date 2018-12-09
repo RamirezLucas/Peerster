@@ -42,6 +42,6 @@ func postFileRequestHandler(w http.ResponseWriter, r *http.Request) {
 
 	if decoded, err := hex.DecodeString(metahash); err == nil && len(decoded) == files.HashSizeBytes {
 		// Starts file reconstruction
-		network.OnRemoteMetaFileRequest(gossiper, decoded, filename, destination)
+		network.OnRemoteMetaFileRequestMonosource(gossiper, decoded, filename, destination)
 	}
 }

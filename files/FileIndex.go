@@ -251,6 +251,51 @@ func (fileIndex *FileIndex) HandleSearchResult(result *messages.SearchResult, or
 	return newFile.UpdateChunkMappings(result.ChunkMap, origin)
 }
 
+/*GetMetafileTargetMultisource returns the name of one of the peers possessing at least one
+chunk of a multi-sourced file. Such peers necessarily have the file's metafile and so the gossiper
+can request it from any one of them. The function panics if `metahash` is unknown
+
+`metahash` The metahash of the file for which we wish to obtain the metafile.
+
+The function returns a tuple where the first element is the peer's name or an empty string if the file
+isn't in the `CompleteMatch` state. The second element points to a valid `SharedFile` whose metahash
+is `metahash` or nil if such a file does not exists.
+*/
+func (fileIndex *FileIndex) GetMetafileTargetMultisource(metahash []byte) (string, *SharedFile) {
+	// Grab the mutex
+	fileIndex.mux.Lock()
+
+	if shared, ok := fileIndex.index[ToHex(metahash[:])]; ok { // We know this metahash
+		// Unlock the mutex and update the shared file with new remote chunk mappings
+		fileIndex.mux.Unlock()
+		return shared.GetRandomSharingPeer(), shared
+	}
+
+	fileIndex.mux.Unlock()
+	fail.CustomPanic("FileIndex.GetMetafileTargetMultisource", "Trying to get metafile target for unknown "+
+		"metahash %s.", ToHex(metahash[:]))
+	return "", nil
+}
+
+/*CheckHashPresent checks whether a hash is already known by the `FileIndex`.
+
+`hash` The hash to check.
+
+The function returns a `HashRef` containing information about the hash if it exists,
+or nil if the hash is unknown.
+*/
+func (fileIndex *FileIndex) CheckHashPresent(hash []byte) *HashRef {
+	// Grab the mutex
+	fileIndex.mux.Lock()
+	defer fileIndex.mux.Unlock()
+
+	// Check if a hash exists
+	if ref, ok := fileIndex.hashes[ToHex(hash[:])]; ok {
+		return ref
+	}
+	return nil
+}
+
 func (fileIndex *FileIndex) addHashRef(hash string, ref *HashRef) {
 	// Grab the mutex
 	fileIndex.mux.Lock()
