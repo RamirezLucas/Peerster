@@ -100,7 +100,7 @@ func ParseArgumentsClient() (*entities.Client, error) {
 	}
 
 	// The client must have a message
-	if !msgDone && !fileDone {
+	if !msgDone && !fileDone && !keyDone {
 		return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "the client has nothing to do"}
 	}
 

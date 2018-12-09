@@ -25,7 +25,7 @@ func NewTOSearchRequest() *TOSearchRequest {
 }
 
 // AddSearchRequest adds a SearchRequest to a TOSearchRequest
-func (memory *TOSearchRequest) AddSearchRequest(request *messages.SearchRequest) string {
+func (memory *TOSearchRequest) AddSearchRequest(request *messages.SearchRequest) bool {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()
@@ -34,23 +34,27 @@ func (memory *TOSearchRequest) AddSearchRequest(request *messages.SearchRequest)
 	hashStr := hashSearchRequest(request)
 
 	if _, ok := memory.requests[hashStr]; ok { // We already know this SearchRequest
-		return ""
+		return false
 	}
 
 	// Add the SearchRequest to the TOSearchRequest and return the hash
 	memory.requests[hashStr] = emptyStruct{}
-	return hashStr
+	return true
 }
 
 // RemoveSearchRequest removes the SearchRequest represented by the given hashStr
 // from the TOSearchRequest.
-func (memory *TOSearchRequest) RemoveSearchRequest(hashStr string) {
+func (memory *TOSearchRequest) RemoveSearchRequest(request *messages.SearchRequest) {
 	// Grab the mutex
 	memory.mux.Lock()
 	defer memory.mux.Unlock()
 
+	// Compute hash based on SearchRequest's origin and keywords
+	hashStr := hashSearchRequest(request)
+
 	if _, ok := memory.requests[hashStr]; ok { // We know this hash
 		delete(memory.requests, hashStr)
+		return
 	}
 
 	fail.CustomPanic("TOSearchRequest.RemoveSearchRequest", "Trying to remove inexistant SearchRequest %s.", hashStr)

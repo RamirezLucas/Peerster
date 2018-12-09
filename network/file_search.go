@@ -97,6 +97,11 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 		gossiper.Router.AddContactIfAbsent(search.Origin, sender)
 	}
 
+	// Ignore duplicate requests
+	if gossiper.TOSearchRequest.FindSearchRequest(search) {
+		return
+	}
+
 	// Spread the request to other peers
 	search.Budget--
 	if search.Budget > 0 {
@@ -139,9 +144,9 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 	}
 
 	// Set up timeout for particular request and delete it after 0.5 second
-	if hash := gossiper.TOSearchRequest.AddSearchRequest(search); hash != "" {
+	if gossiper.TOSearchRequest.AddSearchRequest(search) {
 		time.Sleep(500 * time.Millisecond)
-		gossiper.TOSearchRequest.RemoveSearchRequest(hash)
+		gossiper.TOSearchRequest.RemoveSearchRequest(search)
 	}
 }
 

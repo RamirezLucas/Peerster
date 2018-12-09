@@ -176,6 +176,7 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 
 	// Allocate bitmap
 	shared.ChunkBitmap = data.NewBitmap(nbChunks)
+	fail.LeveledPrint(1, "SharedFile.SetMetafile", "Created bitmap with length %s", nbChunks)
 
 	// Mark SharedFile as having received a metafile
 	if nbChunks == 0 {
@@ -317,9 +318,9 @@ func (shared *SharedFile) GetFileSearchInfo() *messages.SearchResult {
 		ChunkMap:     make([]uint64, len(shared.DownloadedChunks)),
 		ChunkCount:   shared.ChunkCount,
 	}
-	copy(shared.Metafile[:], shared.Metahash[:])
+	copy(result.MetafileHash[:], shared.Metahash[:])
 	for i := uint64(0); i < shared.ChunkCount; i++ {
-		result.ChunkMap[i] = shared.DownloadedChunks[i]
+		result.ChunkMap[i] = shared.DownloadedChunks[i] + 1
 	}
 
 	return result
@@ -337,11 +338,9 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 	}
 
 	for _, chunkID := range mappings { // For each remote chunk
-		if chunkID != 0 {
-			if !shared.ChunkBitmap.GetBit(chunkID - 1) { // We don't have the chunk
-				// Update remote chunk location with most recently received SearchReply
-				shared.RemoteChunks[chunkID] = origin
-			}
+		if chunkID != 0 && shared.Status == UncompleteMatch || shared.Status == CompleteMatch {
+			// Update remote chunk location with most recently received SearchReply
+			shared.RemoteChunks[chunkID] = origin
 		}
 	}
 
@@ -360,5 +359,5 @@ func (shared *SharedFile) AcknowledgeFileReconstructed() {
 	frontend.FBuffer.AddFrontendIndexedFile(shared.Filename, ToHex32(shared.Metahash))
 
 	fail.LeveledPrint(1, "SharedFile.AcknowledgeFileReconstructed",
-		"Reconstructed %s with metahash %s", shared.Filename, ToHex32(shared.Metahash))
+		"Reconstructed %s (%d chunks) with metahash %s", shared.Filename, shared.ChunkCount, ToHex32(shared.Metahash))
 }
