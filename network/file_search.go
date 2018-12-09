@@ -5,7 +5,6 @@ import (
 	"Peerster/fail"
 	"Peerster/files"
 	"Peerster/messages"
-	"Peerster/peers"
 	"net"
 	"sort"
 	"strconv"
@@ -57,8 +56,6 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 		if neighbor := gossiper.PeerIndex.GetRandomPeer(nil); neighbor != nil {
 			OnSendSearchRequest(gossiper.GossipChannel, search, neighbor)
 
-			fail.LeveledPrint(1, "OnInitiateFileSearch", "Sending with budget %d", search.Budget)
-
 			// Wait some time and check the number of total matches
 			time.Sleep(SearchRepeatIntervalSec * time.Second)
 			if gossiper.SReqTotalMatch.CheckThresholdAndDelete(search, ThresholdTotalMatches) {
@@ -100,8 +97,6 @@ func OnSendSearchRequest(channel *net.UDPConn, search *messages.SearchRequest, t
 // OnReceiveSearchRequest handles an incoming SearchRequest.
 func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.SearchRequest, sender *net.UDPAddr) {
 
-	fail.LeveledPrint(1, "OnReceiveSearchRequest", "Received SearchRequest from %s with budget %d", peers.UDPAddressToString(sender), search.Budget)
-
 	// Update the routing table
 	if search.Origin != gossiper.Args.Name {
 		gossiper.Router.AddContactIfAbsent(search.Origin, sender)
@@ -136,8 +131,6 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 					search.Budget++
 				}
 
-				fail.LeveledPrint(1, "OnReceiveSearchRequest", "Sending to %s with budget %d", peers.UDPAddressToString(target), search.Budget)
-
 				// Spread SearchRequest
 				OnSendSearchRequest(gossiper.GossipChannel, search, target)
 			}
@@ -154,7 +147,6 @@ func OnReceiveSearchRequest(gossiper *entities.Gossiper, search *messages.Search
 
 	// Reply to sender
 	if target := gossiper.Router.GetTarget(search.Origin); target != nil {
-		fail.LeveledPrint(1, "OnReceiveSearchRequest", "Replying to %s with %d results", peers.UDPAddressToString(target), len(reply.Results))
 		OnSendSearchReply(gossiper.GossipChannel, reply, target)
 	}
 
@@ -184,8 +176,6 @@ func OnSendSearchReply(channel *net.UDPConn, reply *messages.SearchReply, target
 
 // OnReceiveSearchReply handles an incoming SearchReply.
 func OnReceiveSearchReply(gossiper *entities.Gossiper, reply *messages.SearchReply, sender *net.UDPAddr) {
-
-	fail.LeveledPrint(1, "OnReceiveSearchReply", "Received SearchReply from %s destined to %s with %d results", reply.Origin, reply.Destination, len(reply.Results))
 
 	// Update the routing table
 	if reply.Origin != gossiper.Args.Name {

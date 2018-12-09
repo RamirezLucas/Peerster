@@ -6,7 +6,6 @@ import (
 	"Peerster/files"
 	"Peerster/frontend"
 	"Peerster/messages"
-	"Peerster/peers"
 	"crypto/sha256"
 	"net"
 	"time"
@@ -39,8 +38,6 @@ func OnSendDataRequest(g *entities.Gossiper, request *messages.DataRequest, targ
 func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest,
 	ref *files.HashRef, target *net.UDPAddr) {
 
-	fail.LeveledPrint(1, "OnSendTimedDataRequest", "Creating handler for hash %s", files.ToHex(request.HashValue[:]))
-
 	// Check if the hash is not already known
 	if g.FileIndex.CheckHashPresent(request.HashValue[:]) != nil {
 		return
@@ -52,8 +49,6 @@ func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest,
 	}
 
 	for {
-
-		fail.LeveledPrint(1, "OnSendTimedDataRequest", "Sending request %s to %s", files.ToHex(request.HashValue[:]), request.Destination)
 
 		// Send the request
 		if err := OnSendDataRequest(g, request, target); err != nil {
@@ -88,8 +83,6 @@ func OnSendDataReply(g *entities.Gossiper, reply *messages.DataReply, target *ne
 // OnReceiveDataRequest - Called when a data request is received
 func OnReceiveDataRequest(g *entities.Gossiper, request *messages.DataRequest, sender *net.UDPAddr) {
 
-	fail.LeveledPrint(1, "OnReceiveDataRequest", "Received DataRequest from %s destined to %s with hash %s", peers.UDPAddressToString(sender), request.Destination, files.ToHex(request.HashValue))
-
 	// Add the contact to our routing table
 	if g.Args.Name != request.Origin {
 		g.Router.AddContactIfAbsent(request.Origin, sender)
@@ -110,11 +103,8 @@ func OnReceiveDataRequest(g *entities.Gossiper, request *messages.DataRequest, s
 				Data:        data,
 			}
 
-			fail.LeveledPrint(1, "OnReceiveDataRequest", "Replying with %d bytes", len(data))
-
 			// Pick the target (should exist) and send
 			if target := g.Router.GetTarget(request.Origin); target != nil {
-				fail.LeveledPrint(1, "OnReceiveDataRequest", "Sending back to %s with ultimate destination %s", peers.UDPAddressToString(target), reply.Destination)
 				OnSendDataReply(g, reply, target)
 			}
 
@@ -140,8 +130,6 @@ func OnReceiveDataRequest(g *entities.Gossiper, request *messages.DataRequest, s
 // OnReceiveDataReply - Called when a data reply is received
 func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender *net.UDPAddr) {
 
-	fail.LeveledPrint(1, "OnReceiveDataReply", "Received DataReply from %s destined to %s", peers.UDPAddressToString(sender), reply.Destination)
-
 	// Add the contact to our routing table
 	if g.Args.Name != reply.Origin {
 		g.Router.AddContactIfAbsent(reply.Origin, sender)
@@ -152,7 +140,6 @@ func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender 
 		// Check that the data contained in the message corresponds to the hash
 		receivedDataHash := sha256.Sum256(reply.Data[:len(reply.Data)])
 		if files.ToHex(reply.HashValue[:]) != files.ToHex(receivedDataHash[:]) {
-			fail.LeveledPrint(1, "OnReceiveDataReply", "Received data doesn't correspond to hash: %s != %s", files.ToHex(reply.HashValue[:]), files.ToHex(receivedDataHash[:]))
 			return
 		}
 
@@ -161,11 +148,7 @@ func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender 
 			// Handle the reply and request next chunk if there is one
 			if nextChunk, target := g.FileIndex.HandleDataReply(ref, reply); nextChunk != 0 {
 				OnRemoteChunkRequest(g, ref.File, nextChunk, target)
-			} else {
-				fail.LeveledPrint(0, "", "RECONSTRUCTED file %s", ref.File.Filename)
 			}
-		} else {
-			fail.LeveledPrint(1, "OnReceiveDataReply", "Unable to find handler for hash %s", files.ToHex(reply.HashValue[:]))
 		}
 
 	} else { // Message is for someone else
@@ -246,14 +229,9 @@ func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 // OnRemoteMetafileRequestMultisource - Request the metafile of a remometahashte file
 func OnRemoteMetafileRequestMultisource(g *entities.Gossiper, metahash []byte, localFilename string) {
 
-	fail.LeveledPrint(1, "OnRemoteMetafileRequestMultisource", "Requesting multisource %s with hash %s", localFilename, files.ToHex(metahash[:]))
-
 	// Check if we have a valid target to send the message to
 	if metafileQueryPeer, shared := g.FileIndex.GetMetafileTargetMultisource(metahash); metafileQueryPeer != "" {
-		fail.LeveledPrint(1, "OnRemoteMetafileRequestMultisource", "All good")
 		if target := g.Router.GetTarget(metafileQueryPeer); target != nil {
-
-			fail.LeveledPrint(1, "OnRemoteMetafileRequestMultisource", "Very good")
 
 			// Change filename
 			shared.ChangeName(localFilename)

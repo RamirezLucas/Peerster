@@ -1,7 +1,6 @@
 package backend
 
 import (
-	"Peerster/fail"
 	"Peerster/files"
 	"Peerster/network"
 	"encoding/hex"
@@ -63,8 +62,6 @@ func postFileRequestMultiSourceHandler(w http.ResponseWriter, r *http.Request) {
 		return // Ignore
 	}
 
-	fail.LeveledPrint(1, "postFileRequestMultiSourceHandler", "Request for %s with metahash %s", filename, metahash)
-
 	if decoded, err := hex.DecodeString(metahash); err == nil && len(decoded) == files.HashSizeBytes {
 		// Starts file reconstruction
 		network.OnRemoteMetafileRequestMultisource(gossiper, decoded, filename)
@@ -84,8 +81,6 @@ func postFileSearchHandler(w http.ResponseWriter, r *http.Request) {
 	if !ok1 || !ok2 {
 		return // Ignore
 	}
-
-	fail.LeveledPrint(1, "postFileSearchHandler", "Request for %s with budget %s", keywords, budgetStr)
 
 	if budget, err := strconv.ParseInt(budgetStr, 10, 32); err == nil { // Parse budget
 		// Initiate file search

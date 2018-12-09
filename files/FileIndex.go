@@ -1,7 +1,6 @@
 package files
 
 import (
-	"Peerster/fail"
 	"Peerster/messages"
 	"strings"
 	"sync"
@@ -56,12 +55,10 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 		// Unlock the mutex and attempts to change the file status
 		fileIndex.mux.Unlock()
 		if shared.SwitchMultiToMonoSource(filename) {
-			fail.LeveledPrint(1, "FileIndex.AddMonoSourceFile", "Changed file %s status", filename)
 			return shared
 		}
 
 		// Failed to change the file status
-		fail.LeveledPrint(1, "FileIndex.AddMonoSourceFile", "Metahash %s already taken", ToHex(metahash))
 		return nil
 	}
 	// Index the new file
@@ -85,7 +82,6 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) *messages.File {
 	// Create new shared file
 	shared, filesize := IndexLocalFile(filename)
 	if shared == nil {
-		fail.LeveledPrint(1, "IndexFile", `File %s could not be parsed`, filename)
 		return nil
 	}
 
@@ -95,7 +91,6 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) *messages.File {
 
 	// Check if a file with the same metahash already exists in the database
 	if _, ok := fileIndex.index[ToHex32(shared.Metahash)]; ok { // We already have a file with the same metahash
-		fail.LeveledPrint(1, "IndexFile", `File %s could not be added to the index`, filename)
 		return nil
 	}
 
@@ -162,7 +157,6 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 	shared := ref.File
 	if ref.ChunkIndex == 0 { // Metafile in reply.Data
 		if shared.SetMetafile(reply) { // Reconstruction complete (empty file)
-			fail.LeveledPrint(1, "FileIndex.HandleDataReply", "Empty file %s", shared.Filename)
 			ref := NewHashRef(shared, 0)
 			fileIndex.addHashRef(ToHex(reply.HashValue[:]), ref)
 			return 0, "" // Stop requesting
@@ -265,7 +259,6 @@ func (fileIndex *FileIndex) GetMetafileTargetMultisource(metahash []byte) (strin
 	}
 
 	fileIndex.mux.Unlock()
-	fail.LeveledPrint(1, "FileIndex.GetMetafileTargetMultisource", "What the fuck")
 	return "", nil
 }
 

@@ -165,13 +165,6 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 
 	// Get number of chunks
 	nbChunks := uint64(len(reply.Data) / HashSizeBytes)
-
-	// If the file is multisource we already know the number of chunks
-	// In that case silently change the number of chunks
-	if shared.Status == NoMetafileMultiSource && shared.ChunkCount != nbChunks {
-		fail.LeveledPrint(1, "SetMetafile", `Received metafile length yields %d chunks which
-			doesn't match expected number %d for file with metahash %s`, ToHex32(shared.Metahash))
-	}
 	shared.ChunkCount = nbChunks
 
 	// Set metafile
@@ -180,7 +173,6 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 
 	// Allocate bitmap
 	shared.ChunkBitmap = data.NewBitmap(nbChunks)
-	fail.LeveledPrint(1, "SharedFile.SetMetafile", "Created bitmap with length %d", nbChunks)
 
 	// Mark SharedFile as having received a metafile
 	if nbChunks == 0 {
@@ -190,7 +182,7 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 		// Create an empty file
 		f, err := os.OpenFile(PathToDownloadedFiles+shared.Filename, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0644)
 		if err != nil {
-			fail.LeveledPrint(1, "WriteChunk", `Failed to open file %s`, shared.Filename)
+			fail.CustomPanic("SharedFile.SetMetafile", "Failed to open file %s", shared.Filename)
 		}
 		f.Close()
 
@@ -234,7 +226,6 @@ func (shared *SharedFile) GetChunk(chunkID uint64) []byte {
 	var f *os.File
 	var err error
 	if f, err = os.Open(path); err != nil {
-		fail.LeveledPrint(1, "GetChunk", `Failed to open file %s`, shared.Filename)
 		return nil
 	}
 	defer f.Close()
@@ -273,7 +264,7 @@ func (shared *SharedFile) WriteChunk(chunkID uint64, data []byte) bool {
 	// Open the file in write mode
 	f, err := os.OpenFile(PathToDownloadedFiles+shared.Filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0644)
 	if err != nil {
-		fail.LeveledPrint(1, "WriteChunk", `Failed to open file %s`, shared.Filename)
+		fail.CustomPanic("SharedFile.WriteChunk", `Failed to open file %s`, shared.Filename)
 	}
 	defer f.Close()
 
@@ -370,7 +361,6 @@ func (shared *SharedFile) GetMetafileQueryPeer() string {
 
 	// The file must be in the CompleteMatch state
 	if shared.Status != CompleteMatch {
-		fail.LeveledPrint(1, "SharedFile.GetMetafileQueryPeer", "Status is %d", shared.Status)
 		return ""
 	}
 
@@ -439,16 +429,10 @@ func (shared *SharedFile) SwitchMultiToMonoSource(newName string) bool {
 func (shared *SharedFile) AcknowledgeFileReconstructed() {
 	// Send update to frontend
 	frontend.FBuffer.AddFrontendIndexedFile(shared.Filename, ToHex32(shared.Metahash))
-
-	fail.LeveledPrint(1, "SharedFile.AcknowledgeFileReconstructed",
-		"Reconstructed %s (%d chunks) with metahash %s", shared.Filename, shared.ChunkCount, ToHex32(shared.Metahash))
 }
 
 // AcknowledgeCompleteMatch should be called when a file has been matched completly during a SarchRequest.
 func (shared *SharedFile) AcknowledgeCompleteMatch() {
 	// Send update to frontend
 	frontend.FBuffer.AddFrontendAvailableFile(shared.Filename, ToHex32(shared.Metahash))
-
-	fail.LeveledPrint(1, "SharedFile.AcknowledgeCompleteMatch",
-		"Available %s (%d chunks) with metahash %s", shared.Filename, shared.ChunkCount, ToHex32(shared.Metahash))
 }

@@ -33,7 +33,6 @@ func IndexLocalFile(filename string) (*SharedFile, int64) {
 	var f *os.File
 	var err error
 	if f, err = os.Open(PathToSharedFiles + filename); err != nil {
-		fail.LeveledPrint(1, "IndexLocalFile", `Failed to open file %s`, filename)
 		return nil, 0
 	}
 	defer f.Close()
@@ -41,7 +40,6 @@ func IndexLocalFile(filename string) (*SharedFile, int64) {
 	// Check the filesize (must not be too large)
 	fi, err := f.Stat()
 	if err != nil || fi.Size() > MaxFileSizeBytes {
-		fail.LeveledPrint(1, "IndexLocalFile", `File %s is too large (%d bytes)`, filename, fi.Size())
 		return nil, 0
 	}
 
