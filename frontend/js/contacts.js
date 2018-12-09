@@ -51,7 +51,7 @@ function addContact(name) {
     newContact.className = "private_contact_wrap";
     newContact.innerHTML = name;
     document.getElementById('contact_scrollable_wrap').appendChild(newContact);
-    contact_attach_listeners(newContact);
+    contactAttachListeners(newContact);
 
     // Create new chat history
     let newChat = document.createElement("div");

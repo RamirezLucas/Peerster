@@ -1,10 +1,12 @@
 package backend
 
 import (
+	"Peerster/fail"
 	"Peerster/files"
 	"Peerster/network"
 	"encoding/hex"
 	"net/http"
+	"strconv"
 	"strings"
 )
 
@@ -26,7 +28,7 @@ func postFileIndexHandler(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func postFileRequestHandler(w http.ResponseWriter, r *http.Request) {
+func postFileRequestMonoSourceHandler(w http.ResponseWriter, r *http.Request) {
 
 	recJSON := ConfirmAndParse(w, r)
 	if recJSON == nil {
@@ -47,6 +49,28 @@ func postFileRequestHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func postFileRequestMultiSourceHandler(w http.ResponseWriter, r *http.Request) {
+
+	recJSON := ConfirmAndParse(w, r)
+	if recJSON == nil {
+		return // Ignore
+	}
+
+	// Typecheck
+	filename, ok1 := (*recJSON)["filename"].(string)
+	metahash, ok2 := (*recJSON)["metahash"].(string)
+	if !ok1 || !ok2 {
+		return // Ignore
+	}
+
+	fail.LeveledPrint(1, "postFileRequestMultiSourceHandler", "Request for %s with metahash %s", filename, metahash)
+
+	if decoded, err := hex.DecodeString(metahash); err == nil && len(decoded) == files.HashSizeBytes {
+		// Starts file reconstruction
+		network.OnRemoteMetafileRequestMultisource(gossiper, decoded, filename)
+	}
+}
+
 func postFileSearchHandler(w http.ResponseWriter, r *http.Request) {
 
 	recJSON := ConfirmAndParse(w, r)
@@ -55,17 +79,17 @@ func postFileSearchHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Typecheck
-	budget, ok1 := (*recJSON)["budget"].(uint64)
+	budgetStr, ok1 := (*recJSON)["budget"].(string)
 	keywords, ok2 := (*recJSON)["keywords"].(string)
 	if !ok1 || !ok2 {
 		return // Ignore
 	}
 
-	// Handle particular case of budget == 0
-	if budget == 0 {
-		budget = ^uint64(0)
+	fail.LeveledPrint(1, "postFileSearchHandler", "Request for %s with budget %s", keywords, budgetStr)
+
+	if budget, err := strconv.ParseInt(budgetStr, 10, 32); err == nil { // Parse budget
+		// Initiate file search
+		network.OnInitiateFileSearch(gossiper, uint64(budget), strings.Split(keywords, ","))
 	}
 
-	// Initiate file search
-	network.OnInitiateFileSearch(gossiper, budget, strings.Split(keywords, ","))
 }

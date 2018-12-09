@@ -370,10 +370,11 @@ func (shared *SharedFile) GetMetafileQueryPeer() string {
 
 	// The file must be in the CompleteMatch state
 	if shared.Status != CompleteMatch {
+		fail.LeveledPrint(1, "SharedFile.GetMetafileQueryPeer", "Status is %d", shared.Status)
 		return ""
 	}
 
-	// The MetafileQueryPeer muist be defined
+	// The MetafileQueryPeer must be defined
 	if shared.MetafileQueryPeer == "" {
 		fail.CustomPanic("SharedFile.GetRandomSharingPeer", "Undefined MetafileQueryPeer.")
 	}

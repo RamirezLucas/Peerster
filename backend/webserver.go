@@ -30,7 +30,8 @@ func Webserver(g *entities.Gossiper, chanID chan uint32) {
 	r.HandleFunc("/private", postPrivateHandler).Methods("POST")
 	r.HandleFunc("/node", postNodeHandler).Methods("POST")
 	r.HandleFunc("/fileIndex", postFileIndexHandler).Methods("POST")
-	r.HandleFunc("/fileRequest", postFileRequestHandler).Methods("POST")
+	r.HandleFunc("/fileRequest", postFileRequestMonoSourceHandler).Methods("POST")
+	r.HandleFunc("/fileRequestNetwork", postFileRequestMultiSourceHandler).Methods("POST")
 	r.HandleFunc("/fileSearch", postFileSearchHandler).Methods("POST")
 	r.HandleFunc("/private", postPrivateHandler).Methods("POST")
 

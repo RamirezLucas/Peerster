@@ -41,17 +41,20 @@ func OnSendTimedDataRequest(g *entities.Gossiper, request *messages.DataRequest,
 
 	fail.LeveledPrint(1, "OnSendTimedDataRequest", "Creating handler for hash %s", files.ToHex(request.HashValue[:]))
 
+	// Check if the hash is not already known
+	if g.FileIndex.CheckHashPresent(request.HashValue[:]) != nil {
+		return
+	}
+
 	// Attempt to add the DataRequest to the index of pending requests
 	if !g.TODataRequest.AddDataRequest(request, ref) {
 		return
 	}
 
-	// Checks whether the hash is already known
-	if g.FileIndex.CheckHashPresent(request.HashValue) != nil {
-		return
-	}
-
 	for {
+
+		fail.LeveledPrint(1, "OnSendTimedDataRequest", "Sending request %s to %s", files.ToHex(request.HashValue[:]), request.Destination)
+
 		// Send the request
 		if err := OnSendDataRequest(g, request, target); err != nil {
 			return
@@ -236,16 +239,21 @@ func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 
 	// Send with timeout
 	ref := files.NewHashRef(shared, 0)
-	fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
+	fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s", localFilename, remotePeer)
 	OnSendTimedDataRequest(g, request, ref, target)
 }
 
 // OnRemoteMetafileRequestMultisource - Request the metafile of a remometahashte file
 func OnRemoteMetafileRequestMultisource(g *entities.Gossiper, metahash []byte, localFilename string) {
 
+	fail.LeveledPrint(1, "OnRemoteMetafileRequestMultisource", "Requesting multisource %s with hash %s", localFilename, files.ToHex(metahash[:]))
+
 	// Check if we have a valid target to send the message to
 	if metafileQueryPeer, shared := g.FileIndex.GetMetafileTargetMultisource(metahash); metafileQueryPeer != "" {
+		fail.LeveledPrint(1, "OnRemoteMetafileRequestMultisource", "All good")
 		if target := g.Router.GetTarget(metafileQueryPeer); target != nil {
+
+			fail.LeveledPrint(1, "OnRemoteMetafileRequestMultisource", "Very good")
 
 			// Change filename
 			shared.ChangeName(localFilename)
@@ -262,7 +270,7 @@ func OnRemoteMetafileRequestMultisource(g *entities.Gossiper, metahash []byte, l
 
 			// Send with timeout
 			ref := files.NewHashRef(shared, 0)
-			fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, metafileQueryPeer)
+			fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s", localFilename, metafileQueryPeer)
 			OnSendTimedDataRequest(g, request, ref, target)
 		}
 	}

@@ -63,7 +63,8 @@ function addAvailableFile(filename, metahash, origin) {
 
     // Create new indexed file
     let newFile = document.createElement("div");
-    newFile.className = "file_wrap";
+    newFile.className = "file_wrap clickable_file";
+    newFile.ondblclick = onSelectedFile(filename, metahash)
     newFile.innerHTML = '<div class="filename">' + filename + '</div>\
                         <div class="metahash">' + metahash + '</div>'
 
@@ -73,6 +74,7 @@ function addAvailableFile(filename, metahash, origin) {
 
 function removeFile(metahash, category) {
     
+    // Remove file from given category
     let constructingFiles = document.getElementById(category);
     let children = constructingFiles.children;
     for (let i = 0; i < children.length; i++) {
@@ -81,6 +83,18 @@ function removeFile(metahash, category) {
             return
         }
     }
+}
+
+
+function onSelectedFile(filename, metahash) {
+    return function() {
+        // POST data
+        let xhr = new XMLHttpRequest();
+        xhr.open("POST", "/fileRequestNetwork", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        let data = JSON.stringify({"filename": filename, "metahash": metahash});
+        xhr.send(data);
+    };
 }
 
 function checkSearchRequest(e) {
@@ -93,27 +107,26 @@ function checkSearchRequest(e) {
 
         // Send new peer
         let request = document.getElementById("search_request").value;
-        sendSearchRequest(request);
+        let splitted = request.split(":")
 
-        // Reset textarea
-        document.getElementById("search_request").value = "";
+        // Check formatting
+        if (splitted.length === 2) {
+            // Send request
+            sendSearchRequest(splitted[0], splitted[1]);
+            // Reset textarea
+            document.getElementById("search_request").value = "";
+        }
+        
     }
 }
 
-function sendSearchRequest(request) {
-    
-    // Split the search string
-    let splitted = request.split(":")
-    if (splitted.length != 2) {
-        alert("bitch lasagna")
-        return
-    } 
+function sendSearchRequest(budget, keywords) {
 
     // POST data
     let xhr = new XMLHttpRequest();
     xhr.open("POST", "/fileSearch", true);
     xhr.setRequestHeader("Content-Type", "application/json");
-    let data = JSON.stringify({"budget": splitted[0], "keywords": splitted[1]});
+    let data = JSON.stringify({"budget": budget, "keywords": keywords});
     xhr.send(data);
 
 }

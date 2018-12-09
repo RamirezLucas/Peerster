@@ -67,9 +67,6 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 	// Index the new file
 	fileIndex.index[hash] = newFile
 
-	// Add the metahash to the set of known hashes
-	fileIndex.hashes[ToHex(metahash[:])] = NewHashRef(newFile, 0)
-
 	// Unlock the mutex
 	fileIndex.mux.Unlock()
 
@@ -257,6 +254,7 @@ func (fileIndex *FileIndex) GetMetafileTargetMultisource(metahash []byte) (strin
 	}
 
 	fileIndex.mux.Unlock()
+	fail.LeveledPrint(1, "FileIndex.GetMetafileTargetMultisource", "What the fuck")
 	return "", nil
 }
 

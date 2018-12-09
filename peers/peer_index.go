@@ -1,7 +1,6 @@
 package peers
 
 import (
-	"Peerster/fail"
 	"Peerster/frontend"
 	"fmt"
 	"math/rand"
@@ -98,8 +97,6 @@ func (peerIndex *PeerIndex) GetRandomNeighbors(nbMax int, excludeMe *net.UDPAddr
 	if len(peersList) == 0 {
 		return nil
 	}
-
-	fail.LeveledPrint(1, "PeerIndex.GetRandomNeighbors", "Filtered peers list has length %d", len(peersList))
 
 	// If the list is smaller than the required number return everything
 	if nbMax >= len(peersList) {

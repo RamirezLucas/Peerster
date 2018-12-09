@@ -36,7 +36,7 @@ function getUpdates() {
                             addConstructingFile(update.ConstructingFile.Filename, update.ConstructingFile.Metahash, update.ConstructingFile.Origin)
                         } else if (update.AvailableFile !== null) {
                             // This is a new availble file
-                            addAvailableFile(update.IndexedFile.Filename, update.IndexedFile.Metahash)
+                            addAvailableFile(update.AvailableFile.Filename, update.AvailableFile.Metahash)
                         }
                     }
                 }            
