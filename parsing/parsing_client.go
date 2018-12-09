@@ -115,6 +115,9 @@ func ParseArgumentsClient() (*entities.Client, error) {
 	if !reqDone {
 		client.Request = nil
 	}
+	if !budgetDone {
+		client.Budget = ^uint64(0)
+	}
 
 	return &client, nil
 }

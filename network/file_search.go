@@ -30,6 +30,11 @@ const (
 // OnInitiateFileSearch initiates a file search on the network.
 func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, keywords []string) {
 
+	// Don't do anything if the user did not specify any budget
+	if defaultBudget == ^uint64(0) {
+		return
+	}
+
 	// Set budget
 	initBudget := InitialBudget
 	budgetMultiplication := (defaultBudget == 0)
