@@ -52,9 +52,32 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 	gossiper.SReqTotalMatch.AddSearchRequest(search)
 
 	for !budgetMultiplication || (search.Budget <= MaximumBudget) {
-		// Pick a random neighbor and send it the SearchRequest
-		if neighbor := gossiper.PeerIndex.GetRandomPeer(nil); neighbor != nil {
-			OnSendSearchRequest(gossiper.GossipChannel, search, neighbor)
+
+		// Spread across neighbors
+		neighborsSpread := gossiper.PeerIndex.GetRandomNeighbors(int(search.Budget), nil)
+		nbNeighbors := uint64(len(neighborsSpread)) // 0 <= * <= search.Budget
+
+		if nbNeighbors != 0 {
+			baseBudget := uint64(1)
+			excessBudget := uint64(0)
+
+			// The budget is bigger than the number of neighbors
+			if nbNeighbors < search.Budget {
+				baseBudget = search.Budget / nbNeighbors
+				excessBudget = search.Budget % nbNeighbors
+			}
+
+			// Send to all selected neighbors
+			for i, target := range neighborsSpread {
+				// Set correct budget
+				search.Budget = baseBudget
+				if uint64(i) < excessBudget {
+					search.Budget++
+				}
+
+				// Spread SearchRequest
+				OnSendSearchRequest(gossiper.GossipChannel, search, target)
+			}
 
 			// Wait some time and check the number of total matches
 			time.Sleep(SearchRepeatIntervalSec * time.Second)
@@ -65,6 +88,7 @@ func OnInitiateFileSearch(gossiper *entities.Gossiper, defaultBudget uint64, key
 
 			// Double the budget and resend
 			search.Budget *= 2
+
 		} else {
 			break
 		}

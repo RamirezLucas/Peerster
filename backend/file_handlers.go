@@ -2,6 +2,7 @@ package backend
 
 import (
 	"Peerster/files"
+	"Peerster/messages"
 	"Peerster/network"
 	"encoding/hex"
 	"net/http"
@@ -23,7 +24,13 @@ func postFileIndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Index the new file
-	gossiper.FileIndex.AddLocalFile(filename)
+	if file := gossiper.FileIndex.AddLocalFile(filename); file != nil {
+		// Broadcast the transaction and publish to the blockchain
+		network.OnReceiveTransaction(gossiper, &messages.TxPublish{
+			File:     *file,
+			HopLimit: network.TransactionHopLimit + 1,
+		}, nil)
+	}
 
 }
 

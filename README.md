@@ -18,7 +18,7 @@ For testing purposes I also created a new flag `-GUIPort` (default value `8080`)
 The following command launches a gossiper that can use both the CL client on port `8080` and the GUI on port `8090`:  
 `./Peerster -UIPort=8080 -GUIPort=8090 -gossipAddr=127.0.0.1:2000 -name=Alice`  
 
-Milestone 2
+Milestone 2/3
 =======
 
 Below is a screenshot of the GUI as well as some remarks concerning its utilization.
