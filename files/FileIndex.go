@@ -2,7 +2,6 @@ package files
 
 import (
 	"Peerster/fail"
-	"Peerster/frontend"
 	"Peerster/messages"
 	"strings"
 	"sync"
@@ -73,9 +72,6 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 
 	// Unlock the mutex
 	fileIndex.mux.Unlock()
-
-	// Send update to frontend
-	frontend.FBuffer.AddFrontendConstructingFile(filename, hash, origin)
 
 	return newFile
 }
@@ -235,8 +231,6 @@ func (fileIndex *FileIndex) HandleSearchResult(result *messages.SearchResult, or
 	newFile := NewSharedFileMultiSource(result.Filename, result.ChunkCount, result.MetafileHash)
 	fileIndex.index[ToHex(result.MetafileHash[:])] = newFile
 	fileIndex.mux.Unlock()
-
-	// @TODO what to do with frontend ?
 
 	// Update the shared file with new remote chunk mappings
 	return newFile.UpdateChunkMappings(result.ChunkMap, origin)

@@ -352,6 +352,10 @@ func (shared *SharedFile) UpdateChunkMappings(mappings []uint64, origin string) 
 	if shared.Status == UncompleteMatch && uint64(len(shared.RemoteChunks)) == shared.ChunkCount {
 		shared.Status = CompleteMatch
 		shared.MetafileQueryPeer = origin
+
+		// Send update to frontend
+		shared.AcknowledgeCompleteMatch()
+
 		return true
 	}
 
@@ -437,4 +441,13 @@ func (shared *SharedFile) AcknowledgeFileReconstructed() {
 
 	fail.LeveledPrint(1, "SharedFile.AcknowledgeFileReconstructed",
 		"Reconstructed %s (%d chunks) with metahash %s", shared.Filename, shared.ChunkCount, ToHex32(shared.Metahash))
+}
+
+// AcknowledgeCompleteMatch should be called when a file has been matched completly during a SarchRequest.
+func (shared *SharedFile) AcknowledgeCompleteMatch() {
+	// Send update to frontend
+	frontend.FBuffer.AddFrontendAvailableFile(shared.Filename, ToHex32(shared.Metahash))
+
+	fail.LeveledPrint(1, "SharedFile.AcknowledgeCompleteMatch",
+		"Available %s (%d chunks) with metahash %s", shared.Filename, shared.ChunkCount, ToHex32(shared.Metahash))
 }

@@ -5,6 +5,7 @@ import (
 	"Peerster/network"
 	"encoding/hex"
 	"net/http"
+	"strings"
 )
 
 func postFileIndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -44,4 +45,27 @@ func postFileRequestHandler(w http.ResponseWriter, r *http.Request) {
 		// Starts file reconstruction
 		network.OnRemoteMetafileRequestMonosource(gossiper, decoded, filename, destination)
 	}
+}
+
+func postFileSearchHandler(w http.ResponseWriter, r *http.Request) {
+
+	recJSON := ConfirmAndParse(w, r)
+	if recJSON == nil {
+		return // Ignore
+	}
+
+	// Typecheck
+	budget, ok1 := (*recJSON)["budget"].(uint64)
+	keywords, ok2 := (*recJSON)["keywords"].(string)
+	if !ok1 || !ok2 {
+		return // Ignore
+	}
+
+	// Handle particular case of budget == 0
+	if budget == 0 {
+		budget = ^uint64(0)
+	}
+
+	// Initiate file search
+	network.OnInitiateFileSearch(gossiper, budget, strings.Split(keywords, ","))
 }
