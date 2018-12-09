@@ -38,10 +38,10 @@ func NewBlockchain() *Blockchain {
 	blockchain.transactions = make(map[string]string)
 	blockchain.blocks = make(map[string]*NodeBlock)
 	blockchain.invalid = make(map[string]*messages.Block)
-	blockchain.pendingTxs = nil
+	blockchain.pendingTxs = make(map[string]*messages.File)
 
 	// Add the "root" block to the list of known blocks
-	blockchain.blocks[files.ToHex32(blockchain.root.block.PrevHash)] = blockchain.root
+	blockchain.blocks[files.ToHex32(blockchain.root.block.Hash())] = blockchain.root
 
 	// Mine the genesis block
 	go blockchain.MineNewBlock(true)
@@ -51,6 +51,10 @@ func NewBlockchain() *Blockchain {
 
 /*AddBlock @TODO*/
 func (blockchain *Blockchain) AddBlock(newBlock *messages.Block) bool {
+
+	tmpHash := newBlock.Hash()
+	fail.LeveledPrint(1, "Blockchain.AddBlock", "Attempting to add new block with hash %s",
+		files.ToHex(tmpHash[:]))
 
 	// Check that the block has valid hash
 	if !newBlock.CheckHashValid() {
@@ -68,25 +72,35 @@ func (blockchain *Blockchain) AddBlock(newBlock *messages.Block) bool {
 /*AddPendingTransaction @TODO*/
 func (blockchain *Blockchain) AddPendingTransaction(newTX *messages.File) bool {
 
+	fail.LeveledPrint(1, "Blockchain.AddPendingTransaction",
+		"Attempting to add pending transaction %s", newTX.Name)
+
 	// Grab the mutex
 	blockchain.mux.Lock()
 	defer blockchain.mux.Unlock()
 
 	if _, ok := blockchain.pendingTxs[newTX.Name]; ok { // We already have the transaction pending
+		fail.LeveledPrint(1, "Blockchain.AddPendingTransaction", "Fail 1")
 		return false
 	}
 	if _, ok := blockchain.transactions[newTX.Name]; ok { // The association is already claimed
+		fail.LeveledPrint(1, "Blockchain.AddPendingTransaction", "Fail 2")
 		return false
 	}
 
 	// Add the pending transaction
 	blockchain.pendingTxs[newTX.Name] = newTX
 
+	fail.LeveledPrint(1, "Blockchain.AddPendingTransaction",
+		"Added pending transaction %s", newTX.Name)
+
 	return true
 }
 
 /*MineNewBlock @TODO*/
 func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
+
+	fail.LeveledPrint(1, "Blockchain.MineNewBlock", "Entering MineNewBlock")
 
 	// Grab the mutex
 	blockchain.mux.Lock()
@@ -108,13 +122,18 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 
 	// If there are no new transactions abort
 	if !isGenesis && (newTx == nil || len(newTx) == 0) {
+		// Release the mutex
+		blockchain.mux.Unlock()
 		return nil
 	}
 
 	// Generate block
-	var nonce [32]byte
+	var hash, nonce [32]byte
+	if !isGenesis {
+		hash = blockchain.head.block.Hash()
+	}
 	newBlock := &messages.Block{
-		PrevHash:     blockchain.head.block.Hash(),
+		PrevHash:     hash,
 		Nonce:        nonce,
 		Transactions: newTx,
 	}
@@ -123,25 +142,22 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 	blockchain.mux.Unlock()
 
 	/* **************** Change the nonce until the hash is valid **************** */
+	fail.LeveledPrint(1, "Blockchain.MineNewBlock", "Mining new block for %d transactions", len(newTx))
 	start := time.Now()
 	for !newBlock.CheckHashValid() {
 		newBlock.ChangeNonceRandomly()
 	}
 	elapsed := time.Since(start)
-	if isGenesis {
-		time.Sleep(5 * time.Second)
-	} else {
-		time.Sleep(2 * elapsed)
-	}
+	fail.LeveledPrint(1, "Blockchain.MineNewBlock", "Done mining")
 	/* **************** Change the nonce until the hash is valid **************** */
 
 	// Grab the mutex
 	blockchain.mux.Lock()
 
 	// Check that the blockchain head is still the same
-	if files.ToHex32(newBlock.PrevHash) != files.ToHex32(blockchain.head.block.Hash()) {
+	if !isGenesis && (files.ToHex32(newBlock.PrevHash) != files.ToHex32(blockchain.head.block.Hash())) {
 		blockchain.mux.Unlock()
-		return blockchain.MineNewBlock(false)
+		return blockchain.MineNewBlock(isGenesis)
 	}
 
 	// Check that the new transactions are still valid
@@ -149,16 +165,24 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 		if _, ok := blockchain.transactions[tx.File.Name]; ok {
 			// One of the pending transaction is now in the blockchain, abort
 			blockchain.mux.Unlock()
-			return blockchain.MineNewBlock(false)
+			return blockchain.MineNewBlock(isGenesis)
 		}
 	}
+
+	fail.LeveledPrint(0, "", "FOUND-BLOCK %s", files.ToHex32(newBlock.Hash()))
 
 	// Append the block to the blockchain
 	blockchain.addBlockUnsafe(newBlock)
 	blockchain.mux.Unlock()
-	fail.LeveledPrint(0, "", "FOUND-BLOCK %s", files.ToHex32(newBlock.Hash()))
 
-	// Try to mine a new block
+	// Wait some time before publishing
+	if isGenesis {
+		time.Sleep(5 * time.Second)
+	} else {
+		time.Sleep(2 * elapsed)
+	}
+
+	// Try to mine a new block on another goroutine
 	go blockchain.MineNewBlock(false)
 
 	return newBlock
@@ -167,7 +191,13 @@ func (blockchain *Blockchain) MineNewBlock(isGenesis bool) *messages.Block {
 /*AddBlockUnsafe @TODO*/
 func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 
-	if prevBlock, ok := blockchain.blocks[files.ToHex32(newBlock.PrevHash)]; ok { // The previous block is known
+	// Determine if this is a genesis block
+	hashCompare := newBlock.PrevHash
+	if newBlock.IsGenesis() {
+		hashCompare = blockchain.root.block.Hash()
+	}
+
+	if prevBlock, ok := blockchain.blocks[files.ToHex(hashCompare[:])]; ok { // The previous block is known
 
 		// Create a new NodeBlock and append it to the previous node's list of next nodes
 		newNode := NewNodeBlock(prevBlock, newBlock, prevBlock.length+1)
@@ -204,6 +234,7 @@ func (blockchain *Blockchain) addBlockUnsafe(newBlock *messages.Block) bool {
 	}
 
 	// The previous block is not known
+	fail.LeveledPrint(1, "Blockchain.addBlockUnsafe", "New invalid block with prevhash %s", files.ToHex32(newBlock.PrevHash))
 	blockchain.invalid[files.ToHex32(newBlock.PrevHash)] = newBlock
 	return false
 }

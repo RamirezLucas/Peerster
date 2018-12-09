@@ -16,7 +16,7 @@ const BlockHopLimit = 20
 
 /* ================ TRANSACTIONS ================ */
 
-/*OnBroadcastTransaction @TODO*/
+/*OnBroadcastTransaction is used to broadcast a `TxPublish` on the network. */
 func OnBroadcastTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish) {
 
 	// Create the packet
@@ -30,7 +30,7 @@ func OnBroadcastTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish)
 	gossiper.PeerIndex.Broadcast(gossiper.GossipChannel, buf, "")
 }
 
-/*OnReceiveTransaction @TODO*/
+/*OnReceiveTransaction is called when a `TxPublish` is received.*/
 func OnReceiveTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish, sender *net.UDPAddr) {
 
 	// Check if the transaction is valid and add it to the pending buffer
@@ -55,7 +55,7 @@ func OnReceiveTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish, s
 
 /* ================ BLOCKS ================ */
 
-/*OnBroadcastBlock @TODO*/
+/*OnBroadcastBlock is used to broadcast a `Block` on the network.*/
 func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 
 	// Create a BlockPublish
@@ -75,7 +75,7 @@ func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 	gossiper.PeerIndex.Broadcast(gossiper.GossipChannel, buf, "")
 }
 
-/*OnReceiveBlock @TODO*/
+/*OnReceiveBlock is called when a `BlockPublish` is received.*/
 func OnReceiveBlock(gossiper *entities.Gossiper, block *messages.BlockPublish, sender *net.UDPAddr) {
 	gossiper.Blockchain.AddBlock(&block.Block)
 }

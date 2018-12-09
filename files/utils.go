@@ -76,5 +76,5 @@ func IndexLocalFile(filename string) (*SharedFile, int64) {
 	}
 
 	// Return the created shared file
-	return nil, fi.Size()
+	return shared, fi.Size()
 }

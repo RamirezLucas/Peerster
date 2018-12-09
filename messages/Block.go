@@ -8,7 +8,7 @@ import (
 )
 
 // Number of zero bytes that every Block hash must start with
-const nbBytesZero = 4
+const nbBytesZero = 2
 
 // Block - A blockchain's block
 type Block struct {
@@ -66,4 +66,15 @@ func (b *Block) ToString() string {
 
 	return str[:len(str)-1]
 
+}
+
+/*IsGenesis returns true if this is a genesis block, i.e. a block with
+`PrevHash` == 0. The function returns false otherwise.*/
+func (b *Block) IsGenesis() bool {
+	for i := 0; i < len(b.PrevHash); i++ {
+		if b.PrevHash[i] != 0 {
+			return false
+		}
+	}
+	return true
 }
