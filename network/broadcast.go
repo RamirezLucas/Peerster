@@ -4,7 +4,6 @@ import (
 	"Peerster/entities"
 	"Peerster/fail"
 	"Peerster/messages"
-	"net"
 
 	"github.com/dedis/protobuf"
 )
@@ -35,22 +34,11 @@ func OnBroadcastClient(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) 
 // OnBroadcastNetwork -
 func OnBroadcastNetwork(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) {
 
-	// Resolve the address
-	udpAddr, err := net.ResolveUDPAddr("udp4", simpleMsg.RelayPeerAddr)
-	if err != nil {
-		return
-	}
-
-	// Prevents the client from talking on the network port
-	if simpleMsg.RelayPeerAddr == "" {
-		return
-	}
-
 	// Print to the console
 	fail.LeveledPrint(0, "", simpleMsg.SimpleMessageToString())
 	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
 
-	// Modify the packet
+	// Modify the structure
 	sender := simpleMsg.RelayPeerAddr
 	simpleMsg.RelayPeerAddr = g.Args.GossipAddr
 
