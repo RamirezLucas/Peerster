@@ -1,9 +1,9 @@
 package files
 
 import (
+	"Peerster/fail"
 	"Peerster/messages"
 	"crypto/sha256"
-	"fmt"
 	"strings"
 	"sync"
 )
@@ -53,7 +53,7 @@ func (memory *TOSearchRequest) RemoveSearchRequest(hashStr string) {
 		delete(memory.requests, hashStr)
 	}
 
-	panic(fmt.Sprintf("RemoveSearchRequestEntry(): Trying to remove inexistant SearchRequest %s", hashStr))
+	fail.CustomPanic("TOSearchRequest.RemoveSearchRequest", "Trying to remove inexistant SearchRequest %s.", hashStr)
 }
 
 // FindSearchRequest attempts to find a SearchRequest in the TOSearchRequest

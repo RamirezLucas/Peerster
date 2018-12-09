@@ -156,7 +156,7 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 		if target, ok := shared.RemoteChunks[1]; ok {
 			return 1, target // Request first chunk
 		}
-		fail.CustomPanic("HandleDataReply", "No known target for file %s chunk 1",
+		fail.CustomPanic("FileIndex.HandleDataReply", "No known target for file %s chunk 1.",
 			shared.Filename)
 	}
 
@@ -174,7 +174,7 @@ func (fileIndex *FileIndex) HandleDataReply(ref *HashRef, reply *messages.DataRe
 	if target, ok := shared.RemoteChunks[1]; ok {
 		return ref.ChunkIndex + 1, target // Request next chunk
 	}
-	fail.CustomPanic("HandleDataReply", "No known target for file %s chunk %d",
+	fail.CustomPanic("FileIndex.HandleDataReply", "No known target for file %s chunk %d.",
 		shared.Filename, ref.ChunkIndex+1)
 
 	// Unreachable

@@ -1,6 +1,8 @@
 package data
 
-import "fmt"
+import (
+	"Peerster/fail"
+)
 
 // Bitmap represents a bitmap of arbitrary size (NOT thread-safe)
 type Bitmap struct {
@@ -25,19 +27,13 @@ func NewBitmap(size uint64) *Bitmap {
 
 // GetSize returns the bitmap's size
 func (bitmap *Bitmap) GetSize() uint64 {
-	if bitmap == nil {
-		panic("GetSize called on nil Bitmap")
-	}
 	return bitmap.size
 }
 
 // GetBit returns the bit's value at index as a boolean (true for 1, false for 0)
 func (bitmap *Bitmap) GetBit(index uint64) bool {
-	if bitmap == nil {
-		panic("GetBit called on nil Bitmap")
-	}
 	if index >= bitmap.size {
-		panic(fmt.Sprintf("GetBit called on non-existent bit %d in bitmap of size %d", index, bitmap.size))
+		fail.CustomPanic("Bitmap.GetBit", "Trying to get on-existent bit %d in bitmap of size %d.", index, bitmap.size)
 	}
 
 	return ((1 << (index % 8)) & bitmap.data[index/8]) != 0
@@ -45,11 +41,9 @@ func (bitmap *Bitmap) GetBit(index uint64) bool {
 
 // SetBit sets the bit at index and returns the old value as a boolean (true for 1, false for 0)
 func (bitmap *Bitmap) SetBit(index uint64) bool {
-	if bitmap == nil {
-		panic("SetBit called on nil Bitmap")
-	}
+
 	if index >= bitmap.size {
-		panic(fmt.Sprintf("SetBit called on non-existent bit %d in bitmap of size %d\n", index, bitmap.size))
+		fail.CustomPanic("Bitmap.SetBit", "Trying to set non-existent bit %d in bitmap of size %d.", index, bitmap.size)
 	}
 
 	arrayIndex := index / 8
@@ -63,11 +57,9 @@ func (bitmap *Bitmap) SetBit(index uint64) bool {
 
 // UnsetBit unsets the bit at index and returns the old value as a boolean (true for 1, false for 0)
 func (bitmap *Bitmap) UnsetBit(index uint64) bool {
-	if bitmap == nil {
-		panic("UnsetBit called on nil Bitmap")
-	}
+
 	if index >= bitmap.size {
-		panic(fmt.Sprintf("UnsetBit called on non-existent bit %d in bitmap of size %d\n", index, bitmap.size))
+		fail.CustomPanic("Bitmap.UnsetBit", "Trying to unset non-existent bit %d in bitmap of size %d.", index, bitmap.size)
 	}
 
 	arrayIndex := index / 8
@@ -81,11 +73,9 @@ func (bitmap *Bitmap) UnsetBit(index uint64) bool {
 
 // CountLeadingBits returns the number of bits set up to (and excluding) upToIndex
 func (bitmap *Bitmap) CountLeadingBits(upToIndex uint64) uint64 {
-	if bitmap == nil {
-		panic("CountLeadingBits called on nil Bitmap")
-	}
+
 	if upToIndex > bitmap.size {
-		panic(fmt.Sprintf("CountLeadingBits called on non-existent bit %d in bitmap of size %d\n", upToIndex, bitmap.size))
+		fail.CustomPanic("Bitmap.CountLeadingBits", "Trying to count up to non-existent bit %d in bitmap of size %d.", upToIndex, bitmap.size)
 	}
 
 	count := uint64(0)

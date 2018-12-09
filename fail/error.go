@@ -1,9 +1,15 @@
 package fail
 
-import "fmt"
+import (
+	"fmt"
+	"sync"
+)
 
 // GlobalPrintLevel controls what will be printed to the console during execution
 var GlobalPrintLevel = 0
+
+// Mutex to ensure atomocity of prints
+var printMux sync.Mutex
 
 // CustomError - Represents a custom error
 type CustomError struct {
@@ -22,9 +28,14 @@ func CustomPanic(fun, format string, a ...interface{}) {
 }
 
 // LeveledPrint prints text to the console depending on its importance level and
-// on the globally set variable GlobalPrintLevel
+// on the globally set varia²e GlobalPrintLevel
 func LeveledPrint(level int, fun, format string, a ...interface{}) {
+	// Grab the mutex
+	printMux.Lock()
+	defer printMux.Unlock()
+
 	if level == 0 {
+		// Mandatory prints
 		fmt.Printf(format+"\n", a...)
 	} else if level <= GlobalPrintLevel {
 		fmt.Printf(fun+"() : "+format+"\n", a...)

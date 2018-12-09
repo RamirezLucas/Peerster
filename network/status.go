@@ -5,7 +5,6 @@ import (
 	"Peerster/fail"
 	"Peerster/messages"
 	"Peerster/peers"
-	"fmt"
 	"net"
 
 	"github.com/dedis/protobuf"
@@ -35,14 +34,15 @@ func OnReceiveStatus(g *entities.Gossiper, status *messages.StatusPacket, sender
 	g.PeerIndex.AddPeerIfAbsent(sender)
 
 	// Print to the console
-	fmt.Printf("%s\n%s\n", status.StatusPacketToString(peers.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
+	fail.LeveledPrint(0, "", status.StatusPacketToString(peers.UDPAddressToString(sender)))
+	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
 
 	// See if we must propagate a rumor
 	rumorToPropagate := g.NameIndex.GetUnknownMessageTarget(status)
 
 	if rumorToPropagate == nil { // We don't have anything to propagate
 		if g.NameIndex.IsLocalStatusComplete(status) { // We are in sync with the other
-			fmt.Printf("IN SYNC WITH %s\n", fmt.Sprintf("%s", sender))
+			fail.LeveledPrint(0, "", "IN SYNC WITH %s", peers.UDPAddressToString(sender))
 		} else { // We must send back our own Status
 			vectorClock := g.NameIndex.GetVectorClock()
 			OnSendStatus(vectorClock, g.GossipChannel, sender)

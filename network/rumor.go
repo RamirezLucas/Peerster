@@ -41,7 +41,7 @@ func OnSendRumor(g *entities.Gossiper, rumor *messages.RumorMessage, target *net
 	}
 
 	// Send the packet
-	fmt.Printf("MONGERING with %s\n", fmt.Sprintf("%s", target))
+	fail.LeveledPrint(0, "", "MONGERING with %s", fmt.Sprintf("%s", target))
 	if _, err = g.GossipChannel.WriteToUDP(buf, target); err != nil {
 		g.Timeouts.DeleteTimeoutHandler(threadID)
 		return &fail.CustomError{Fun: "OnSendRumor", Desc: "failed to send RumorMessage"}
@@ -74,7 +74,7 @@ func OnSendRumor(g *entities.Gossiper, rumor *messages.RumorMessage, target *net
 		// Spread the rumor to someone else
 
 		if newTarget := g.PeerIndex.GetRandomPeer(target); newTarget != nil {
-			fmt.Printf("FLIPPED COIN sending rumor to %s\n", fmt.Sprintf("%s", newTarget))
+			fail.LeveledPrint(0, "", "FLIPPED COIN sending rumor to %s", peers.UDPAddressToString(newTarget))
 			OnSendRumor(g, rumor, newTarget, threadID)
 		}
 
@@ -83,14 +83,14 @@ func OnSendRumor(g *entities.Gossiper, rumor *messages.RumorMessage, target *net
 	}
 
 	return nil
-
 }
 
 // OnReceiveClientRumor - Called when a rumor is received from the client
 func OnReceiveClientRumor(g *entities.Gossiper, rumor *messages.RumorMessage, threadID uint32) {
 
 	// Print to console
-	fmt.Printf("CLIENT MESSAGE %s\n%s\n", rumor.Text, g.PeerIndex.PeersToString())
+	fail.LeveledPrint(0, "", "CLIENT MESSAGE %s", rumor.Text)
+	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
 
 	// Store the new message
 	g.NameIndex.FillInRumorAndSave(rumor, g.Args.Name)
@@ -116,7 +116,8 @@ func OnReceiveRumor(g *entities.Gossiper, rumor *messages.RumorMessage, sender *
 	g.PeerIndex.AddPeerIfAbsent(sender)
 
 	if !isRouteRumor {
-		fmt.Printf("%s\n%s\n", rumor.RumorMessageToString(peers.UDPAddressToString(sender)), g.PeerIndex.PeersToString())
+		fail.LeveledPrint(0, "", rumor.RumorMessageToString(peers.UDPAddressToString(sender)))
+		fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
 	}
 
 	// Update the routing table for private messages

@@ -1,10 +1,9 @@
 package peers
 
 import (
+	"Peerster/fail"
 	"Peerster/frontend"
 	"Peerster/messages"
-	"fmt"
-	"os"
 	"sync"
 )
 
@@ -39,16 +38,15 @@ func (nameIndex *NameIndex) AddName(name string) {
 	nameIndex.mux.Lock()
 	defer nameIndex.mux.Unlock()
 
-	nameIndex.AddNameUnsafe(name)
+	nameIndex.addNameUnsafe(name)
 }
 
-// AddNameUnsafe - Adds a named peer to the index (not thread-safe)
-func (nameIndex *NameIndex) AddNameUnsafe(name string) {
+// addNameUnsafe - Adds a named peer to the index (not thread-safe)
+func (nameIndex *NameIndex) addNameUnsafe(name string) {
 	if _, ok := nameIndex.index[name]; !ok { // The name should not already exists
 		nameIndex.index[name] = NewMessages()
 	} else {
-		fmt.Printf("ERROR: Trying to add existing name %s to the name index", name)
-		os.Exit(1)
+		fail.CustomPanic("NameIndex.addNameUnsafe", "Trying to add existing name %s to the index.", name)
 	}
 }
 
@@ -61,7 +59,7 @@ func (nameIndex *NameIndex) AddPrivateMessage(private *messages.PrivateMessage) 
 		messages.private = append(messages.private, private.Text)
 
 	} else { // We don't know this name
-		nameIndex.AddNameUnsafe(private.Origin)
+		nameIndex.addNameUnsafe(private.Origin)
 		messages := nameIndex.index[private.Origin]
 		messages.private = append(messages.private, private.Text)
 	}
@@ -91,7 +89,7 @@ func (nameIndex *NameIndex) AddMessageIfNext(rumor *messages.RumorMessage) bool 
 		}
 	} else { // We don't know this name
 		if rumor.ID == 1 { // Must be the first message
-			nameIndex.AddNameUnsafe(rumor.Origin)
+			nameIndex.addNameUnsafe(rumor.Origin)
 			messages := nameIndex.index[rumor.Origin]
 			messages.public = append(messages.public, rumor.Text)
 
@@ -130,8 +128,7 @@ func (nameIndex *NameIndex) FillInRumorAndSave(rumor *messages.RumorMessage, ori
 	}
 
 	// Should not happen
-	fmt.Printf("ERROR: Trying to get the last message ID of non-client peer %s\n", origin)
-	os.Exit(1)
+	fail.CustomPanic("NameIndex.FillInRumorAndSave", "Trying to get last message ID of non-client peer %s.", origin)
 }
 
 // GetUnknownMessageTarget - Tries to find a message that we have but that the other doesn't
@@ -175,7 +172,7 @@ func (nameIndex *NameIndex) IsLocalStatusComplete(status *messages.StatusPacket)
 				return false
 			}
 		} else { // We don't know the peer
-			nameIndex.AddNameUnsafe(distantPeer.Identifier)
+			nameIndex.addNameUnsafe(distantPeer.Identifier)
 			if distantPeer.NextID > 1 { // The other has something we don't have
 				return false
 			}

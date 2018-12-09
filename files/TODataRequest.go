@@ -69,7 +69,7 @@ func (forwarder *TODataRequest) CheckResponseAndDelete(hash []byte) bool {
 	}
 
 	// Should not happen
-	fail.CustomPanic("CheckResponseAndDelete", "Attempting to delete an inexistant handler with hash %s", strHash)
+	fail.CustomPanic("TODataRequest.CheckResponseAndDelete", "Attempting to delete an inexistant handler with hash %s.", strHash)
 	return false
 }
 

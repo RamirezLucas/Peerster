@@ -1,6 +1,7 @@
 package peers
 
 import (
+	"Peerster/fail"
 	"Peerster/frontend"
 	"fmt"
 	"net"
@@ -49,7 +50,7 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 
 	if nextHop, ok := routing.table[name]; !ok { // We don't know the sender
 		routing.table[name] = NewNextHop(addrStr, sender, updateID)
-		fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
+		fail.LeveledPrint(0, "", routing.RouterEntryToStringUnsafe(name))
 
 		// Send the new name to the server
 		frontend.FBuffer.AddFrontendPrivateContact(name)
@@ -59,7 +60,7 @@ func (routing *RoutingTable) UpdateTableAndPrint(name string, sender *net.UDPAdd
 		// Update the route if the sequence ID is higher or equal
 		if updateID >= nextHop.lastUpdateID && nextHop.nextPeer.rawAddr != addrStr {
 			routing.table[name] = NewNextHop(addrStr, sender, updateID)
-			fmt.Printf("%s\n", routing.RouterEntryToStringUnsafe(name))
+			fail.LeveledPrint(0, "", routing.RouterEntryToStringUnsafe(name))
 		}
 
 	}
@@ -83,7 +84,7 @@ func (routing *RoutingTable) RouterEntryToStringUnsafe(name string) string {
 		return fmt.Sprintf("DSDV %s %s", name, nextHop.nextPeer.PeerToString())
 	}
 
-	fmt.Printf("ERROR: Trying to print non-existent entry %s in the routing table\n", name)
+	fail.CustomPanic("RoutingTable.RouterEntryToStringUnsafe", "Trying to print non-existent entry %s in the routing table.", name)
 	os.Exit(1)
 	return ""
 }

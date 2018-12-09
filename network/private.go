@@ -2,8 +2,8 @@ package network
 
 import (
 	"Peerster/entities"
+	"Peerster/fail"
 	"Peerster/messages"
-	"fmt"
 	"net"
 
 	"github.com/dedis/protobuf"
@@ -51,7 +51,7 @@ func OnReceivePrivate(g *entities.Gossiper, private *messages.PrivateMessage, se
 
 	// Check if the message is for me
 	if g.Args.Name == private.Destination {
-		fmt.Printf("%s\n", private.PrivateMessageToString())
+		fail.LeveledPrint(0, "", private.PrivateMessageToString())
 		g.NameIndex.AddPrivateMessage(private)
 		return
 	}

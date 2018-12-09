@@ -154,9 +154,9 @@ func (shared *SharedFile) SetMetafile(reply *messages.DataReply) bool {
 
 	// Check arguments and file status
 	if reply == nil {
-		fail.CustomPanic("SetMetafile", "Invalid arguments (reply) = (%p)", reply)
+		fail.CustomPanic("SharedFile.SetMetafile", "Invalid arguments (reply) = (%p).", reply)
 	} else if shared.Status != NoMetafileMonoSource && shared.Status != NoMetafileMultiSource {
-		fail.CustomPanic("SetMetafile", "Trying to set metafile of file with incorrect status %d", shared.Status)
+		fail.CustomPanic("SharedFile.SetMetafile", "Trying to set metafile of file with incorrect status %d.", shared.Status)
 	}
 
 	// Get number of chunks
@@ -205,9 +205,9 @@ func (shared *SharedFile) GetChunk(chunkID uint64) []byte {
 
 	// Check arguments and file status
 	if chunkID > shared.ChunkCount {
-		fail.CustomPanic("GetChunk", "Invalid arguments (chunkID) = (%d)", chunkID)
+		fail.CustomPanic("SharedFile.GetChunk", "Invalid arguments (chunkID) = (%d).", chunkID)
 	} else if shared.Status != MissingChunks && shared.Status != Reconstructed {
-		fail.CustomPanic("GetChunk", "Trying to get chunk from file with incorrect status %d", shared.Status)
+		fail.CustomPanic("SharedFile.GetChunk", "Trying to get chunk from file with incorrect status %d.", shared.Status)
 	}
 
 	// Return the metafile
@@ -260,9 +260,9 @@ func (shared *SharedFile) WriteChunk(chunkID uint64, data []byte) bool {
 
 	// Check arguments and file status
 	if chunkID == 0 || chunkID > shared.ChunkCount {
-		fail.CustomPanic("GetChunk", "Invalid arguments (chunkID) = (%d)", chunkID)
+		fail.CustomPanic("SharedFile.WriteChunk", "Invalid arguments (chunkID) = (%d).", chunkID)
 	} else if shared.Status != MissingChunks {
-		fail.CustomPanic("GetChunk", "Trying to write chunk to file with incorrect status %d", shared.Status)
+		fail.CustomPanic("SharedFile.WriteChunk", "Trying to write chunk to file with incorrect status %d.", shared.Status)
 	}
 
 	// Open the file in write mode
@@ -274,12 +274,12 @@ func (shared *SharedFile) WriteChunk(chunkID uint64, data []byte) bool {
 
 	// Write the chunk
 	if nbBytesWrote, err := f.Write(data); err != nil || nbBytesWrote != len(data) {
-		fail.CustomPanic("WriteChunk", "Failed to write file %s", shared.Filename)
+		fail.CustomPanic("SharedFile.WriteChunk", "Failed to write file %s.", shared.Filename)
 	}
 
 	// Update the chunk map
 	if oldVal := shared.ChunkBitmap.SetBit(chunkID - 1); oldVal {
-		fail.CustomPanic("WriteChunk", "Incorrect bitmap at index %d for file %s", chunkID-1, shared.Filename)
+		fail.CustomPanic("SharedFile.WriteChunk", "Incorrect bitmap at index %d for file %s.", chunkID-1, shared.Filename)
 	}
 	// Update remote chunk map
 	if _, ok := shared.RemoteChunks[chunkID]; ok {

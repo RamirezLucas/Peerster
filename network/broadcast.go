@@ -2,8 +2,8 @@ package network
 
 import (
 	"Peerster/entities"
+	"Peerster/fail"
 	"Peerster/messages"
-	"fmt"
 	"net"
 
 	"github.com/dedis/protobuf"
@@ -13,7 +13,8 @@ import (
 func OnBroadcastClient(g *entities.Gossiper, simpleMsg *messages.SimpleMessage) {
 
 	// Print to the console
-	fmt.Printf("CLIENT MESSAGE %s\n%s\n", simpleMsg.Contents, g.PeerIndex.PeersToString())
+	fail.LeveledPrint(0, "", "CLIENT MESSAGE %s", simpleMsg.Contents)
+	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
 
 	// Modify the packet
 	simpleMsg.OriginalName = g.Args.Name
@@ -49,7 +50,8 @@ func OnBroadcastNetwork(g *entities.Gossiper, simpleMsg *messages.SimpleMessage)
 	g.PeerIndex.AddPeerIfAbsent(udpAddr)
 
 	// Print to the console
-	fmt.Printf("%s\n%s\n", simpleMsg.SimpleMessageToString(), g.PeerIndex.PeersToString())
+	fail.LeveledPrint(0, "", simpleMsg.SimpleMessageToString())
+	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
 
 	// Modify the packet
 	sender := simpleMsg.RelayPeerAddr

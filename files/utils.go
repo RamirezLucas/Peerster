@@ -60,13 +60,13 @@ func IndexLocalFile(filename string) *SharedFile {
 
 		// Read the next chunk
 		if nbBytesRead, err = f.Read(chunkBuffer); err != nil {
-			fail.CustomPanic("IndexLocalFile", "File %s could not be read correctly", filename)
+			fail.CustomPanic("IndexLocalFile", "File %s could not be read correctly.", filename)
 		}
 
 		// Create hash and append it to metafile
 		chunkHash := sha256.Sum256(chunkBuffer[:nbBytesRead])
 		if nbCopy := copy(shared.Metafile[metafileIndex*HashSizeBytes:], chunkHash[:]); nbCopy != HashSizeBytes {
-			fail.CustomPanic("IndexLocalFile", "Metafile could not be generated for file %s", filename)
+			fail.CustomPanic("IndexLocalFile", "Metafile could not be generated for file %s.", filename)
 		}
 
 	}
@@ -74,7 +74,7 @@ func IndexLocalFile(filename string) *SharedFile {
 	// Create metahash
 	metahash := sha256.Sum256(shared.Metafile[:])
 	if nbCopy := copy(shared.Metahash[:], metahash[:]); nbCopy != HashSizeBytes {
-		fail.CustomPanic("IndexLocalFile", "Metahash could not be generated for file %s", filename)
+		fail.CustomPanic("IndexLocalFile", "Metahash could not be generated for file %s.", filename)
 	}
 
 	// Return the created shared file

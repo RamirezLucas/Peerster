@@ -6,7 +6,6 @@ import (
 	"Peerster/files"
 	"Peerster/messages"
 	"crypto/sha256"
-	"fmt"
 	"net"
 	"time"
 
@@ -137,7 +136,7 @@ func OnReceiveDataReply(g *entities.Gossiper, reply *messages.DataReply, sender 
 			if nextChunk, target := g.FileIndex.HandleDataReply(ref, reply); nextChunk != 0 {
 				OnRemoteChunkRequest(g, ref.File, nextChunk, target)
 			} else {
-				fmt.Printf("RECONSTRUCTED file %s\n", ref.File.Filename)
+				fail.LeveledPrint(0, "", "RECONSTRUCTED file %s", ref.File.Filename)
 			}
 		}
 
