@@ -11,14 +11,14 @@ function switchContact() {
         // Unselect current contact and hide current conversation
         curr_contact.style.backgroundColor = 'rgb(' + 47 + ',' + 49 + ',' + 54 + ')';
         curr_contact.style.color = 'rgb(' + 105 + ',' + 106 + ',' + 110 + ')';
-        var prevConv = document.getElementById(curr_contact.innerHTML)
+        let prevConv = document.getElementById(curr_contact.innerHTML)
         prevConv.style.display = "none"
     }
   
     // Select new contact and show new conversation
     this.style.backgroundColor = 'rgb(' + 66 + ',' + 70 + ',' + 77 + ')';
     this.style.color = 'rgb(' + 255 + ',' + 255 + ',' + 255 + ')';
-    var newConv = document.getElementById(this.innerHTML)
+    let newConv = document.getElementById(this.innerHTML)
     newConv.style.display = "block"
     
     // Change name in textbox

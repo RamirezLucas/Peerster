@@ -29,10 +29,14 @@ function getUpdates() {
                         } else if (update.IndexedFile !== null) {
                             // This is a new indexed file
                             addIndexedFile(update.IndexedFile.Filename, update.IndexedFile.Metahash)
-                            removeConstructingFile(update.IndexedFile.Metahash)
+                            removeFile(update.IndexedFile.Metahash, "reconstructing_files")
+                            removeFile(update.IndexedFile.Metahash, "available_files")
                         } else if (update.ConstructingFile !== null) {
                             // This is a new file in construction
                             addConstructingFile(update.ConstructingFile.Filename, update.ConstructingFile.Metahash, update.ConstructingFile.Origin)
+                        } else if (update.AvailableFile !== null) {
+                            // This is a new availble file
+                            addAvailableFile(update.IndexedFile.Filename, update.IndexedFile.Metahash)
                         }
                     }
                 }            

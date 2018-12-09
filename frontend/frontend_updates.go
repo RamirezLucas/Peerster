@@ -52,6 +52,12 @@ type FrontendConstructingFile struct {
 	Origin   string // The peer distributing the file
 }
 
+// FrontendAvailableFile - An available file for the frontend
+type FrontendAvailableFile struct {
+	Filename string // The filename
+	Metahash string // The associated metahash
+}
+
 // FrontendUpdate - An update for the
 type FrontendUpdate struct {
 	Rumor            *FrontendRumor            // A rumor
@@ -60,6 +66,7 @@ type FrontendUpdate struct {
 	PrivateContact   *FrontendPrivateContact   // A private contact
 	IndexedFile      *FrontendIndexedFile      // An indexed file
 	ConstructingFile *FrontendConstructingFile // A constructing file
+	AvailableFile    *FrontendAvailableFile    // An available file
 }
 
 // NewFrontendBuffer - Creates a new instance of FrontendBuffer
@@ -151,6 +158,17 @@ func (buffer *FrontendBuffer) AddFrontendConstructingFile(filename, metahash, or
 	// Create update
 	newConstructingFile := &FrontendConstructingFile{Filename: filename, Metahash: metahash, Origin: origin}
 	newUpdate := &FrontendUpdate{ConstructingFile: newConstructingFile}
+	buffer.updates = append(buffer.updates, newUpdate)
+}
+
+// AddFrontendAvailableFile - Adds an available file to the buffer
+func (buffer *FrontendBuffer) AddFrontendAvailableFile(filename, metahash string) {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+
+	// Create update
+	newIndexedFile := &FrontendAvailableFile{Filename: filename, Metahash: metahash}
+	newUpdate := &FrontendUpdate{AvailableFile: newIndexedFile}
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 

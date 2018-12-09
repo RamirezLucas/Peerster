@@ -4,6 +4,7 @@ import (
 	"Peerster/entities"
 	"Peerster/fail"
 	"Peerster/files"
+	"Peerster/frontend"
 	"Peerster/messages"
 	"Peerster/peers"
 	"crypto/sha256"
@@ -217,8 +218,8 @@ func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 	}
 
 	// Create a shared file
-	sharedFile := g.FileIndex.AddMonoSourceFile(localFilename, remotePeer, metahash)
-	if sharedFile == nil {
+	shared := g.FileIndex.AddMonoSourceFile(localFilename, remotePeer, metahash)
+	if shared == nil {
 		// Error: filename already exists
 		return
 	}
@@ -230,8 +231,11 @@ func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 		HashValue:   metahash,
 	}
 
+	// Send update to frontend
+	frontend.FBuffer.AddFrontendConstructingFile(localFilename, files.ToHex(metahash[:]), remotePeer)
+
 	// Send with timeout
-	ref := files.NewHashRef(sharedFile, 0)
+	ref := files.NewHashRef(shared, 0)
 	fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, remotePeer)
 	OnSendTimedDataRequest(g, request, ref, target)
 }
@@ -240,11 +244,11 @@ func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 func OnRemoteMetafileRequestMultisource(g *entities.Gossiper, metahash []byte, localFilename string) {
 
 	// Check if we have a valid target to send the message to
-	if metafileQueryPeer, sharedFile := g.FileIndex.GetMetafileTargetMultisource(metahash); metafileQueryPeer != "" {
+	if metafileQueryPeer, shared := g.FileIndex.GetMetafileTargetMultisource(metahash); metafileQueryPeer != "" {
 		if target := g.Router.GetTarget(metafileQueryPeer); target != nil {
 
 			// Change filename
-			sharedFile.ChangeName(localFilename)
+			shared.ChangeName(localFilename)
 
 			// Create metafile request
 			request := &messages.DataRequest{Origin: g.Args.Name,
@@ -253,8 +257,11 @@ func OnRemoteMetafileRequestMultisource(g *entities.Gossiper, metahash []byte, l
 				HashValue:   metahash,
 			}
 
+			// Send update to frontend
+			frontend.FBuffer.AddFrontendConstructingFile(localFilename, files.ToHex(metahash), "network")
+
 			// Send with timeout
-			ref := files.NewHashRef(sharedFile, 0)
+			ref := files.NewHashRef(shared, 0)
 			fail.LeveledPrint(0, "", "DOWNLOADING metafile of %s from %s\n", localFilename, metafileQueryPeer)
 			OnSendTimedDataRequest(g, request, ref, target)
 		}

@@ -12,7 +12,7 @@
 .peers_list_wrap {
     /* position/size */
     position: relative;
-    height: 70%;
+    height: 50%;
 }
 
 #peers_scrollable_wrap {

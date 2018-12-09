@@ -22,7 +22,7 @@ function sendMessage(e) {
             let xhr = new XMLHttpRequest();
             xhr.open("POST", "/rumor", true);
             xhr.setRequestHeader("Content-Type", "application/json");
-            var data = JSON.stringify({"message": newMsg});
+            let data = JSON.stringify({"message": newMsg});
             xhr.send(data);      
         } else {
             let xhr = new XMLHttpRequest();

@@ -4,17 +4,17 @@
         <meta charset="UTF-8"> 
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-        <link rel="stylesheet" type="text/css" href="contact.css">
-        <link rel="stylesheet" type="text/css" href="chat.css">
-        <link rel="stylesheet" type="text/css" href="page.css">
-        <link rel="stylesheet" type="text/css" href="peer.css">
-        <link rel="stylesheet" type="text/css" href="file.css">
-        <script type="text/javascript" src="chat.js"></script>
-        <script type="text/javascript" src="peer.js"></script>
-        <script type="text/javascript" src="file.js"></script>
-        <script type="text/javascript" src="communication.js"></script>
-        <script type="text/javascript" src="contacts.js"></script>
-        <script type="text/javascript" src="main.js"></script>
+        <link rel="stylesheet" type="text/css" href="css/contact.css">
+        <link rel="stylesheet" type="text/css" href="css/chat.css">
+        <link rel="stylesheet" type="text/css" href="css/page.css">
+        <link rel="stylesheet" type="text/css" href="css/peer.css">
+        <link rel="stylesheet" type="text/css" href="css/file.css">
+        <script type="text/javascript" src="js/chat.js"></script>
+        <script type="text/javascript" src="js/peer.js"></script>
+        <script type="text/javascript" src="js/file.js"></script>
+        <script type="text/javascript" src="js/communication.js"></script>
+        <script type="text/javascript" src="js/contacts.js"></script>
+        <script type="text/javascript" src="js/main.js"></script>
     </head>
 
     <body>
@@ -68,13 +68,22 @@
                         <div class="file_header">
                             <span class="file_header_txt">INDEXED FILES</span> 
                         </div>
-                        <div id="files_indexed_scrollable_wrap"></div>
+                        <div id="indexed_files" class="files_scrollable_wrap"></div>
                     </div>
                     <div class="file_category_wrap">
                         <div class="file_header">
                             <div class=file_header_txt>RECONSTRUCTING...</div> 
                         </div>
-                        <div id="files_construct_scrollable_wrap"></div>
+                        <div id="reconstructing_files" class="files_scrollable_wrap"></div>
+                    </div>
+                    <div class="file_category_wrap">
+                        <div class="file_header">
+                            <div class=file_header_txt>AVAILABLE</div> 
+                        </div>
+                        <div id="available_files" class="files_scrollable_wrap"></div>
+                    </div>
+                    <div id="search_request_wrap">
+                        <textarea rows="1" id="search_request" placeholder="> budget:keyword1,keyword2,..." onkeydown="checkSearchRequest(event)"></textarea>
                     </div>
                 </div>
             </div>

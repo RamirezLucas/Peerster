@@ -7,7 +7,7 @@ function checkNewPeer(e) {
         e.preventDefault();
 
         // Send new peer
-        var newPeer = document.getElementById("new_peer").value;
+        let newPeer = document.getElementById("new_peer").value;
         sendPeer(newPeer);
 
         // Reset textarea
