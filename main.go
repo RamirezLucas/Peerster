@@ -242,7 +242,13 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 
 			if pkt.DataRequest.HopLimit == 0 {
 				// File index
-				go g.FileIndex.AddLocalFile(pkt.DataRequest.Origin)
+				if file := g.FileIndex.AddLocalFile(pkt.DataRequest.Origin); file != nil {
+					// Broadcast the transaction
+					network.OnBroadcastTransaction(g, &messages.TxPublish{
+						File:     *file,
+						HopLimit: network.TransactionHopLimit,
+					})
+				}
 			} else {
 				// Remote file request
 				if pkt.DataRequest.Destination == "" {

@@ -77,14 +77,16 @@ func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash 
 `PathToSharedFiles` directory. All of the hashes (metahash and chunk hashes) generated from this
 file are stored in the `FileIndex`'s `hashes` map.
 
-`filename` The file to index's filename. */
-func (fileIndex *FileIndex) AddLocalFile(filename string) {
+`filename` The file to index's filename.
+
+The functions returs a pointer to a `File` (for the blockchain).*/
+func (fileIndex *FileIndex) AddLocalFile(filename string) *messages.File {
 
 	// Create new shared file
-	shared := IndexLocalFile(filename)
+	shared, filesize := IndexLocalFile(filename)
 	if shared == nil {
 		fail.LeveledPrint(1, "IndexFile", `File %s could not be parsed`, filename)
-		return
+		return nil
 	}
 
 	// Grab the mutex on the index
@@ -94,7 +96,7 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) {
 	// Check if a file with the same metahash already exists in the database
 	if _, ok := fileIndex.index[ToHex32(shared.Metahash)]; ok { // We already have a file with the same metahash
 		fail.LeveledPrint(1, "IndexFile", `File %s could not be added to the index`, filename)
-		return
+		return nil
 	}
 
 	// Add the chunk hashes to the set of known hashes
@@ -111,6 +113,15 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) {
 
 	// Send update to frontend
 	shared.AcknowledgeFileReconstructed()
+
+	// Create return value
+	tmp := make([]byte, HashSizeBytes)
+	copy(tmp[:], shared.Metahash[:])
+	return &messages.File{
+		Name:         filename,
+		Size:         filesize,
+		MetafileHash: tmp,
+	}
 }
 
 /*GetDataFromHash reads the bytes corresponding to a provided hash (metafile or file chunk).

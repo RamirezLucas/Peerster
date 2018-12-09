@@ -27,14 +27,14 @@ func GetChunksNumberFromRawFile(fileSize int) uint64 {
 }
 
 // IndexLocalFile indexes a new file named filename stored in the PathToSharedFiles folder.
-func IndexLocalFile(filename string) *SharedFile {
+func IndexLocalFile(filename string) (*SharedFile, int64) {
 
 	// Open the file
 	var f *os.File
 	var err error
 	if f, err = os.Open(PathToSharedFiles + filename); err != nil {
 		fail.LeveledPrint(1, "IndexLocalFile", `Failed to open file %s`, filename)
-		return nil
+		return nil, 0
 	}
 	defer f.Close()
 
@@ -42,7 +42,7 @@ func IndexLocalFile(filename string) *SharedFile {
 	fi, err := f.Stat()
 	if err != nil || fi.Size() > MaxFileSizeBytes {
 		fail.LeveledPrint(1, "IndexLocalFile", `File %s is too large (%d bytes)`, filename, fi.Size())
-		return nil
+		return nil, 0
 	}
 
 	// Compute total number of chunks
@@ -78,5 +78,5 @@ func IndexLocalFile(filename string) *SharedFile {
 	}
 
 	// Return the created shared file
-	return shared
+	return nil, fi.Size()
 }
