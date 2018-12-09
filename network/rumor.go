@@ -112,9 +112,6 @@ func OnReceiveRumor(g *entities.Gossiper, rumor *messages.RumorMessage, sender *
 	// Is the message a RouteRumor ?
 	isRouteRumor := (rumor.Text == "")
 
-	// Attempt to add the sending peer to the list of neighbors
-	g.PeerIndex.AddPeerIfAbsent(sender)
-
 	if !isRouteRumor {
 		fail.LeveledPrint(0, "", rumor.RumorMessageToString(peers.UDPAddressToString(sender)))
 		fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())

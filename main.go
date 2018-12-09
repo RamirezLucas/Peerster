@@ -158,6 +158,9 @@ func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 			continue
 		}
 
+		// Attempt to add the sending peer to the list of neighbors
+		g.PeerIndex.AddPeerIfAbsent(sender)
+
 		// Select the right callback
 		switch {
 		case pkt.SimpleMsg != nil:

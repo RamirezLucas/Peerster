@@ -30,9 +30,6 @@ func OnSendStatus(vectorClock *messages.StatusPacket, channel *net.UDPConn, targ
 // OnReceiveStatus - Called when a status is received
 func OnReceiveStatus(g *entities.Gossiper, status *messages.StatusPacket, sender *net.UDPAddr, threadID uint32) {
 
-	// Attempt to add the sending peer to the list of neighbors
-	g.PeerIndex.AddPeerIfAbsent(sender)
-
 	// Print to the console
 	fail.LeveledPrint(0, "", status.StatusPacketToString(peers.UDPAddressToString(sender)))
 	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())

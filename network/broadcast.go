@@ -46,9 +46,6 @@ func OnBroadcastNetwork(g *entities.Gossiper, simpleMsg *messages.SimpleMessage)
 		return
 	}
 
-	// Add the peer to the index
-	g.PeerIndex.AddPeerIfAbsent(udpAddr)
-
 	// Print to the console
 	fail.LeveledPrint(0, "", simpleMsg.SimpleMessageToString())
 	fail.LeveledPrint(0, "", g.PeerIndex.PeersToString())
