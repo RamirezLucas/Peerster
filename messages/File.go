@@ -1,8 +1,10 @@
 package messages
 
 import (
+	"Peerster/utils"
 	"crypto/sha256"
 	"encoding/binary"
+	"fmt"
 )
 
 // File - A file identificator
@@ -21,4 +23,9 @@ func (t *File) Hash() [32]byte {
 	h.Write(t.MetafileHash)
 	copy(out[:], h.Sum(nil))
 	return out
+}
+
+func (file *File) String() string {
+	return fmt.Sprintf("FILE named %s size %d with metafile hash %s",
+		file.Name, file.Size, utils.HashToHex(file.MetafileHash))
 }
