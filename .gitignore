@@ -1,6 +1,7 @@
 *.pdf
 *.exe
 *.out
+.idea
 
 client/*.exe
 Peerster
