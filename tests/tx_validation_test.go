@@ -6,6 +6,7 @@ import (
 	"Peerster/messages"
 	"Peerster/utils"
 	"crypto/rsa"
+	"fmt"
 	"github.com/gregunz/Peerster/common"
 	"github.com/stretchr/testify/assert"
 	"testing"
@@ -15,7 +16,7 @@ var ownerKey *rsa.PrivateKey
 var tx *blockchain.Tx
 
 func init() {
-	ownerKey, tx = NewTx()
+	ownerKey, tx = newTx()
 }
 
 func TestBlockBuilder(t *testing.T) {
@@ -78,7 +79,7 @@ func TestTryChangeOwner(t *testing.T) {
 func TestAddSecondTx(t *testing.T) {
 	fbb := createFBB(t)
 
-	_, newTx := NewTx()
+	_, newTx := newTx()
 
 	assert.True(t, fbb.AddTxIfValid(newTx))
 	assert.Equal(t, 1, len(fbb.Transactions))
@@ -88,7 +89,7 @@ func TestAddSecondTx(t *testing.T) {
 func TestTryAddSecondTx(t *testing.T) {
 	fbb := createFBB(t)
 
-	_, newTx := NewTx()
+	_, newTx := newTx()
 	newTx.File.Name = tx.File.Name
 
 	assert.False(t, fbb.AddTxIfValid(newTx))
@@ -102,12 +103,7 @@ func createFBB(t *testing.T) *blockchain.FileBlockBuilder {
 	genesis := blockchain.NewFileBlockBuilder(nil)
 	genesis.AddTxIfValid(tx)
 
-	var fb *blockchain.FileBlock
-	for fb == nil {
-		genesis.SetNonce(utils.Random32Bytes())
-		fb, _ = genesis.Build()
-	}
-	fbb := blockchain.NewFileBlockBuilder(fb)
+	fbb := mineAndGetNextBlock(genesis)
 
 	assert.Equal(t, 2, fbb.Length)
 	assert.Equal(t, 0, len(fbb.Transactions))
@@ -116,12 +112,21 @@ func createFBB(t *testing.T) *blockchain.FileBlockBuilder {
 	return fbb
 }
 
-func NewTx() (*rsa.PrivateKey, *blockchain.Tx) {
+func mineAndGetNextBlock(genesis *blockchain.FileBlockBuilder) *blockchain.FileBlockBuilder {
+	var fb *blockchain.FileBlock
+	for fb == nil {
+		genesis.SetNonce(utils.Random32Bytes())
+		fb, _ = genesis.Build()
+	}
+	return blockchain.NewFileBlockBuilder(fb)
+}
+
+func newTx() (*rsa.PrivateKey, *blockchain.Tx) {
 
 	ownerKey := crypto_rsa.GeneratePrivateKey()
 	someBytes := utils.Random32Bytes()
 	file := &messages.File{
-		Name:         utils.HashToHex(someBytes[:4]),
+		Name:         fmt.Sprintf("%s.%s", utils.HashToHex(someBytes[:4]), utils.HashToHex(someBytes[4:5])),
 		Size:         32,
 		MetafileHash: someBytes[:],
 	}
