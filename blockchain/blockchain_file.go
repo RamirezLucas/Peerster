@@ -79,6 +79,14 @@ func (bcf *BCF) MineOnce() bool {
 	return false
 }
 
+func (bcf *BCF) GetBlock(hash [32]byte) *messages.BlockPublish {
+	hashString := utils.HashToHex(hash[:])
+	if fb, ok := bcf.allBlocks[hashString]; ok {
+		return fb.ToBlockPublish(32)
+	}
+	return nil
+}
+
 // public functions without locks
 
 func (bcf *BCF) MiningRoutine() {
@@ -93,7 +101,7 @@ func (bcf *BCF) MiningRoutine() {
 	}
 }
 
-// (public & private) functions without locks
+// private functions without locks
 
 func (bcf *BCF) addBlock(block *messages.Block) bool {
 	previousId := utils.HashToHex(block.PrevHash[:])

@@ -75,4 +75,8 @@ func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 /*OnReceiveBlock is called when a `BlockPublish` is received.*/
 func OnReceiveBlock(gossiper *entities.Gossiper, block *messages.BlockPublish, sender *net.UDPAddr) {
 	gossiper.Blockchain.AddBlock(block.Block)
+	//TODO: Handle the missing block hash
+	// - AddBlock() (used just above) return the list of missing hash
+	// |-> do a request for each of them
+	// - respond to these requests using "BCF.GetBlock()" function
 }
