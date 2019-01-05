@@ -27,3 +27,9 @@ func (tx *Tx) ToTxPublish(hopLimit uint32) *messages.TxPublish {
 		HopLimit:  hopLimit,
 	}
 }
+
+func (this *Tx) Equals(that *Tx) bool {
+	return this.Signature == that.Signature &&
+		this.File.Hash() == that.File.Hash() &&
+		this.PublicKey == that.PublicKey
+}
