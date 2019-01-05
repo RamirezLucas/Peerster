@@ -161,7 +161,6 @@ func (fbb *FileBlockBuilder) addTxIfValid(newTx *Tx) bool {
 		logger.Printlnf("IGNORING TX: there is already an owner of file <%s>", newTx.File.String())
 		return false
 	}
-
 	// printing the transaction result
 	if !ok {
 		logger.Printlnf("ADDING TX: new owner of file <%s>", newTx.File.String())
