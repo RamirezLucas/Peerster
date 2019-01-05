@@ -11,11 +11,11 @@ import (
 )
 
 type BCF struct {
-	forks     map[string]*FileBlock // all forks of the blockchain (the head is on top of the longest fork)
-	allBlocks map[string]*FileBlock // all blocks of the blockchain
-	//TODO pendingBlocks map[string]*FileBlockBuilder // blocks with no parents (hence *Builder)
-	chainLength int
-	head        *FileBlockBuilder // the block we will be mining over (not yet on the blockchain, hence *Builder)
+	forks         map[string]*FileBlock      // all forks of the blockchain (the head is on top of the longest fork)
+	allBlocks     map[string]*FileBlock      // all blocks of the blockchain
+	pendingBlocks map[string]*messages.Block // blocks with no parents (hence *Builder)
+	ChainLength   int
+	Head          *FileBlockBuilder // the block we will be mining over (not yet on the blockchain, hence *Builder)
 
 	MineChan MineChan
 
@@ -24,12 +24,12 @@ type BCF struct {
 
 func NewBCF() *BCF {
 	return &BCF{
-		forks:     map[string]*FileBlock{},
-		allBlocks: map[string]*FileBlock{},
-		//TODO pendingBlocks: map[string]*FileBlockBuilder{},
-		chainLength: 0,
-		head:        NewFileBlockBuilder(nil),
-		MineChan:    NewMineChan(true),
+		forks:         map[string]*FileBlock{},
+		allBlocks:     map[string]*FileBlock{},
+		pendingBlocks: map[string]*messages.Block{},
+		ChainLength:   0,
+		Head:          NewFileBlockBuilder(nil),
+		MineChan:      NewMineChan(true),
 	}
 }
 
@@ -37,26 +37,68 @@ func (bcf *BCF) AddTx(tx *Tx) {
 	bcf.RLock()
 	defer bcf.RUnlock()
 
-	bcf.head.AddTxIfValid(tx)
+	bcf.Head.AddTxIfValid(tx)
 }
 
 func (bcf *BCF) GetHead() *FileBlockBuilder {
 	bcf.RLock()
 	defer bcf.RUnlock()
 
-	return bcf.head
+	return bcf.Head
 }
 
-func (bcf *BCF) AddBlock(block *messages.Block) bool {
+func (bcf *BCF) AddBlock(block *messages.Block) [][32]byte {
 	bcf.Lock()
 	defer bcf.Unlock()
 
-	//genesisHash := [32]byte{}
-	//genesisHashString := utils.HashToHex(genesisHash[:])
+	return bcf.addBlockAndPending(block)
+}
 
+func (bcf *BCF) MineOnce() bool {
+	bcf.Lock()
+	defer bcf.Unlock()
+
+	nonce := utils.Random32Bytes()
+	bcf.Head.SetNonce(nonce)
+	fb, err := bcf.Head.Build()
+	if err == nil {
+		logger.Printlnf("FOUND-BLOCK %s", utils.HashToHex(fb.Hash[:])) //hw03 print
+		/* waiting when block is genesis (hw03)
+		if fb.IsGenesis() {
+			time.Sleep(5 * time.Second)
+			logger.Printlnf("5sec waited on %s", utils.HashToHex(fb.Hash[:]))
+		}
+		*/
+		if bcf.addFileBlock(fb) {
+			bcf.MineChan.Push(fb)
+			return true
+		} else {
+			fail.HandleError(fmt.Errorf("block mined not added to chain, this should not happen"))
+		}
+	}
+	return false
+}
+
+// public functions without locks
+
+func (bcf *BCF) MiningRoutine() {
+	for {
+		if len(bcf.Head.Transactions) > 0 {
+			// only mine if new transactions
+			bcf.MineOnce()
+		} else {
+			// allows cpu not to be overused when no transactions
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+}
+
+// (public & private) functions without locks
+
+func (bcf *BCF) addBlock(block *messages.Block) bool {
 	previousId := utils.HashToHex(block.PrevHash[:])
 	var previousBlock *FileBlock
-	if bcf.chainLength == 0 {
+	if bcf.ChainLength == 0 {
 		// first block, welcome and be our master! (previous set to nil)
 		previousBlock = nil
 	} else if forkBlock, ok := bcf.forks[previousId]; ok {
@@ -70,8 +112,7 @@ func (bcf *BCF) AddBlock(block *messages.Block) bool {
 		// new fork from the genesis block
 		previousBlock = nil
 	} else {
-		// same as above ?
-		logger.Printlnf("block ignored (unknown reference from previous block)")
+		bcf.pendingBlocks[block.HashString()] = block
 		return false
 	}
 
@@ -81,62 +122,34 @@ func (bcf *BCF) AddBlock(block *messages.Block) bool {
 		fail.HandleAbort("adding block failed when building", err)
 		return false
 	} else {
-		ret := bcf.addFileBlock(fb)
-		return ret
+		return bcf.addFileBlock(fb)
 	}
 }
 
-func (bcf *BCF) MineOnce() bool {
-	bcf.Lock()
-	defer bcf.Unlock()
-
-	nonce := utils.Random32Bytes()
-	bcf.head.SetNonce(nonce)
-	fb, err := bcf.head.Build()
-	if err == nil {
-		logger.Printlnf("FOUND-BLOCK %s", utils.HashToHex(fb.Hash[:])) //hw03 print
-		if fb.IsGenesis() {
-			time.Sleep(5 * time.Second)
-			logger.Printlnf("5sec waited on %s", utils.HashToHex(fb.Hash[:]))
-		}
-		if bcf.addFileBlock(fb) {
-			bcf.MineChan.Push(fb)
-			return true
+func (bcf *BCF) addBlockAndPending(block *messages.Block) [][32]byte {
+	bcf.addBlock(block)
+	missingBlocks := [][32]byte{}
+	for _, pBlock := range bcf.pendingBlocks {
+		if block.Hash() != pBlock.Hash() && bcf.addBlock(pBlock) {
+			delete(bcf.pendingBlocks, pBlock.HashString())
 		} else {
-			fail.HandleError(fmt.Errorf("block mined not added to chain, this should not happen"))
+			missingBlocks = append(missingBlocks, pBlock.PrevHash)
 		}
 	}
-	return false
+	return missingBlocks
 }
-
-// public functions without locks
-
-func (bcf *BCF) MiningRoutine(group *sync.WaitGroup) {
-	defer group.Done()
-	for {
-		if len(bcf.head.Transactions) > 0 {
-			// only mine if new transactions
-			bcf.MineOnce()
-		} else {
-			// allows cpu not to be overused when no transactions
-			time.Sleep(100 * time.Millisecond)
-		}
-	}
-}
-
-// private functions without locks
 
 func (bcf *BCF) addFileBlock(fb *FileBlock) bool {
 	//logger.Printlnf("adding file block %s", fb.String())
 	if fb.Previous == nil {
 		bcf.allBlocks[fb.id] = fb
 		bcf.forks[fb.id] = fb
-		if bcf.chainLength == 0 {
+		if bcf.ChainLength == 0 {
 			logger.Printlnf(fb.ChainString()) // hw03 print
-			bcf.chainLength = fb.Length
-			bcf.head = NewFileBlockBuilder(fb)
+			bcf.ChainLength = fb.Length
+			bcf.Head = NewFileBlockBuilder(fb)
 		} else {
-			_, hashString, _ := findMergure(fb, bcf.head.Previous)
+			_, hashString, _ := findMergure(fb, bcf.Head.Previous)
 			logger.Printlnf("FORK-SHORTER %s", hashString)
 		}
 		return true
@@ -145,33 +158,33 @@ func (bcf *BCF) addFileBlock(fb *FileBlock) bool {
 		delete(bcf.forks, fb.Previous.id)
 		bcf.forks[fb.id] = fb
 
-		if fb.Length > bcf.chainLength {
+		if fb.Length > bcf.ChainLength {
 			// even the longest fork now! changing head!
 			// we need to keep the transactions that are not invalidated nor included in the new block
 
 			newHead := NewFileBlockBuilder(fb)
-			for _, tx := range bcf.head.Transactions {
+			for _, tx := range bcf.Head.Transactions {
 				newHead.AddTxIfValid(tx)
 			}
 
-			if rewind, _, rewindTransactions := findMergure(fb, bcf.head.Previous); rewind > 0 {
+			if rewind, _, rewindTransactions := findMergure(fb, bcf.Head.Previous); rewind > 0 {
 				for _, tx := range rewindTransactions {
 					newHead.AddTxIfValid(tx)
 				}
 				logger.Printlnf("FORK-LONGER rewind %d blocks", rewind)
 			}
 			logger.Printlnf(fb.ChainString()) // hw03 print
-			bcf.chainLength = fb.Length       //not new head which is 1 greater
-			bcf.head = newHead
+			bcf.ChainLength = fb.Length       //not new head which is 1 greater
+			bcf.Head = newHead
 		} else {
-			_, hashString, _ := findMergure(fb, bcf.head.Previous)
+			_, hashString, _ := findMergure(fb, bcf.Head.Previous)
 			logger.Printlnf("FORK-SHORTER %s", hashString)
 		}
 		return true
 	} else if _, ok := bcf.allBlocks[fb.Previous.id]; ok {
 		bcf.allBlocks[fb.id] = fb
 		bcf.forks[fb.id] = fb
-		_, hashString, _ := findMergure(fb, bcf.head.Previous)
+		_, hashString, _ := findMergure(fb, bcf.Head.Previous)
 		logger.Printlnf("FORK-SHORTER %s", hashString)
 		return true
 	}

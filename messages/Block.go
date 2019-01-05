@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"Peerster/utils"
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/binary"
@@ -18,13 +19,13 @@ type Block struct {
 }
 
 // Hash - Computes the hash of a Block
-func (b *Block) Hash() [32]byte {
+func (block *Block) Hash() [32]byte {
 	var out [32]byte
 	h := sha256.New()
-	h.Write(b.PrevHash[:])
-	h.Write(b.Nonce[:])
-	binary.Write(h, binary.LittleEndian, uint32(len(b.Transactions)))
-	for _, t := range b.Transactions {
+	h.Write(block.PrevHash[:])
+	h.Write(block.Nonce[:])
+	binary.Write(h, binary.LittleEndian, uint32(len(block.Transactions)))
+	for _, t := range block.Transactions {
 		th := t.File.Hash()
 		h.Write(th[:])
 	}
@@ -32,19 +33,24 @@ func (b *Block) Hash() [32]byte {
 	return out
 }
 
+func (block *Block) HashString() string {
+	hash := block.Hash()
+	return utils.HashToHex(hash[:])
+}
+
 /*ChangeNonceRandomly genereates a new random nonce for a `Block` and
 writes it in the `Nonce` field of the receiver block. */
-func (b *Block) ChangeNonceRandomly() {
-	rand.Read(b.Nonce[:])
+func (block *Block) ChangeNonceRandomly() {
+	rand.Read(block.Nonce[:])
 }
 
 /*CheckHashValid checks whether the block's hash (according the `Hash()`)
 is valid for the blockchain, i.e. starts with enough zeroes.
 
 The function returns true if the hash is valid, or false otherwise. */
-func (b *Block) CheckHashValid() bool {
+func (block *Block) CheckHashValid() bool {
 
-	hash := b.Hash()
+	hash := block.Hash()
 	for i := 0; i < nbBytesZero; i++ {
 		if hash[i] != 0 {
 			return false // Invalid hash
@@ -54,13 +60,13 @@ func (b *Block) CheckHashValid() bool {
 }
 
 /*ToString returns a textual representation of a `Block`.*/
-func (b *Block) ToString() string {
+func (block *Block) ToString() string {
 
-	hash := b.Hash()
+	hash := block.Hash()
 
 	str := fmt.Sprintf("%x", hash[:]) + ":"
-	str += fmt.Sprintf("%x", b.PrevHash[:]) + ":"
-	for _, tx := range b.Transactions {
+	str += fmt.Sprintf("%x", block.PrevHash[:]) + ":"
+	for _, tx := range block.Transactions {
 		str += tx.File.Name + ","
 	}
 
@@ -70,9 +76,9 @@ func (b *Block) ToString() string {
 
 /*IsGenesis returns true if this is a genesis block, i.e. a block with
 `PrevHash` == 0. The function returns false otherwise.*/
-func (b *Block) IsGenesis() bool {
-	for i := 0; i < len(b.PrevHash); i++ {
-		if b.PrevHash[i] != 0 {
+func (block *Block) IsGenesis() bool {
+	for i := 0; i < len(block.PrevHash); i++ {
+		if block.PrevHash[i] != 0 {
 			return false
 		}
 	}

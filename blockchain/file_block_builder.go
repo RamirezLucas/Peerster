@@ -149,18 +149,24 @@ func (fbb *FileBlockBuilder) readPreviousTx() {
 func (fbb *FileBlockBuilder) addTxIfValid(newTx *Tx) bool {
 	fileHashString := newTx.File.HashString()
 	prevTx, ok := fbb.Hashes[fileHashString]
-	if ok && crypto_rsa.Verify(prevTx.Signature[:], newTx.Signature, prevTx.PublicKey) != nil {
-		return false
-	}
-	if !ok { // if new hash (file), we check if filename is not already used
+
+	if !ok {
+		// if new hash (file), we check if filename is not already used
 		if _, ok := fbb.Filenames[newTx.File.Name]; ok {
+			logger.Printlnf("IGNORING TX: filename <%s> already used", newTx.File.Name)
 			return false
 		}
+	} else if crypto_rsa.Verify(prevTx.Signature[:], newTx.Signature, prevTx.PublicKey) != nil {
+		// check if changing ownership is legal here (i.e. if owner is the one starting the change)
+		logger.Printlnf("IGNORING TX: there is already an owner of file <%s>", newTx.File.String())
+		return false
 	}
+
+	// printing the transaction result
 	if !ok {
-		logger.Printlnf("NEW OWNER (file=%s)", newTx.File.String())
+		logger.Printlnf("ADDING TX: new owner of file <%s>", newTx.File.String())
 	} else {
-		logger.Printlnf("OWNER CHANGED (file=%s)", newTx.File.String())
+		logger.Printlnf("ADDING TX: owner of file <%s> changed", newTx.File.String())
 	}
 
 	fbb.Filenames[newTx.File.Name] = true
