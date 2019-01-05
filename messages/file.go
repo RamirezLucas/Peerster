@@ -25,7 +25,12 @@ func (t *File) Hash() [32]byte {
 	return out
 }
 
+func (file *File) HashString() string {
+	hash := file.Hash()
+	return utils.HashToHex(hash[:])
+}
+
 func (file *File) String() string {
-	return fmt.Sprintf("FILE named %s size %d with metafile hash %s",
+	return fmt.Sprintf("FILE named <%s> size <%d> with metafile hash <%s>",
 		file.Name, file.Size, utils.HashToHex(file.MetafileHash))
 }

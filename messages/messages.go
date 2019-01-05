@@ -1,6 +1,7 @@
 package messages
 
 import (
+	"crypto/rsa"
 	"fmt"
 )
 
@@ -78,15 +79,17 @@ type SearchResult struct {
 	ChunkCount   uint64   // Number of chunks for this file
 }
 
-// TxPublish - A name-to-methash mapping for the blockchain
+// TxPublish - A transaction for the UTXO blockchain
 type TxPublish struct {
-	File     File
-	HopLimit uint32
+	Signature [256]byte
+	File      *File
+	PublicKey *rsa.PublicKey
+	HopLimit  uint32
 }
 
-// BlockPublish - A block for the blockchain
+// BlockPublish - A block for the UTXO blockchain
 type BlockPublish struct {
-	Block    Block
+	Block    *Block
 	HopLimit uint32
 }
 

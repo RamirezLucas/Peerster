@@ -9,61 +9,56 @@ import (
 )
 
 type FileBlock struct {
-	length int
+	Length int
 	id     string
 
-	previous     *FileBlock
-	hash         [32]byte
-	nonce        [32]byte
-	transactions map[string]*Tx
+	Previous     *FileBlock
+	Hash         [32]byte
+	Nonce        [32]byte
+	Transactions []*Tx
 }
 
-func (fb *FileBlock) IsAfterGenesis() bool {
-	return fb.previous == nil
-}
-
-func (fb *FileBlock) txIsValidWithThisBlock(newTx *Tx) bool {
-	_, ok := fb.transactions[newTx.id]
-	return !ok //is valid if not yet present
+func (fb *FileBlock) IsGenesis() bool {
+	return fb.Previous == nil
 }
 
 func (fb *FileBlock) ToBlock(hopLimit uint32) *messages.Block {
-	transactions := []messages.TxPublish{}
-	for _, tx := range fb.transactions {
+	transactions := []*messages.TxPublish{}
+	for _, tx := range fb.Transactions {
 		transactions = append(transactions, tx.ToTxPublish(hopLimit))
 	}
 
 	prevHash := [32]byte{}
-	if fb.previous != nil {
-		prevHash = fb.previous.hash
+	if fb.Previous != nil {
+		prevHash = fb.Previous.Hash
 	}
 	return &messages.Block{
 		PrevHash:     prevHash,
-		Nonce:        fb.nonce,
+		Nonce:        fb.Nonce,
 		Transactions: transactions,
 	}
 }
 
 func (fb *FileBlock) ToBlockPublish(hopLimit uint32) *messages.BlockPublish {
 	return &messages.BlockPublish{
-		Block:    *fb.ToBlock(hopLimit),
+		Block:    fb.ToBlock(hopLimit),
 		HopLimit: hopLimit,
 	}
 }
 
 func (fb *FileBlock) String() string {
 	prevHash := [32]byte{}
-	if fb.previous != nil {
-		prevHash = fb.previous.hash
+	if fb.Previous != nil {
+		prevHash = fb.Previous.Hash
 	}
 	txStrings := []string{}
-	for _, tx := range fb.transactions {
+	for _, tx := range fb.Transactions {
 		txStrings = append(txStrings, tx.File.Name)
 	}
 	sort.Slice(txStrings, func(i, j int) bool {
 		return txStrings[i] < txStrings[j]
 	})
-	return fmt.Sprintf("%s:%s:%s", utils.HashToHex(fb.hash[:]), utils.HashToHex(prevHash[:]), strings.Join(txStrings, ","))
+	return fmt.Sprintf("%s:%s:%s", utils.HashToHex(fb.Hash[:]), utils.HashToHex(prevHash[:]), strings.Join(txStrings, ","))
 }
 
 func (fb *FileBlock) ChainString() string {
@@ -71,7 +66,7 @@ func (fb *FileBlock) ChainString() string {
 	block := fb
 	for block != nil {
 		blockStrings = append(blockStrings, block.String())
-		block = block.previous
+		block = block.Previous
 	}
 	return fmt.Sprintf("CHAIN %s", strings.Join(blockStrings, " "))
 }

@@ -11,8 +11,9 @@ import (
 )
 
 type BCF struct {
-	forks       map[string]*FileBlock
-	allBlocks   map[string]*FileBlock
+	forks     map[string]*FileBlock // all forks of the blockchain (the head is on top of the longest fork)
+	allBlocks map[string]*FileBlock // all blocks of the blockchain
+	//TODO pendingBlocks map[string]*FileBlockBuilder // blocks with no parents (hence *Builder)
 	chainLength int
 	head        *FileBlockBuilder // the block we will be mining over (not yet on the blockchain, hence *Builder)
 
@@ -23,8 +24,9 @@ type BCF struct {
 
 func NewBCF() *BCF {
 	return &BCF{
-		forks:       map[string]*FileBlock{},
-		allBlocks:   map[string]*FileBlock{},
+		forks:     map[string]*FileBlock{},
+		allBlocks: map[string]*FileBlock{},
+		//TODO pendingBlocks: map[string]*FileBlockBuilder{},
 		chainLength: 0,
 		head:        NewFileBlockBuilder(nil),
 		MineChan:    NewMineChan(true),
@@ -92,10 +94,10 @@ func (bcf *BCF) MineOnce() bool {
 	bcf.head.SetNonce(nonce)
 	fb, err := bcf.head.Build()
 	if err == nil {
-		logger.Printlnf("FOUND-BLOCK %s", utils.HashToHex(fb.hash[:])) //hw03 print
-		if fb.IsAfterGenesis() {
+		logger.Printlnf("FOUND-BLOCK %s", utils.HashToHex(fb.Hash[:])) //hw03 print
+		if fb.IsGenesis() {
 			time.Sleep(5 * time.Second)
-			logger.Printlnf("5sec waited on %s", utils.HashToHex(fb.hash[:]))
+			logger.Printlnf("5sec waited on %s", utils.HashToHex(fb.Hash[:]))
 		}
 		if bcf.addFileBlock(fb) {
 			bcf.MineChan.Push(fb)
@@ -112,7 +114,7 @@ func (bcf *BCF) MineOnce() bool {
 func (bcf *BCF) MiningRoutine(group *sync.WaitGroup) {
 	defer group.Done()
 	for {
-		if len(bcf.head.newTransactions) > 0 {
+		if len(bcf.head.Transactions) > 0 {
 			// only mine if new transactions
 			bcf.MineOnce()
 		} else {
@@ -126,50 +128,50 @@ func (bcf *BCF) MiningRoutine(group *sync.WaitGroup) {
 
 func (bcf *BCF) addFileBlock(fb *FileBlock) bool {
 	//logger.Printlnf("adding file block %s", fb.String())
-	if fb.previous == nil {
+	if fb.Previous == nil {
 		bcf.allBlocks[fb.id] = fb
 		bcf.forks[fb.id] = fb
 		if bcf.chainLength == 0 {
 			logger.Printlnf(fb.ChainString()) // hw03 print
-			bcf.chainLength = fb.length
+			bcf.chainLength = fb.Length
 			bcf.head = NewFileBlockBuilder(fb)
 		} else {
-			_, hashString, _ := findMergure(fb, bcf.head.previous)
+			_, hashString, _ := findMergure(fb, bcf.head.Previous)
 			logger.Printlnf("FORK-SHORTER %s", hashString)
 		}
 		return true
-	} else if _, ok := bcf.forks[fb.previous.id]; ok {
+	} else if _, ok := bcf.forks[fb.Previous.id]; ok {
 		bcf.allBlocks[fb.id] = fb
-		delete(bcf.forks, fb.previous.id)
+		delete(bcf.forks, fb.Previous.id)
 		bcf.forks[fb.id] = fb
 
-		if fb.length > bcf.chainLength {
+		if fb.Length > bcf.chainLength {
 			// even the longest fork now! changing head!
 			// we need to keep the transactions that are not invalidated nor included in the new block
 
 			newHead := NewFileBlockBuilder(fb)
-			for _, tx := range bcf.head.newTransactions {
+			for _, tx := range bcf.head.Transactions {
 				newHead.AddTxIfValid(tx)
 			}
 
-			if rewind, _, rewindTransactions := findMergure(fb, bcf.head.previous); rewind > 0 {
+			if rewind, _, rewindTransactions := findMergure(fb, bcf.head.Previous); rewind > 0 {
 				for _, tx := range rewindTransactions {
 					newHead.AddTxIfValid(tx)
 				}
 				logger.Printlnf("FORK-LONGER rewind %d blocks", rewind)
 			}
 			logger.Printlnf(fb.ChainString()) // hw03 print
-			bcf.chainLength = fb.length       //not new head which is 1 greater
+			bcf.chainLength = fb.Length       //not new head which is 1 greater
 			bcf.head = newHead
 		} else {
-			_, hashString, _ := findMergure(fb, bcf.head.previous)
+			_, hashString, _ := findMergure(fb, bcf.head.Previous)
 			logger.Printlnf("FORK-SHORTER %s", hashString)
 		}
 		return true
-	} else if _, ok := bcf.allBlocks[fb.previous.id]; ok {
+	} else if _, ok := bcf.allBlocks[fb.Previous.id]; ok {
 		bcf.allBlocks[fb.id] = fb
 		bcf.forks[fb.id] = fb
-		_, hashString, _ := findMergure(fb, bcf.head.previous)
+		_, hashString, _ := findMergure(fb, bcf.head.Previous)
 		logger.Printlnf("FORK-SHORTER %s", hashString)
 		return true
 	}
@@ -184,19 +186,19 @@ func findMergure(newBlock, oldBlock *FileBlock) (int, string, []*Tx) {
 	newChainBlock := newBlock
 	for newChainBlock != nil {
 		newChainBlocks[newChainBlock.id] = true
-		newChainBlock = newChainBlock.previous
+		newChainBlock = newChainBlock.Previous
 	}
 
 	oldChainBlock := oldBlock
 	for oldChainBlock != nil {
-		for _, tx := range oldChainBlock.transactions {
+		for _, tx := range oldChainBlock.Transactions {
 			rewindTransactions = append(rewindTransactions, tx)
 		}
 		if _, ok := newChainBlocks[oldChainBlock.id]; ok {
 			break
 		}
 		rewind += 1
-		oldChainBlock = oldChainBlock.previous
+		oldChainBlock = oldChainBlock.Previous
 	}
 	if oldChainBlock == nil {
 		genesisHash := [32]byte{}

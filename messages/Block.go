@@ -14,7 +14,7 @@ const nbBytesZero = 2
 type Block struct {
 	PrevHash     [32]byte
 	Nonce        [32]byte
-	Transactions []TxPublish
+	Transactions []*TxPublish
 }
 
 // Hash - Computes the hash of a Block
