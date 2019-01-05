@@ -245,7 +245,7 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 				if file := g.FileIndex.AddLocalFile(pkt.DataRequest.Origin); file != nil {
 					// Broadcast the transaction and publish to the blockchain
 					network.OnReceiveTransaction(g, &messages.TxPublish{
-						File:     *file,
+						File:     file,
 						HopLimit: network.TransactionHopLimit + 1,
 					}, nil)
 				}
@@ -322,8 +322,16 @@ func main() {
 		}
 	}
 
-	// Craft a genesis block for the blockchain
-	go network.CreateGenesisBlock(gossiper)
+	// blockchain routine
+	// - mining (only when there are transactions)
+	// - broadcast new blocks
+	go gossiper.Blockchain.MiningRoutine()
+	go func() {
+		for {
+			newBlock := gossiper.Blockchain.MineChan.Get()
+			network.OnBroadcastBlock(gossiper, newBlock.ToBlock(32))
+		}
+	}()
 
 	// Kill all goroutines before exiting
 	signalChan := make(chan os.Signal, 1)

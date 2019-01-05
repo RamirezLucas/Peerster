@@ -1,6 +1,7 @@
 package network
 
 import (
+	"Peerster/blockchain"
 	"Peerster/entities"
 	"Peerster/messages"
 	"net"
@@ -34,7 +35,7 @@ func OnBroadcastTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish)
 func OnReceiveTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish, sender *net.UDPAddr) {
 
 	// Check if the transaction is valid and add it to the pending buffer
-	if gossiper.Blockchain.AddPendingTransaction(&tx.File) {
+	if gossiper.Blockchain.AddTx(blockchain.NewTx(tx)) {
 
 		// Check the hop limit
 		if tx.HopLimit == 0 {
@@ -45,33 +46,18 @@ func OnReceiveTransaction(gossiper *entities.Gossiper, tx *messages.TxPublish, s
 		tx.HopLimit--
 		OnBroadcastTransaction(gossiper, tx)
 
-		// Start mining
-		for {
-			if newBlock := gossiper.Blockchain.MineNewBlock(false); newBlock != nil {
-				OnBroadcastBlock(gossiper, newBlock)
-			} else {
-				return
-			}
-		}
 	}
 
 }
 
 /* ================ BLOCKS ================ */
 
-/*CreateGenesisBlock is used to create and broadcast the genesis block for the blockchain.*/
-func CreateGenesisBlock(gossiper *entities.Gossiper) {
-	if newBlock := gossiper.Blockchain.MineNewBlock(true); newBlock != nil {
-		OnBroadcastBlock(gossiper, newBlock)
-	}
-}
-
 /*OnBroadcastBlock is used to broadcast a `Block` on the network.*/
 func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 
 	// Create a BlockPublish
 	publish := &messages.BlockPublish{
-		Block:    *block,
+		Block:    block,
 		HopLimit: BlockHopLimit,
 	}
 
@@ -88,5 +74,5 @@ func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 
 /*OnReceiveBlock is called when a `BlockPublish` is received.*/
 func OnReceiveBlock(gossiper *entities.Gossiper, block *messages.BlockPublish, sender *net.UDPAddr) {
-	gossiper.Blockchain.AddBlock(&block.Block)
+	gossiper.Blockchain.AddBlock(block.Block)
 }

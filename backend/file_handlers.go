@@ -27,7 +27,7 @@ func postFileIndexHandler(w http.ResponseWriter, r *http.Request) {
 	if file := gossiper.FileIndex.AddLocalFile(filename); file != nil {
 		// Broadcast the transaction and publish to the blockchain
 		network.OnReceiveTransaction(gossiper, &messages.TxPublish{
-			File:     *file,
+			File:     file,
 			HopLimit: network.TransactionHopLimit + 1,
 		}, nil)
 	}

@@ -27,7 +27,7 @@ type Gossiper struct {
 	TOSearchRequest *files.TOSearchRequest // Timeouts for received SearchRequest's (Shared, thread-safe)
 
 	/* Blockchain */
-	Blockchain *blockchain.Blockchain // A blockchain for filename-to-metahash claiming (Shared, thread-safe)
+	Blockchain *blockchain.BCF // A blockchain for filename-to-metahash claiming (Shared, thread-safe)
 }
 
 // CLArgsGossiper - Command line arguments for the gossiper
@@ -64,7 +64,7 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 	gossip.TOSearchRequest = files.NewTOSearchRequest()
 
 	/* Blockchain */
-	gossip.Blockchain = blockchain.NewBlockchain()
+	gossip.Blockchain = blockchain.NewBCF()
 
 	return &gossip
 }

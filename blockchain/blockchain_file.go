@@ -33,11 +33,11 @@ func NewBCF() *BCF {
 	}
 }
 
-func (bcf *BCF) AddTx(tx *Tx) {
+func (bcf *BCF) AddTx(tx *Tx) bool {
 	bcf.RLock()
 	defer bcf.RUnlock()
 
-	bcf.Head.AddTxIfValid(tx)
+	return bcf.Head.AddTxIfValid(tx)
 }
 
 func (bcf *BCF) GetHead() *FileBlockBuilder {
