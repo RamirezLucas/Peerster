@@ -51,7 +51,11 @@ func (bcf *BCF) AddBlock(block *messages.Block) [][32]byte {
 	bcf.Lock()
 	defer bcf.Unlock()
 
-	return bcf.addBlockAndPending(block)
+	if bcf.addBlock(block) {
+		return bcf.addPendingBlocks()
+	} else {
+		return nil
+	}
 }
 
 func (bcf *BCF) MineOnce() bool {
@@ -63,12 +67,6 @@ func (bcf *BCF) MineOnce() bool {
 	fb, err := bcf.Head.Build()
 	if err == nil {
 		logger.Printlnf("FOUND-BLOCK %s", utils.HashToHex(fb.Hash[:])) //hw03 print
-		/* waiting when block is genesis (hw03)
-		if fb.IsGenesis() {
-			time.Sleep(5 * time.Second)
-			logger.Printlnf("5sec waited on %s", utils.HashToHex(fb.Hash[:]))
-		}
-		*/
 		if bcf.addFileBlock(fb) {
 			bcf.MineChan.Push(fb)
 			return true
@@ -123,6 +121,7 @@ func (bcf *BCF) addBlock(block *messages.Block) bool {
 		bcf.pendingBlocks[block.HashString()] = block
 		return false
 	}
+	delete(bcf.pendingBlocks, block.HashString())
 
 	newFBB := NewFileBlockBuilder(previousBlock)
 
@@ -134,12 +133,12 @@ func (bcf *BCF) addBlock(block *messages.Block) bool {
 	}
 }
 
-func (bcf *BCF) addBlockAndPending(block *messages.Block) [][32]byte {
-	bcf.addBlock(block)
+func (bcf *BCF) addPendingBlocks() [][32]byte {
 	missingBlocks := [][32]byte{}
 	for _, pBlock := range bcf.pendingBlocks {
-		if block.Hash() != pBlock.Hash() && bcf.addBlock(pBlock) {
+		if bcf.addBlock(pBlock) {
 			delete(bcf.pendingBlocks, pBlock.HashString())
+			bcf.addPendingBlocks()
 		} else {
 			missingBlocks = append(missingBlocks, pBlock.PrevHash)
 		}

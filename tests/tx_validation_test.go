@@ -12,13 +12,6 @@ import (
 	"testing"
 )
 
-var ownerKey *rsa.PrivateKey
-var tx *blockchain.Tx
-
-func init() {
-	ownerKey, tx = newTx()
-}
-
 func TestBlockBuilder(t *testing.T) {
 	fbb := blockchain.NewFileBlockBuilder(nil)
 
@@ -28,10 +21,12 @@ func TestBlockBuilder(t *testing.T) {
 }
 
 func TestTxCreation(t *testing.T) {
+	_, tx := newTx()
 	assert.NotNil(t, tx, "tx should not be nil")
 }
 
 func TestAddOwner(t *testing.T) {
+	_, tx := newTx()
 	fbb := blockchain.NewFileBlockBuilder(nil)
 
 	assert.True(t, fbb.AddTxIfValid(tx))
@@ -39,7 +34,8 @@ func TestAddOwner(t *testing.T) {
 }
 
 func TestChangeOwner(t *testing.T) {
-	fbb := createFBB(t)
+	ownerKey, tx := newTx()
+	fbb := createFBB(t, tx)
 
 	signature, err := crypto_rsa.Sign(tx.Signature[:], ownerKey)
 
@@ -58,7 +54,8 @@ func TestChangeOwner(t *testing.T) {
 }
 
 func TestTryChangeOwner(t *testing.T) {
-	fbb := createFBB(t)
+	_, tx := newTx()
+	fbb := createFBB(t, tx)
 
 	newOwnerKey := crypto_rsa.GeneratePrivateKey()
 	signature, err := crypto_rsa.Sign(tx.Signature[:], newOwnerKey)
@@ -77,7 +74,8 @@ func TestTryChangeOwner(t *testing.T) {
 }
 
 func TestAddSecondTx(t *testing.T) {
-	fbb := createFBB(t)
+	_, tx := newTx()
+	fbb := createFBB(t, tx)
 
 	_, newTx := newTx()
 
@@ -87,7 +85,8 @@ func TestAddSecondTx(t *testing.T) {
 }
 
 func TestTryAddSecondTx(t *testing.T) {
-	fbb := createFBB(t)
+	_, tx := newTx()
+	fbb := createFBB(t, tx)
 
 	_, newTx := newTx()
 	newTx.File.Name = tx.File.Name
@@ -99,7 +98,7 @@ func TestTryAddSecondTx(t *testing.T) {
 
 // private functions
 
-func createFBB(t *testing.T) *blockchain.FileBlockBuilder {
+func createFBB(t *testing.T, tx *blockchain.Tx) *blockchain.FileBlockBuilder {
 	genesis := blockchain.NewFileBlockBuilder(nil)
 	genesis.AddTxIfValid(tx)
 
