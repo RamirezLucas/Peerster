@@ -47,12 +47,17 @@ func (bcf *BCF) GetHead() *FileBlockBuilder {
 	return bcf.Head
 }
 
-func (bcf *BCF) AddBlock(block *messages.Block) [][32]byte {
+func (bcf *BCF) AddBlock(block *messages.Block) (missingBlocks [][32]byte) {
 	bcf.Lock()
 	defer bcf.Unlock()
 
 	bcf.addBlock(block)
-	return bcf.addPendingBlocks() // could be done only when addBlock is successful and returning the whole list otherwise
+	bcf.addPendingBlocks()
+
+	for _, pBlock := range bcf.pendingBlocks {
+		missingBlocks = append(missingBlocks, pBlock.PrevHash)
+	}
+	return missingBlocks
 }
 
 func (bcf *BCF) MineOnce() bool {
@@ -130,17 +135,13 @@ func (bcf *BCF) addBlock(block *messages.Block) bool {
 	}
 }
 
-func (bcf *BCF) addPendingBlocks() [][32]byte {
-	missingBlocks := [][32]byte{}
+func (bcf *BCF) addPendingBlocks() {
 	for _, pBlock := range bcf.pendingBlocks {
 		if bcf.addBlock(pBlock) {
 			delete(bcf.pendingBlocks, pBlock.HashString())
 			bcf.addPendingBlocks()
-		} else {
-			missingBlocks = append(missingBlocks, pBlock.PrevHash)
 		}
 	}
-	return missingBlocks
 }
 
 func (bcf *BCF) addFileBlock(fb *FileBlock) bool {

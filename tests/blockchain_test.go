@@ -72,14 +72,16 @@ func TestBlockChainForkWithoutPrevious(t *testing.T) {
 	nextHead1.AddTxIfValid(tx1) // adding a tx already in the fork
 	nextHead2 := mineAndGetNextBlock(nextHead1)
 
-	bcf.AddBlock(nextHead2.Previous.ToBlock(0)) // adding the 3rd block before its parent
+	pBlocks0 := bcf.AddBlock(nextHead2.Previous.ToBlock(0)) // adding the 3rd block before its parent
+	assert.Equal(t, 1, len(pBlocks0))
 	assert.Equal(t, 2, bcf.ChainLength)
 
-	bcf.AddBlock(nextHead1.Previous.ToBlock(0)) // adding the 2nd block before its parent
-
+	pBlocks1 := bcf.AddBlock(nextHead1.Previous.ToBlock(0)) // adding the 2nd block before its parent
+	assert.Equal(t, 2, len(pBlocks1))
 	assert.Equal(t, 2, bcf.ChainLength)
 
-	bcf.AddBlock(nextHead0.Previous.ToBlock(0)) // adding the 1st block (the parent)
+	pBlocks2 := bcf.AddBlock(nextHead0.Previous.ToBlock(0)) // adding the 1st block (the parent)
+	assert.Equal(t, 0, len(pBlocks2))
 	assert.Equal(t, 3, bcf.ChainLength)
 
 	assert.Equal(t, 3, len(bcf.Head.Filenames))
