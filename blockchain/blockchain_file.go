@@ -51,11 +51,8 @@ func (bcf *BCF) AddBlock(block *messages.Block) [][32]byte {
 	bcf.Lock()
 	defer bcf.Unlock()
 
-	if bcf.addBlock(block) {
-		return bcf.addPendingBlocks()
-	} else {
-		return nil
-	}
+	bcf.addBlock(block)
+	return bcf.addPendingBlocks() // could be done only when addBlock is successful and returning the whole list otherwise
 }
 
 func (bcf *BCF) MineOnce() bool {
