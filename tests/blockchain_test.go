@@ -24,6 +24,16 @@ func TestBlockChainMiningRoutine(t *testing.T) {
 	assert.Equal(t, 1, bcf.ChainLength)
 }
 
+func TestBlockChainGetBlock(t *testing.T) {
+	_, tx := newTx()
+	bcf := blockchain.NewBCF()
+	go bcf.MiningRoutine()
+	bcf.AddTx(tx)
+	block := bcf.MineChan.Get()
+
+	assert.True(t, block.Hash == bcf.GetBlock(block.Hash).Block.Hash())
+}
+
 func TestBlockChainForkShorterAndLonger(t *testing.T) {
 	_, tx := newTx()
 	bcf := blockchain.NewBCF()
