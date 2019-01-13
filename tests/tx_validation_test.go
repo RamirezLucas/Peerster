@@ -8,7 +8,6 @@ import (
 	"Peerster/utils"
 	"crypto/rsa"
 	"fmt"
-	"github.com/gregunz/Peerster/common"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -127,7 +126,7 @@ func newTx() (*rsa.PrivateKey, *blockchain.Tx) {
 func fileToNewTx(file *messages.File, ownerKey *rsa.PrivateKey) *blockchain.Tx {
 	signature, err := crypto_rsa.NewSignature(file, ownerKey)
 	if err != nil {
-		common.HandleError(err)
+		fail.HandleError(err)
 		return nil
 	}
 	return &blockchain.Tx{
