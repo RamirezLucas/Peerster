@@ -28,7 +28,7 @@ func PrivateKeyToBytes(key *rsa.PrivateKey) []byte {
 }
 
 func PublicKeyToBytes(key *rsa.PublicKey) ([]byte, error) {
-	return asn1.Marshal(key)
+	return asn1.Marshal(*key)
 }
 
 func BytesToPublicKey(bytes []byte) (*rsa.PublicKey, error) {
