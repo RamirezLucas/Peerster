@@ -3,6 +3,7 @@ package tests
 import (
 	"Peerster/blockchain"
 	"Peerster/crypto_rsa"
+	"Peerster/fail"
 	"Peerster/messages"
 	"Peerster/utils"
 	"crypto/rsa"
@@ -37,16 +38,8 @@ func TestChangeOwner(t *testing.T) {
 	ownerKey, tx := newTx()
 	fbb := createFBB(t, tx)
 
-	signature, err := crypto_rsa.Sign(tx.Signature[:], ownerKey)
-
-	assert.Nil(t, err)
-
 	newOwnerKey := crypto_rsa.GeneratePrivateKey()
-	newTx := &blockchain.Tx{
-		Signature: signature,
-		File:      tx.File,
-		PublicKey: &newOwnerKey.PublicKey,
-	}
+	newTx := transferFileFromTxToTx(tx, ownerKey, newOwnerKey)
 
 	assert.True(t, fbb.AddTxIfValid(newTx))
 	assert.Equal(t, 1, len(fbb.Transactions))
@@ -121,7 +114,6 @@ func mineAndGetNextBlock(genesis *blockchain.FileBlockBuilder) *blockchain.FileB
 }
 
 func newTx() (*rsa.PrivateKey, *blockchain.Tx) {
-
 	ownerKey := crypto_rsa.GeneratePrivateKey()
 	someBytes := utils.Random32Bytes()
 	file := &messages.File{
@@ -129,15 +121,32 @@ func newTx() (*rsa.PrivateKey, *blockchain.Tx) {
 		Size:         32,
 		MetafileHash: someBytes[:],
 	}
-	fileHash := file.Hash()
-	signature, err := crypto_rsa.Sign(fileHash[:], ownerKey)
+	return ownerKey, fileToNewTx(file, ownerKey)
+}
+
+func fileToNewTx(file *messages.File, ownerKey *rsa.PrivateKey) *blockchain.Tx {
+	signature, err := crypto_rsa.NewSignature(file, ownerKey)
 	if err != nil {
 		common.HandleError(err)
-		return nil, nil
+		return nil
 	}
-	return ownerKey, &blockchain.Tx{
+	return &blockchain.Tx{
 		Signature: signature,
 		File:      file,
 		PublicKey: &ownerKey.PublicKey,
 	}
+}
+
+func transferFileToTx(prevSignature []byte, file *messages.File, prevOwnerKey, newOwnerKey *rsa.PrivateKey) *blockchain.Tx {
+	signature, err := crypto_rsa.Sign(prevSignature, prevOwnerKey)
+	fail.HandleError(err)
+	return &blockchain.Tx{
+		Signature: signature,
+		File:      file,
+		PublicKey: &newOwnerKey.PublicKey,
+	}
+}
+
+func transferFileFromTxToTx(prevTx *blockchain.Tx, prevOwnerKey, newOwnerKey *rsa.PrivateKey) *blockchain.Tx {
+	return transferFileToTx(prevTx.Signature[:], prevTx.File, prevOwnerKey, newOwnerKey)
 }
