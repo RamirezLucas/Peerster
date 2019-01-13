@@ -1,12 +1,12 @@
 package crypto_rsa
 
 import (
+	"Peerster/fail"
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/asn1"
 	"encoding/pem"
-	"github.com/gregunz/Peerster/common"
 	"os"
 )
 
@@ -18,7 +18,7 @@ func GeneratePrivateKey() *rsa.PrivateKey {
 	reader := rand.Reader
 
 	key, err := rsa.GenerateKey(reader, privateKeyBitSize)
-	common.HandleError(err)
+	fail.HandleError(err)
 
 	return key
 }
@@ -41,16 +41,16 @@ func SavePEMKey(fileName string, key *rsa.PrivateKey) {
 	bytes := PrivateKeyToBytes(key)
 
 	err := SaveAsPEMKey(fileName, "PRIVATE KEY", bytes)
-	common.HandleError(err)
+	fail.HandleError(err)
 
 }
 
 func SavePublicPEMKey(fileName string, pubKey *rsa.PublicKey) {
 	bytes, err := PublicKeyToBytes(pubKey)
-	common.HandleError(err)
+	fail.HandleError(err)
 
 	err = SaveAsPEMKey(fileName, "PUBLIC KEY", bytes)
-	common.HandleError(err)
+	fail.HandleError(err)
 }
 
 func SaveAsPEMKey(fileName, type_ string, bytes []byte) error {
@@ -63,7 +63,7 @@ func SaveAsPEMKey(fileName, type_ string, bytes []byte) error {
 	if err != nil {
 		return err
 	}
-	defer common.HandleError(pemfile.Close())
+	defer fail.HandleError(pemfile.Close())
 
 	return pem.Encode(pemfile, pemkey)
 }
