@@ -13,7 +13,8 @@ import (
 type BCF struct {
 	forks         map[string]*FileBlock      // all forks of the blockchain (the head is on top of the longest fork)
 	allBlocks     map[string]*FileBlock      // all blocks of the blockchain
-	pendingBlocks map[string]*messages.Block // blocks with no parents (hence *Builder)
+	pendingBlocks map[string]*messages.Block // blocks with no parents in the blockchain
+	MissingBlocks map[string]bool            // missing previous hashes
 	ChainLength   int
 	Head          *FileBlockBuilder // the block we will be mining over (not yet on the blockchain, hence *Builder)
 
@@ -27,6 +28,7 @@ func NewBCF() *BCF {
 		forks:         map[string]*FileBlock{},
 		allBlocks:     map[string]*FileBlock{},
 		pendingBlocks: map[string]*messages.Block{},
+		MissingBlocks: map[string]bool{},
 		ChainLength:   0,
 		Head:          NewFileBlockBuilder(nil),
 		MineChan:      NewMineChan(true),
@@ -102,6 +104,8 @@ func (bcf *BCF) MiningRoutine() {
 // private functions without locks
 
 func (bcf *BCF) addBlock(block *messages.Block) bool {
+	delete(bcf.MissingBlocks, block.HashString()) //removing this block from the missing ones
+
 	previousId := utils.HashToHex(block.PrevHash[:])
 	var previousBlock *FileBlock
 	if bcf.ChainLength == 0 {
@@ -119,6 +123,7 @@ func (bcf *BCF) addBlock(block *messages.Block) bool {
 		previousBlock = nil
 	} else {
 		bcf.pendingBlocks[block.HashString()] = block
+		bcf.MissingBlocks[previousId] = true // adding its parent to the missing blocks
 		return false
 	}
 	delete(bcf.pendingBlocks, block.HashString())

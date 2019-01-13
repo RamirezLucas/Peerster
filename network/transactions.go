@@ -76,7 +76,7 @@ func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 func OnReceiveBlock(gossiper *entities.Gossiper, block *messages.BlockPublish, sender *net.UDPAddr) {
 	gossiper.Blockchain.AddBlock(block.Block)
 	//TODO: Handle the missing block hash
-	// - AddBlock() (used just above) return the list of missing hash
-	// |-> do a request for each of them
+	// - AddBlock() return true if the block was added and false if the block with its PrevHash is missing
+	// |-> do a request if there is one missing
 	// - respond to these requests using "BCF.GetBlock()" function
 }

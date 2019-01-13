@@ -95,21 +95,21 @@ func TestBlockChainForkWithoutPrevious(t *testing.T) {
 	block2_ := bcf2.Head.Previous
 	assert.True(t, block2.Hash == block2_.Hash)
 	block2Added := bcf.AddBlock(block2.ToBlock(0)) // adding the 3rd block before its parent
-	//assert.Equal(t, 1, len(pBlocks0), "1 pending block (the next (2nd) one)")
+	assert.Equal(t, 1, len(bcf.MissingBlocks), "1 missing block (the next (2nd) one)")
 	assert.False(t, block2Added, "block2 is pending")
 	assert.Equal(t, 2, bcf.ChainLength, "it is a fork shorter")
 
 	block1_ := block2.Previous
 	assert.True(t, block1.Hash == block1_.Hash)
 	block1Added := bcf.AddBlock(block1.ToBlock(0)) // adding the 2nd block before its parent
-	//assert.Equal(t, 1, len(pBlocks1), "1 pending blocks (the next (1st) one)")
+	assert.Equal(t, 1, len(bcf.MissingBlocks), "1 pending blocks (the next (1st) one)")
 	assert.False(t, block1Added, "block1 is pending")
 	assert.Equal(t, 2, bcf.ChainLength, "it is a fork shorter")
 
 	block0_ := block1.Previous
 	assert.True(t, block0.Hash == block0_.Hash)
 	block0Added := bcf.AddBlock(block0.ToBlock(0)) // adding the 1st block (the parent)
-	//assert.Equal(t, 0, len(pBlocks2), "no more pending blocks (all are added)")
+	assert.Equal(t, 0, len(bcf.MissingBlocks), "no more pending blocks (all are added)")
 	assert.True(t, block0Added, "block0 is added and the two others at the same time")
 	assert.Equal(t, 3, bcf.ChainLength, "now it is a fork longer!")
 
