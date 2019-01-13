@@ -1,6 +1,7 @@
 package entities
 
 import (
+	"Peerster/app"
 	"Peerster/blockchain"
 	"Peerster/files"
 	"Peerster/peers"
@@ -28,6 +29,7 @@ type Gossiper struct {
 
 	/* Blockchain */
 	Blockchain *blockchain.BCF // A blockchain for filename-to-metahash claiming (Shared, thread-safe)
+	ArtSystem  *app.ArtSystem  // The art system
 }
 
 // CLArgsGossiper - Command line arguments for the gossiper
@@ -65,6 +67,7 @@ func NewGossiper(args *CLArgsGossiper) *Gossiper {
 
 	/* Blockchain */
 	gossip.Blockchain = blockchain.NewBCF()
+	gossip.ArtSystem = app.NewArtSystem()
 
 	return &gossip
 }

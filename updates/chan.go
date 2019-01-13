@@ -5,11 +5,13 @@ type channel struct {
 	activated bool
 }
 
+/*Chan .*/
 type Chan interface {
 	Get() interface{}
 	Push(interface{})
 }
 
+/*NewChan .*/
 func NewChan(activated bool) Chan {
 	return &channel{
 		c:         make(chan interface{}),

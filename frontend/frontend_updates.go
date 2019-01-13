@@ -1,6 +1,7 @@
 package frontend
 
 import (
+	"Peerster/messages"
 	"encoding/json"
 	"strings"
 	"sync"
@@ -58,6 +59,13 @@ type FrontendAvailableFile struct {
 	Metahash string // The associated metahash
 }
 
+// ArtworkAvaliable - An artwork available to be displayed
+type FrontendAvailableArtowrk struct {
+	ArtistInfo  messages.ArtistInfo  // A set of information about the artist
+	ArtworkInfo messages.ArtworkInfo // A set of information about the artwork
+	Filename    string               // The filename corresponding to this artwork
+}
+
 // FrontendUpdate - An update for the
 type FrontendUpdate struct {
 	Rumor            *FrontendRumor            // A rumor
@@ -67,6 +75,7 @@ type FrontendUpdate struct {
 	IndexedFile      *FrontendIndexedFile      // An indexed file
 	ConstructingFile *FrontendConstructingFile // A constructing file
 	AvailableFile    *FrontendAvailableFile    // An available file
+	AvailableArtwork *FrontendAvailableArtowrk // An available artwork
 }
 
 // NewFrontendBuffer - Creates a new instance of FrontendBuffer
@@ -169,6 +178,21 @@ func (buffer *FrontendBuffer) AddFrontendAvailableFile(filename, metahash string
 	// Create update
 	newIndexedFile := &FrontendAvailableFile{Filename: filename, Metahash: metahash}
 	newUpdate := &FrontendUpdate{AvailableFile: newIndexedFile}
+	buffer.updates = append(buffer.updates, newUpdate)
+}
+
+// AddFrontendAvailableArtwork - Adds an available artwork to the buffer
+func (buffer *FrontendBuffer) AddFrontendAvailableArtwork(filename string, artTx *messages.ArtTx) {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+
+	// Create update
+	newAvailableArtwork := &FrontendAvailableArtowrk{
+		Filename:    filename,
+		ArtistInfo:  *artTx.Artist,
+		ArtworkInfo: *artTx.Artwork,
+	}
+	newUpdate := &FrontendUpdate{AvailableArtwork: newAvailableArtwork}
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 

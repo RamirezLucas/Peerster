@@ -44,9 +44,10 @@ source `origin` that is determined by the user.
 
 The function returns a pointer to the created `SharedFile` on success, or `nil` if a file with the same
 metahash already exists. */
-func (fileIndex *FileIndex) AddMonoSourceFile(filename, origin string, metahash []byte) *SharedFile {
+func (fileIndex *FileIndex) AddMonoSourceFile(filename string, metahash []byte,
+	isArtwork bool, artTx *messages.ArtTx) *SharedFile {
 
-	newFile := NewSharedFileMonoSource(filename, metahash[:])
+	newFile := NewSharedFileMonoSource(filename, metahash[:], isArtwork, artTx)
 	hash := ToHex(metahash[:])
 
 	// Grab the mutex on the index
