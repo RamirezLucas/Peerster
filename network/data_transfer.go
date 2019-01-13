@@ -88,29 +88,27 @@ func OnReceiveDataRequest(g *entities.Gossiper, request *messages.DataRequest, s
 		g.Router.AddContactIfAbsent(request.Origin, sender)
 	}
 
-	if g.Args.Name == request.Destination { // Message is for me
+	// Allow snooping
+	if request.HashValue != nil {
 
-		if request.HashValue != nil {
+		// Request data for this hash
+		data := g.FileIndex.GetDataFromHash(request.HashValue)
 
-			// Request data for this hash
-			data := g.FileIndex.GetDataFromHash(request.HashValue)
+		// Craft DataReply
+		reply := &messages.DataReply{Origin: g.Args.Name,
+			Destination: request.Origin,
+			HopLimit:    16,
+			HashValue:   request.HashValue,
+			Data:        data,
+		}
 
-			// Craft DataReply
-			reply := &messages.DataReply{Origin: g.Args.Name,
-				Destination: request.Origin,
-				HopLimit:    16,
-				HashValue:   request.HashValue,
-				Data:        data,
-			}
-
-			// Pick the target (should exist) and send
-			if target := g.Router.GetTarget(request.Origin); target != nil {
-				OnSendDataReply(g, reply, target)
-			}
-
+		// Pick the target (should exist) and send
+		if target := g.Router.GetTarget(request.Origin); target != nil {
+			OnSendDataReply(g, reply, target)
 		}
 
 	} else { // Message is for someone else
+
 		// Decrement hop limit
 		request.HopLimit--
 
@@ -204,7 +202,7 @@ func OnRemoteMetafileRequestMonosource(g *entities.Gossiper, metahash []byte, lo
 	}
 
 	// Create a shared file
-	shared := g.FileIndex.AddMonoSourceFile(localFilename, remotePeer, metahash)
+	shared := g.FileIndex.AddMonoSourceFile(localFilename, metahash, false, nil)
 	if shared == nil {
 		// Error: filename already exists
 		return

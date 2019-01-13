@@ -56,7 +56,9 @@ type SharedFile struct {
 	ChunkCount        uint64     // Number of chunks for this file
 	IsDownloaded      bool       // Indicates whether the file was indexed here first or dowloaded
 	IsMonosource      bool       // Indicates whether the file is downloaded from a single source
+	IsArtwork         bool       // Indicates whether the file is an artowrk
 	MetafileQueryPeer string     // The first peer to reply to a SearchRequest for a multisourced file
+	ArtTx             *messages.ArtTx
 
 	mux sync.Mutex // Mutex to manipulate the structure from different threads
 }
@@ -100,8 +102,10 @@ fetched from a single source. In particular, the filename is already known while
 
 `metahash` The file's metahash.
 
+`isArtwork` Indicates whether the file is an artwork.
+
 The function returns a pointer to the created `SharedFile`. */
-func NewSharedFileMonoSource(filename string, metahash []byte) *SharedFile {
+func NewSharedFileMonoSource(filename string, metahash []byte, isArtwork bool, artTx *messages.ArtTx) *SharedFile {
 	var shared SharedFile
 
 	shared.Filename = filename
@@ -115,7 +119,9 @@ func NewSharedFileMonoSource(filename string, metahash []byte) *SharedFile {
 
 	shared.IsDownloaded = true
 	shared.IsMonosource = true
+	shared.IsArtwork = true
 	shared.MetafileQueryPeer = ""
+	shared.ArtTx = artTx
 
 	// These fields are allocated by SetMetafile when it's called on the SharedFile
 	shared.Metafile = nil
@@ -140,6 +146,7 @@ func NewSharedFileMultiSource(filename string, chunkCount uint64, metahash []byt
 
 	shared.IsDownloaded = true
 	shared.IsMonosource = false
+	shared.IsArtwork = false
 	shared.MetafileQueryPeer = ""
 
 	// These fields are allocated by SetMetafile when it's called on the SharedFile
@@ -428,10 +435,14 @@ func (shared *SharedFile) SwitchMultiToMonoSource(newName string) bool {
 // AcknowledgeFileReconstructed should be called when a file has been completely reconstructed.
 func (shared *SharedFile) AcknowledgeFileReconstructed() {
 	// Send update to frontend
-	frontend.FBuffer.AddFrontendIndexedFile(shared.Filename, ToHex32(shared.Metahash))
+	if shared.IsArtwork {
+		frontend.FBuffer.AddFrontendAvailableArtwork(shared.Filename, shared.ArtTx)
+	} else {
+		frontend.FBuffer.AddFrontendIndexedFile(shared.Filename, ToHex32(shared.Metahash))
+	}
 }
 
-// AcknowledgeCompleteMatch should be called when a file has been matched completly during a SarchRequest.
+// AcknowledgeCompleteMatch should be called when a file has been matched completly during a SearchRequest.
 func (shared *SharedFile) AcknowledgeCompleteMatch() {
 	// Send update to frontend
 	frontend.FBuffer.AddFrontendAvailableFile(shared.Filename, ToHex32(shared.Metahash))

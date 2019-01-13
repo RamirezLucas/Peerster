@@ -7,10 +7,12 @@ package updates
  *  Only T, defaultValue, interface name and function name NewXxxChan needs to be change for easy reuse
  */
 
+/*T .*/
 type T = string
 
 const defaultValue = ""
 
+/*StringChan .*/
 type StringChan interface {
 	Get() T
 	Push(file T)
@@ -20,6 +22,7 @@ type matchChan struct {
 	Chan
 }
 
+/*NewStringChan .*/
 func NewStringChan(activated bool) StringChan {
 	return &matchChan{Chan: NewChan(activated)}
 }

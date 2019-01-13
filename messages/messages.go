@@ -92,6 +92,12 @@ type BlockPublish struct {
 	HopLimit uint32
 }
 
+// ArtTx - Represents an artowrk as well as its artist
+type ArtTx struct {
+	Artist  *ArtistInfo  // Information about the artist
+	Artwork *ArtworkInfo // Information about the artwork
+}
+
 // GossipPacket is the structure that is exchanged between gossipers (only one of the fields can be non-nil)
 type GossipPacket struct {
 	SimpleMsg     *SimpleMessage  // A plain message
@@ -104,6 +110,7 @@ type GossipPacket struct {
 	SearchReply   *SearchReply    // A search reply
 	TxPublish     *TxPublish      // A name-to-methash mapping
 	BlockPublish  *BlockPublish   // A block for the blockchain
+	ArtTx         *ArtTx          // An artistic transaction
 }
 
 // SimpleMessageToString returns a textual representation of a SimpleMessage
