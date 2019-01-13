@@ -1,7 +1,6 @@
 package messages
 
 import (
-	"crypto/rsa"
 	"fmt"
 )
 
@@ -83,7 +82,7 @@ type SearchResult struct {
 type TxPublish struct {
 	Signature [256]byte
 	File      *File
-	PublicKey *rsa.PublicKey
+	PublicKey []byte
 	HopLimit  uint32
 }
 

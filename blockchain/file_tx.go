@@ -1,6 +1,8 @@
 package blockchain
 
 import (
+	"Peerster/crypto_rsa"
+	"Peerster/fail"
 	"Peerster/messages"
 	"crypto/rsa"
 )
@@ -12,18 +14,28 @@ type Tx struct {
 }
 
 func NewTx(publish *messages.TxPublish) *Tx {
+	publicKey, err := crypto_rsa.BytesToPublicKey(publish.PublicKey)
+	if err != nil {
+		fail.HandleError(err)
+		return nil
+	}
 	return &Tx{
 		Signature: publish.Signature,
 		File:      publish.File,
-		PublicKey: publish.PublicKey,
+		PublicKey: publicKey,
 	}
 }
 
 func (tx *Tx) ToTxPublish(hopLimit uint32) *messages.TxPublish {
+	keyAsBytes, err := crypto_rsa.PublicKeyToBytes(tx.PublicKey)
+	if err != nil {
+		fail.HandleError(err)
+		return nil
+	}
 	return &messages.TxPublish{
 		Signature: tx.Signature,
 		File:      tx.File,
-		PublicKey: tx.PublicKey,
+		PublicKey: keyAsBytes,
 		HopLimit:  hopLimit,
 	}
 }
