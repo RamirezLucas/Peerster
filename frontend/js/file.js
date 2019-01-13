@@ -6,7 +6,7 @@ function getFilename() {
     // Get filename
     let input = document.getElementById("file-input").value.replace(/\\/g, "/");
     let filename = input.substring(input.lastIndexOf("/") + 1);
-    
+
     // Send file index request
     let xhr = new XMLHttpRequest();
     xhr.open("POST", "/fileIndex", true);

@@ -53,7 +53,7 @@ function appendMessage(channel, sender, msg_content) {
     /* The function assumes that the channel already exists */
 
     // Check who was the last to talk on the channel
-    let childs_conv = document.getElementById(channel).children;
+    let childs_conv = document.getElementById("chat_group_" + channel).children;
     let last_monologue = null;
     let new_monologue = null;
 
@@ -75,10 +75,16 @@ function appendMessage(channel, sender, msg_content) {
     // Append a new monologue if necessary
     if (new_monologue !== null) {
         new_monologue.innerHTML += new_msg;
-        document.getElementById(channel).appendChild(new_monologue);
+        document.getElementById("chat_group_" + channel).appendChild(new_monologue);
     } else {
         last_monologue.innerHTML += new_msg;
     }
+
+}
+
+function displayArtwork(filename, name, description) {
+
+    
 
 }
 

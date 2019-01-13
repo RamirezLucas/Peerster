@@ -106,3 +106,26 @@
     color: rgb(255,255,255);
 }
 
+.artwork_wrap {
+    margin: 10px 30px;
+    padding: 15px 20px;
+}
+
+.artwork_title {
+    color: rgb(255,255,255);
+    margin-bottom: 20px;
+}
+
+.artwork_desc {
+    color: rgb(105,106,110);
+    margin-bottom: 20px;
+    word-wrap: break-word;
+    white-space: pre-wrap;
+    font: 0.8em Tahoma,sans-serif,Arial,Helvetica;
+    font-style: italic
+}
+
+.artwork {
+    max-width: 100%;
+}
+

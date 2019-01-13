@@ -59,6 +59,11 @@ type FrontendAvailableFile struct {
 	Metahash string // The associated metahash
 }
 
+// FontendArtist - An artist for the frontend
+type FrontendArtist struct {
+	Info messages.ArtistInfo // A set of information about the artist
+}
+
 // ArtworkAvaliable - An artwork available to be displayed
 type FrontendAvailableArtowrk struct {
 	ArtistInfo  messages.ArtistInfo  // A set of information about the artist
@@ -75,7 +80,10 @@ type FrontendUpdate struct {
 	IndexedFile      *FrontendIndexedFile      // An indexed file
 	ConstructingFile *FrontendConstructingFile // A constructing file
 	AvailableFile    *FrontendAvailableFile    // An available file
+
+	Artist           *FrontendArtist           // An artist
 	AvailableArtwork *FrontendAvailableArtowrk // An available artwork
+
 }
 
 // NewFrontendBuffer - Creates a new instance of FrontendBuffer
@@ -178,6 +186,19 @@ func (buffer *FrontendBuffer) AddFrontendAvailableFile(filename, metahash string
 	// Create update
 	newIndexedFile := &FrontendAvailableFile{Filename: filename, Metahash: metahash}
 	newUpdate := &FrontendUpdate{AvailableFile: newIndexedFile}
+	buffer.updates = append(buffer.updates, newUpdate)
+}
+
+// AddFrontendArtist - Adds an artist to the buffer
+func (buffer *FrontendBuffer) AddFrontendArtist(info *messages.ArtistInfo) {
+	buffer.mux.Lock()
+	defer buffer.mux.Unlock()
+
+	// Create update
+	newArtist := &FrontendArtist{
+		Info: *info,
+	}
+	newUpdate := &FrontendUpdate{Artist: newArtist}
 	buffer.updates = append(buffer.updates, newUpdate)
 }
 

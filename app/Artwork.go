@@ -3,6 +3,7 @@ package app
 import (
 	"Peerster/files"
 	"Peerster/messages"
+	"Peerster/utils"
 	"fmt"
 	"sync"
 )
@@ -56,7 +57,7 @@ func (artwork *Artwork) CreateSharedFile(fileIndex *files.FileIndex, artTx *mess
 	artwork.mux.Lock()
 	defer artwork.mux.Unlock()
 
-	return fileIndex.AddMonoSourceFile(artwork.Info.Filename, artwork.Info.Metahash[:], true, artTx)
+	return fileIndex.AddMonoSourceFile(artwork.Info.Filename, utils.HexToHash(artwork.Info.Metahash), true, artTx)
 }
 
 /*ToString returns a textual representation of an artwork. */

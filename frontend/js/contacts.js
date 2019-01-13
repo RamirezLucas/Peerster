@@ -11,18 +11,24 @@ function switchContact() {
         // Unselect current contact and hide current conversation
         curr_contact.style.backgroundColor = 'rgb(' + 47 + ',' + 49 + ',' + 54 + ')';
         curr_contact.style.color = 'rgb(' + 105 + ',' + 106 + ',' + 110 + ')';
-        let prevConv = document.getElementById(curr_contact.innerHTML)
+        
+        let prevConv = document.getElementById("chat_" + curr_contact.id)
         prevConv.style.display = "none"
     }
   
     // Select new contact and show new conversation
     this.style.backgroundColor = 'rgb(' + 66 + ',' + 70 + ',' + 77 + ')';
     this.style.color = 'rgb(' + 255 + ',' + 255 + ',' + 255 + ')';
-    let newConv = document.getElementById(this.innerHTML)
+    let newConv = document.getElementById("chat_" + this.id)
     newConv.style.display = "block"
     
     // Change name in textbox
-    changeMessageBoxText(this.innerHTML)
+    if (!this.id.startsWith("artist_")) {
+        changeMessageBoxText(this.innerHTML)
+    } else {
+        document.getElementById("send_message_wrap").style.display = "none";
+        document.getElementById("request_file_wrap").style.display = "none";
+    }
 
     // Update current contact
     curr_contact = this
@@ -44,19 +50,40 @@ function contactMouseLeave() {
 
 /* ------- API ------- */
 
+function addGroup(name) {
+
+    // Create new contact tab
+    let newGroup = document.createElement("div");
+    newGroup.className = "private_wrap";
+    newGroup.innerHTML = name;
+    newGroup.id = "group_" + name;
+    document.getElementById('groups').appendChild(newGroup);
+    contactAttachListeners(newGroup);
+
+    // Create new chat history
+    let newChat = document.createElement("div");
+    newChat.className = "conversation";
+    newChat.id = "chat_group_" + name;
+    newChat.innerHTML =
+        '<div class="begin_conv"><span>This is the beginning of \
+        the ' + name + ' channel.</span></div>';
+    document.getElementById('chat_scrollable_wrap').appendChild(newChat);
+}
+
 function addContact(name) {
 
     // Create new contact tab
     let newContact = document.createElement("div");
-    newContact.className = "private_contact_wrap";
+    newContact.className = "private_wrap";
     newContact.innerHTML = name;
-    document.getElementById('contact_scrollable_wrap').appendChild(newContact);
+    newContact.id = "private_" + name;
+    document.getElementById('contacts').appendChild(newContact);
     contactAttachListeners(newContact);
 
     // Create new chat history
     let newChat = document.createElement("div");
     newChat.className = "conversation";
-    newChat.id = name;
+    newChat.id = "chat_private_" + name;
     newChat.innerHTML =
         '<div class="begin_conv"><span>This is the beginning of \
         your conversation with ' + name + '</span></div>';

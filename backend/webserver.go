@@ -35,6 +35,10 @@ func Webserver(g *entities.Gossiper, chanID chan uint32) {
 	r.HandleFunc("/fileSearch", postFileSearchHandler).Methods("POST")
 	r.HandleFunc("/private", postPrivateHandler).Methods("POST")
 
+	// ArtSystem
+	r.HandleFunc("/subscribe", postSubscribeHandler).Methods("POST")
+	r.HandleFunc("/download", getDownloadHandler).Methods("GET")
+
 	// Updates
 	r.HandleFunc("/updates", getUpdatesHandler).Methods("GET")
 

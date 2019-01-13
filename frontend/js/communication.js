@@ -12,7 +12,7 @@ function getUpdates() {
                         let update = json.updates[i]; // Get update
                         if (update.Rumor !== null) {
                             // This is a rumor
-                            appendMessage("Global Channel", update.Rumor.Name, update.Rumor.Msg)
+                            appendMessage("Global", update.Rumor.Name, update.Rumor.Msg)
                         } else if (update.Peer !== null) {
                             // This is a peer
                             addPeer(update.Peer.IP + ":" + update.Peer.Port)
@@ -37,6 +37,13 @@ function getUpdates() {
                         } else if (update.AvailableFile !== null) {
                             // This is a new availble file
                             addAvailableFile(update.AvailableFile.Filename, update.AvailableFile.Metahash)
+                        } else if (update.Artist !== null) {
+                            addArtist(update.Artist.Info.Name, update.Artist.Info.Signature)
+                        } else if (update.AvailableArtwork !== null) {
+                            downloadArtwork(update.AvailableArtwork.ArtistInfo.Name,
+                                update.AvailableArtwork.ArtworkInfo.Metahash,
+                                update.AvailableArtwork.ArtworkInfo.Name,
+                                update.AvailableArtwork.ArtworkInfo.Description)
                         }
                     }
                 }            
