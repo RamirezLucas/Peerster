@@ -191,8 +191,32 @@ func OnReceiveBlockReply(gossiper *entities.Gossiper, reply *messages.BlockReply
 
 			// If we don't know about this block yet, we have to take care of it
 			if myBlock == nil {
-				gossiper.Blockchain.AddBlock(block)
+				gossiper.Blockchain.AddBlockGen(block, false)
 			}
+		}
+
+		var missingBlocks [][32]byte
+
+		for hash, test := range gossiper.Blockchain.MissingBlocks {
+			if test {
+				var hashN [32]byte
+				copy(hashN[:], utils.HexToHash(hash)[0:32])
+				missingBlocks = append(missingBlocks, hashN)
+			}
+		}
+
+		// If we have any missing block
+		if len(missingBlocks) > 0 {
+
+			// Create a block request
+			request := &messages.BlockRequest{
+				Origin:    gossiper.Args.Name,
+				BlockHash: missingBlocks,
+				Budget:    BlockRequestBudget,
+			}
+
+			// Broadcasting the packet to all neighbours with our budget
+			gossiper.PeerIndex.BroadcastBlockRequest(gossiper.GossipChannel, request, "")
 		}
 
 	} else if reply.HopLimit > 0 {

@@ -255,7 +255,6 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 			if pkt.DataRequest.HopLimit == 0 {
 				// File index
 				if file := g.FileIndex.AddLocalFile(pkt.DataRequest.Origin); file != nil {
-
 					// Broadcast the transaction and publish to the blockchain
 					network.OnReceiveTransaction(g, blockchain.FileToNewTx(file, g.Keys).ToTxPublish(network.BlockHopLimit), nil)
 				}

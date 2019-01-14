@@ -51,11 +51,22 @@ func (bcf *BCF) GetHead() *FileBlockBuilder {
 	return bcf.Head
 }
 
+func (bcf *BCF) AddBlockGen(block *messages.Block, genesis bool) bool {
+	bcf.Lock()
+	defer bcf.Unlock()
+
+	if bcf.addBlock(block, genesis) {
+		bcf.addPendingBlocks()
+		return true
+	}
+	return false
+}
+
 func (bcf *BCF) AddBlock(block *messages.Block) bool {
 	bcf.Lock()
 	defer bcf.Unlock()
 
-	if bcf.addBlock(block) {
+	if bcf.addBlock(block, true) {
 		bcf.addPendingBlocks()
 		return true
 	}
@@ -105,12 +116,12 @@ func (bcf *BCF) MiningRoutine() {
 
 // private functions without locks
 
-func (bcf *BCF) addBlock(block *messages.Block) bool {
+func (bcf *BCF) addBlock(block *messages.Block, genesis bool) bool {
 	delete(bcf.MissingBlocks, block.HashString()) //removing this block from the missing ones
 
 	previousId := utils.HashToHex(block.PrevHash[:])
 	var previousBlock *FileBlock
-	if bcf.ChainLength == 0 {
+	if bcf.ChainLength == 0 && genesis {
 		// first block, welcome and be our master! (previous set to nil)
 		previousBlock = nil
 	} else if forkBlock, ok := bcf.forks[previousId]; ok {
@@ -142,7 +153,7 @@ func (bcf *BCF) addBlock(block *messages.Block) bool {
 
 func (bcf *BCF) addPendingBlocks() {
 	for _, pBlock := range bcf.pendingBlocks {
-		if bcf.addBlock(pBlock) {
+		if bcf.addBlock(pBlock, true) {
 			delete(bcf.pendingBlocks, pBlock.HashString())
 			bcf.addPendingBlocks()
 		}
