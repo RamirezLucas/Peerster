@@ -52,8 +52,13 @@ function appendMessage(channel, sender, msg_content) {
 
     /* The function assumes that the channel already exists */
 
+    let idChat = "chat_private_" + channel;
+    if (channel === "Global") {
+        idChat = "chat_group_" + channel;
+    }
+
     // Check who was the last to talk on the channel
-    let childs_conv = document.getElementById("chat_group_" + channel).children;
+    let childs_conv = document.getElementById(idChat).children;
     let last_monologue = null;
     let new_monologue = null;
 
@@ -75,7 +80,7 @@ function appendMessage(channel, sender, msg_content) {
     // Append a new monologue if necessary
     if (new_monologue !== null) {
         new_monologue.innerHTML += new_msg;
-        document.getElementById("chat_group_" + channel).appendChild(new_monologue);
+        document.getElementById(idChat).appendChild(new_monologue);
     } else {
         last_monologue.innerHTML += new_msg;
     }

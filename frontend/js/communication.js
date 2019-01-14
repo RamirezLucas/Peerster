@@ -43,7 +43,8 @@ function getUpdates() {
                             downloadArtwork(update.AvailableArtwork.ArtistInfo.Name,
                                 update.AvailableArtwork.ArtworkInfo.Metahash,
                                 update.AvailableArtwork.ArtworkInfo.Name,
-                                update.AvailableArtwork.ArtworkInfo.Description)
+                                update.AvailableArtwork.ArtworkInfo.Description,
+                                update.AvailableArtwork.ArtworkInfo.Filename)
                         }
                     }
                 }            

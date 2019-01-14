@@ -48,18 +48,17 @@ function onSubscribe(signature) {
 
 /* ------- Adding artworks ------- */
 
-function downloadArtwork(artistName, metahash, name, description) {
+function downloadArtwork(artistName, metahash, name, description, filename) {
 
     var xhr = getXMLHttpRequest();
-    xhr.open("GET", "/download", true);
+    xhr.open("POST", "/download", true);
     xhr.setRequestHeader("Content-Type", "application/json");
     xhr.overrideMimeType('text/plain; charset=x-user-defined');
-    let data = JSON.stringify({"filename": filename});
     
     xhr.onreadystatechange= function() {
         console.log("status: " + xhr.status)
         if(xhr.readyState==4 && xhr.status==200) {
-            console.log("length: " + xhr.responseText.length)
+            console.log("data: " + xhr.responseText.length)
             
             str = "data:image/jpg;base64," + encode64(xhr.responseText);
 
@@ -75,8 +74,9 @@ function downloadArtwork(artistName, metahash, name, description) {
             document.getElementById("chat_artist_" + artistName).appendChild(newArtwork)
         }
     };
-    xhr.send(data);
 
+    let data = JSON.stringify({"filename": filename});
+    xhr.send(data);
 }
 
 /* ------- File Downloading ------- */

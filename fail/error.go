@@ -6,7 +6,7 @@ import (
 )
 
 // GlobalPrintLevel controls what will be printed to the console during execution
-var GlobalPrintLevel = 0
+var GlobalPrintLevel = 1
 
 // Mutex to ensure atomocity of prints
 var printMux sync.Mutex

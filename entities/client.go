@@ -13,4 +13,7 @@ type Client struct {
 	Request  []byte       // A hash
 	Keywords []string     // A list of keyword
 	Budget   uint64       // A budget
+
+	ArtName string
+	ArtDesc string
 }

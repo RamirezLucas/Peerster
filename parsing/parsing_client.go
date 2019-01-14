@@ -16,6 +16,7 @@ func ParseArgumentsClient() (*entities.Client, error) {
 
 	var client entities.Client
 	var uiPortDone, msgDone, destDone, fileDone, reqDone, keyDone, budgetDone bool
+	var artNameDone, artDescDone bool
 
 	for _, arg := range os.Args[1:] {
 		switch {
@@ -94,6 +95,22 @@ func ParseArgumentsClient() (*entities.Client, error) {
 				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "cannot parsed budget"}
 			}
 			budgetDone = true
+		case strings.HasPrefix(arg, "-name="):
+			if artNameDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "name defined twice"}
+			}
+
+			// Validate
+			client.ArtName = arg[6:]
+			artNameDone = true
+		case strings.HasPrefix(arg, "-desc="):
+			if artDescDone {
+				return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "desc defined twice"}
+			}
+
+			// Validate
+			client.ArtDesc = arg[6:]
+			artDescDone = true
 		default:
 			return nil, &fail.CustomError{Fun: "ParseArgumentsClient", Desc: "unknown argument"}
 		}

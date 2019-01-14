@@ -2,6 +2,7 @@ package files
 
 import (
 	"Peerster/messages"
+	"fmt"
 	"strings"
 	"sync"
 )
@@ -92,6 +93,7 @@ func (fileIndex *FileIndex) AddLocalFile(filename string) *messages.File {
 
 	// Check if a file with the same metahash already exists in the database
 	if _, ok := fileIndex.index[ToHex32(shared.Metahash)]; ok { // We already have a file with the same metahash
+		fmt.Printf("b\n")
 		return nil
 	}
 

@@ -13,6 +13,26 @@ import (
 	"github.com/dedis/protobuf"
 )
 
+/*OnPublishArtwork allows the client to publish an artwork.*/
+func OnPublishArtwork(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
+
+	// Fill up transaction
+	artTx.HopLimit = 4
+	artTx.Artist.Name = gossiper.Args.Name
+	artTx.Artist.Signature = "sig_" + gossiper.Args.Name
+	artTx.Artwork.AuthorSignature = artTx.Artist.Signature
+
+	if file := gossiper.FileIndex.AddLocalFile(artTx.Artwork.Filename); file != nil {
+		// Broadcast the artwork
+		fail.LeveledPrint(1, "OnPublishArtwork", "Indexed %s", artTx.Artwork.Filename)
+		artTx.Artwork.Metahash = utils.HashToHex(file.MetafileHash[:])
+		OnBroadcastArtTx(gossiper, artTx)
+	} else {
+		fail.LeveledPrint(1, "OnPublishArtwork", "Failed to index %s", artTx.Artwork.Filename)
+	}
+
+}
+
 /*OnBroadcastArtTx broadcats an ArtTx to all neighbors.*/
 func OnBroadcastArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 
@@ -30,27 +50,31 @@ func OnBroadcastArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 /*OnReceiveArtTx handles a new transaction containing an artist/artwork pair.*/
 func OnReceiveArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx, sender *net.UDPAddr) {
 
+	fail.LeveledPrint(1, "OnReceiveArtTx", "Received artTx for artwork %s", artTx.Artwork.Name)
+
 	// Add the contact to our routing table
 	if gossiper.Args.Name != artTx.Artist.Name {
 		gossiper.Router.AddContactIfAbsent(artTx.Artist.Name, sender)
 	}
 
-	// Attempt to add the artist to our database
-	if gossiper.ArtSystem.AddArtist(artTx.Artist) {
-		// Tell frontend
-		frontend.FBuffer.AddFrontendArtist(artTx.Artist)
-	}
+	if artTx.Artist.Name != gossiper.Args.Name {
+		// Attempt to add the artist to our database
+		if gossiper.ArtSystem.AddArtist(artTx.Artist) {
+			// Tell frontend
+			frontend.FBuffer.AddFrontendArtist(artTx.Artist)
+		}
 
-	// Attempt to add the artwork to our database
-	if toDownload := gossiper.ArtSystem.AddArtwork(artTx.Artwork); toDownload != nil {
-		go OnDownloadArtwork(gossiper, toDownload, artTx)
-		return
-	}
+		// Attempt to add the artwork to our database
+		if toDownload := gossiper.ArtSystem.AddArtwork(artTx.Artwork); toDownload != nil {
+			go OnDownloadArtwork(gossiper, toDownload, artTx)
+			return
+		}
 
-	// Broadcast to others
-	artTx.HopLimit--
-	if artTx.HopLimit != 0 {
-		OnBroadcastArtTx(gossiper, artTx)
+		// Broadcast to others
+		artTx.HopLimit--
+		if artTx.HopLimit != 0 {
+			OnBroadcastArtTx(gossiper, artTx)
+		}
 	}
 
 }
@@ -62,6 +86,8 @@ func OnInvalidateArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 
 /*OnSubscribe subscribes the user to an artist.*/
 func OnSubscribe(gossiper *entities.Gossiper, signature string) {
+
+	fail.LeveledPrint(1, "OnSubscribe", "Subscribed to %s", signature)
 
 	if toDownload, artist := gossiper.ArtSystem.Subscribe(signature); toDownload != nil {
 		for _, artwork := range toDownload {
@@ -77,10 +103,11 @@ func OnSubscribe(gossiper *entities.Gossiper, signature string) {
 /*OnDownloadArtwork downloads an artwork from the network.*/
 func OnDownloadArtwork(gossiper *entities.Gossiper, artwork *app.Artwork, artTx *messages.ArtTx) {
 
+	fail.LeveledPrint(1, "OnReceiveArtTx", "Downloading %s", artwork.Info.Name)
+
 	// Check that the remote peer exists
 	target := gossiper.Router.GetTarget(artTx.Artist.Name)
 	if target == nil {
-		// @TODO: broadcast
 		return
 	}
 

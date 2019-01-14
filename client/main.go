@@ -30,9 +30,21 @@ func main() {
 			Keywords: client.Keywords,
 		}
 		pkt = messages.GossipPacket{SearchRequest: &search}
+
+	// Art publish
+	case client.Filename != "" && client.ArtName != "" && client.ArtDesc != "":
+		artTx := messages.ArtTx{
+			HopLimit: 0,
+			Artist:   &messages.ArtistInfo{},
+			Artwork: &messages.ArtworkInfo{
+				Filename:    client.Filename,
+				Name:        client.ArtName,
+				Description: client.ArtDesc,
+			},
+		}
+		pkt = messages.GossipPacket{ArtTx: &artTx}
 	// File request for someone else
 	case client.Filename != "" && client.Request != nil:
-		fmt.Printf("%s %d\n", client.Filename, len(client.Request))
 
 		fileRequest := messages.DataRequest{
 			HopLimit:    1,

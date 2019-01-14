@@ -86,13 +86,16 @@ func isPacketValid(pkt *messages.GossipPacket, isClientSide bool, isSimpleMode b
 	if pkt.BlockReply != nil {
 		counter++
 	}
+	if pkt.ArtTx != nil {
+		counter++
+	}
 	if counter != 1 {
 		return false
 	}
 
-	// The client only sends SimpleMessage and PrivateMessage and DataRequest and SearchRequest
+	// The client only sends certain packets
 	if isClientSide && (pkt.SimpleMsg == nil && pkt.Private == nil &&
-		pkt.DataRequest == nil && pkt.SearchRequest == nil) {
+		pkt.DataRequest == nil && pkt.SearchRequest == nil && pkt.ArtTx == nil) {
 		return false
 	}
 	// In simple mode only accept simple messages
@@ -203,6 +206,8 @@ func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 			go network.OnReceiveBlockRequest(g, pkt.BlockRequest, sender)
 		case pkt.BlockReply != nil:
 			go network.OnReceiveBlockReply(g, pkt.BlockReply, sender)
+		case pkt.ArtTx != nil:
+			go network.OnReceiveArtTx(g, pkt.ArtTx, sender)
 		default:
 			// Should never happen
 		}
@@ -271,6 +276,8 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 
 		case pkt.SearchRequest != nil:
 			go network.OnInitiateFileSearch(g, pkt.SearchRequest.Budget, pkt.SearchRequest.Keywords)
+		case pkt.ArtTx != nil:
+			go network.OnPublishArtwork(g, pkt.ArtTx)
 		default:
 			// Should never happen
 		}

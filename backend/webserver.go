@@ -37,7 +37,7 @@ func Webserver(g *entities.Gossiper, chanID chan uint32) {
 
 	// ArtSystem
 	r.HandleFunc("/subscribe", postSubscribeHandler).Methods("POST")
-	r.HandleFunc("/download", getDownloadHandler).Methods("GET")
+	r.HandleFunc("/download", postDownloadHandler).Methods("POST")
 
 	// Updates
 	r.HandleFunc("/updates", getUpdatesHandler).Methods("GET")
