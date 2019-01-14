@@ -31,3 +31,11 @@ Some remarks:
 2. Relaunch the gossiper
 3. Open a new browser tab on the right port (e.g. `127.0.0.1:2000`)
 * The webpage will not behave properly if it is refreshed while its corresponding gossiper is running.
+
+Final Project
+=======
+
+(See report for details on what we implemented)
+
+The interface has barely changed for this final milestone. The list of artists on the network should appear below the list of private contacts on the left side of the window. Detected artists will automatically appear there next to a button that allows the user to subscribe to them. In order to publish a new artwork, use the following syntax on the command line of the client executable:
+`./client -UIPort=8080 -filename="someFile.jpg" -name=Alice`  

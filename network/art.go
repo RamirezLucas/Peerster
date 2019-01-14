@@ -17,7 +17,7 @@ import (
 func OnPublishArtwork(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 
 	// Fill up transaction
-	artTx.HopLimit = 4
+	artTx.HopLimit = 8
 	artTx.Artist.Name = gossiper.Args.Name
 	artTx.Artist.Signature = "sig_" + gossiper.Args.Name
 	artTx.Artwork.AuthorSignature = artTx.Artist.Signature
