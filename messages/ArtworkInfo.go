@@ -14,7 +14,7 @@ type ArtworkInfo struct {
 	AuthorSignature string
 
 	Filename string
-	Metahash [HashSizeBytes]byte
+	Metahash string
 }
 
 /*ToString returns a textual representation of an artwork. */

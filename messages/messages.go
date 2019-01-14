@@ -94,8 +94,9 @@ type BlockPublish struct {
 
 // ArtTx - Represents an artowrk as well as its artist
 type ArtTx struct {
-	Artist  *ArtistInfo  // Information about the artist
-	Artwork *ArtworkInfo // Information about the artwork
+	Artist   *ArtistInfo  // Information about the artist
+	Artwork  *ArtworkInfo // Information about the artwork
+	HopLimit uint32
 }
 
 // BlockRequest - A request for missing blocks

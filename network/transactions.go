@@ -4,6 +4,7 @@ import (
 	"Peerster/blockchain"
 	"Peerster/entities"
 	"Peerster/messages"
+	"Peerster/utils"
 	"fmt"
 	"net"
 
@@ -80,7 +81,19 @@ func OnBroadcastBlock(gossiper *entities.Gossiper, block *messages.Block) {
 func OnReceiveBlock(gossiper *entities.Gossiper, block *messages.BlockPublish, sender *net.UDPAddr) {
 
 	// Get missing blocks if any
-	missingBlocks := gossiper.Blockchain.AddBlock(block.Block)
+	if !gossiper.Blockchain.AddBlock(block.Block) {
+		return
+	}
+
+	var missingBlocks [][32]byte
+
+	for hash, test := range gossiper.Blockchain.MissingBlocks {
+		if test {
+			var hashN [32]byte
+			copy(hashN[:], utils.HexToHash(hash)[0:32])
+			missingBlocks = append(missingBlocks, hashN)
+		}
+	}
 
 	// If we have any missing block
 	if len(missingBlocks) > 0 {
@@ -113,8 +126,6 @@ func OnReceiveBlockRequest(gossiper *entities.Gossiper, request *messages.BlockR
 		fmt.Printf("RECEIVED CHAIN REQUEST from %s\n", request.Origin)
 
 		blocksFound = append(blocksFound, gossiper.Blockchain.GetBlock(gossiper.Blockchain.Head.Previous.Hash).Block)
-
-		fmt.Printf("LATEST MINED BLOCK: %s\n", gossiper.Blockchain.GetBlock(gossiper.Blockchain.Head.Previous.Hash).Block.ToString())
 
 		// Create a block reply
 		reply := &messages.BlockReply{

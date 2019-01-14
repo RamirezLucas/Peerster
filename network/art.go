@@ -5,9 +5,27 @@ import (
 	"Peerster/entities"
 	"Peerster/fail"
 	"Peerster/files"
+	"Peerster/frontend"
 	"Peerster/messages"
+	"Peerster/utils"
 	"net"
+
+	"github.com/dedis/protobuf"
 )
+
+/*OnBroadcastArtTx broadcats an ArtTx to all neighbors.*/
+func OnBroadcastArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
+
+	// Create the packet
+	pkt := messages.GossipPacket{ArtTx: artTx}
+	buf, err := protobuf.Encode(&pkt)
+	if err != nil {
+		return
+	}
+
+	// Broadcast
+	gossiper.PeerIndex.Broadcast(gossiper.GossipChannel, buf, "")
+}
 
 /*OnReceiveArtTx handles a new transaction containing an artist/artwork pair.*/
 func OnReceiveArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx, sender *net.UDPAddr) {
@@ -18,11 +36,21 @@ func OnReceiveArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx, sender *
 	}
 
 	// Attempt to add the artist to our database
-	gossiper.ArtSystem.AddArtist(artTx.Artist)
+	if gossiper.ArtSystem.AddArtist(artTx.Artist) {
+		// Tell frontend
+		frontend.FBuffer.AddFrontendArtist(artTx.Artist)
+	}
 
 	// Attempt to add the artwork to our database
 	if toDownload := gossiper.ArtSystem.AddArtwork(artTx.Artwork); toDownload != nil {
-		OnDownloadArtwork(gossiper, toDownload, artTx)
+		go OnDownloadArtwork(gossiper, toDownload, artTx)
+		return
+	}
+
+	// Broadcast to others
+	artTx.HopLimit--
+	if artTx.HopLimit != 0 {
+		OnBroadcastArtTx(gossiper, artTx)
 	}
 
 }
@@ -67,7 +95,7 @@ func OnDownloadArtwork(gossiper *entities.Gossiper, artwork *app.Artwork, artTx 
 	request := &messages.DataRequest{Origin: gossiper.Args.Name,
 		Destination: artTx.Artist.Name,
 		HopLimit:    16,
-		HashValue:   artwork.Info.Metahash[:],
+		HashValue:   utils.HexToHash(artwork.Info.Metahash[:]),
 	}
 
 	// Send with timeout

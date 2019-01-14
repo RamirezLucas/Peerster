@@ -12,8 +12,9 @@
         <script type="text/javascript" src="js/chat.js"></script>
         <script type="text/javascript" src="js/peer.js"></script>
         <script type="text/javascript" src="js/file.js"></script>
-        <script type="text/javascript" src="js/communication.js"></script>
         <script type="text/javascript" src="js/contacts.js"></script>
+        <script type="text/javascript" src="js/art.js"></script>
+        <script type="text/javascript" src="js/communication.js"></script>
         <script type="text/javascript" src="js/main.js"></script>
     </head>
 
@@ -21,8 +22,9 @@
         <div class="page_wrap">
             <div class="contact_list_wrap">
                 <div id="contact_scrollable_wrap">
-                    <div class="private_contact_wrap" style="font-style:italic">Global Channel</div>
-                    <div class="contact_separator">PRIVATE MESSAGES</div>
+                    <div id="groups" class="contact_separator_no_top">GROUPS</div>
+                    <div id="contacts" class="contact_separator">PRIVATE MESSAGES</div>
+                    <div id="artists" class="contact_separator">ARTISTS</div>
                 </div>
                 <div id="my_info">
                     <div id="my_contact">
@@ -36,11 +38,7 @@
                 </div>
             </div>
             <div class="chat_wrap">
-                <div id="chat_scrollable_wrap">
-                    <div class="conversation" id="Global Channel">
-                        <div class="begin_conv"><span>This is the beginning of your conversation with Global Channel</span></div>
-                    </div>     
-                </div>
+                <div id="chat_scrollable_wrap"></div>
                 <div id="send_message_wrap">
                     <textarea rows="3" id="send_message" placeholder="" onkeydown="sendMessage(event)"></textarea>
                 </div>
