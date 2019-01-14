@@ -5,6 +5,7 @@ import (
 	"Peerster/blockchain"
 	"Peerster/files"
 	"Peerster/peers"
+	"crypto/rsa"
 	"fmt"
 	"net"
 )
@@ -29,6 +30,7 @@ type Gossiper struct {
 
 	/* Blockchain */
 	Blockchain *blockchain.BCF // A blockchain for filename-to-metahash claiming (Shared, thread-safe)
+	Keys       *rsa.PrivateKey // RSA keys
 	ArtSystem  *app.ArtSystem  // The art system
 }
 

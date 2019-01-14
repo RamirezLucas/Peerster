@@ -2,11 +2,14 @@ package peers
 
 import (
 	"Peerster/frontend"
+	"Peerster/messages"
 	"fmt"
 	"math/rand"
 	"net"
 	"strings"
 	"sync"
+
+	"github.com/protobuf"
 )
 
 // PeerIndex represents a dictionnary between <ip:port> and peer addresses
@@ -32,7 +35,59 @@ func (peerIndex *PeerIndex) Broadcast(channel *net.UDPConn, buf []byte, excludeM
 			channel.WriteToUDP(buf, &peer.udpAddr)
 		}
 	}
+}
 
+// BroadcastBlockRequest will broadcast the block request to neighbours excluding excludeMe (set excludeMe to "" to avoid exclusion)
+func (peerIndex *PeerIndex) BroadcastBlockRequest(channel *net.UDPConn, request *messages.BlockRequest, excludeMe string) {
+	peerIndex.mux.Lock()
+	defer peerIndex.mux.Unlock()
+
+	nbPeers := uint32(len(peerIndex.index))
+	_, excludePeer := peerIndex.index[excludeMe]
+	if excludePeer {
+		nbPeers--
+	}
+
+	// If we have enough budget for all peers
+	if request.Budget > nbPeers {
+		budget := request.Budget / nbPeers
+		remainingBudget := request.Budget % nbPeers
+
+		for addr, peer := range peerIndex.index {
+			if !excludePeer || addr != excludeMe {
+				request.Budget = budget
+				if remainingBudget > 0 {
+					request.Budget++
+					remainingBudget--
+				}
+				pkt := messages.GossipPacket{BlockRequest: request}
+				buf, err := protobuf.Encode(&pkt)
+				if err != nil {
+					return
+				}
+
+				fmt.Printf("FORWARDING BLOCK REQUEST to %s with BUDGET %d\n", addr, request.Budget)
+
+				channel.WriteToUDP(buf, &peer.udpAddr)
+			}
+		}
+
+	} else {
+		budget := request.Budget
+
+		for addr, peer := range peerIndex.index {
+			if addr != excludeMe && budget > 0 {
+				budget--
+				request.Budget = 1
+				pkt := messages.GossipPacket{BlockRequest: request}
+				buf, err := protobuf.Encode(&pkt)
+				if err != nil {
+					return
+				}
+				channel.WriteToUDP(buf, &peer.udpAddr)
+			}
+		}
+	}
 }
 
 // AddPeerIfAbsent adds a peer to the index if it doesn't exist yet

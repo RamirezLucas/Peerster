@@ -98,6 +98,20 @@ type ArtTx struct {
 	Artwork *ArtworkInfo // Information about the artwork
 }
 
+// BlockRequest - A request for missing blocks
+type BlockRequest struct {
+	Origin    string     // The origin of the request (the answer has to be sent back here)
+	BlockHash [][32]byte // The hashes requested (can have multiple hashes)
+	Budget    uint32     // This is a custom hop limit: we distribute our budget evenly among all neighbours, and if there's 0 left, we stop the search here
+}
+
+// BlockReply - A custom reply for missing blocks
+type BlockReply struct {
+	Destination string   // Destination for the reply
+	Block       []*Block // Blocks content
+	HopLimit    uint32   // HopLimit
+}
+
 // GossipPacket is the structure that is exchanged between gossipers (only one of the fields can be non-nil)
 type GossipPacket struct {
 	SimpleMsg     *SimpleMessage  // A plain message
@@ -109,8 +123,10 @@ type GossipPacket struct {
 	SearchRequest *SearchRequest  // A search request
 	SearchReply   *SearchReply    // A search reply
 	TxPublish     *TxPublish      // A name-to-methash mapping
-	BlockPublish  *BlockPublish   // A block for the blockchain
 	ArtTx         *ArtTx          // An artistic transaction
+	BlockPublish  *BlockPublish   // A block for the blockchain
+	BlockRequest  *BlockRequest   // A request for missing blocks
+	BlockReply    *BlockReply     // A reply for missing blocks
 }
 
 // SimpleMessageToString returns a textual representation of a SimpleMessage

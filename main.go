@@ -2,6 +2,8 @@ package main
 
 import (
 	"Peerster/backend"
+	"Peerster/blockchain"
+	"Peerster/crypto_rsa"
 	"Peerster/entities"
 	"Peerster/fail"
 	"Peerster/messages"
@@ -76,6 +78,12 @@ func isPacketValid(pkt *messages.GossipPacket, isClientSide bool, isSimpleMode b
 		counter++
 	}
 	if pkt.BlockPublish != nil {
+		counter++
+	}
+	if pkt.BlockRequest != nil {
+		counter++
+	}
+	if pkt.BlockReply != nil {
 		counter++
 	}
 	if counter != 1 {
@@ -191,6 +199,10 @@ func udpDispatcherGossip(g *entities.Gossiper, chanID chan uint32) {
 			go network.OnReceiveTransaction(g, pkt.TxPublish, sender)
 		case pkt.BlockPublish != nil:
 			go network.OnReceiveBlock(g, pkt.BlockPublish, sender)
+		case pkt.BlockRequest != nil:
+			go network.OnReceiveBlockRequest(g, pkt.BlockRequest, sender)
+		case pkt.BlockReply != nil:
+			go network.OnReceiveBlockReply(g, pkt.BlockReply, sender)
 		default:
 			// Should never happen
 		}
@@ -243,11 +255,9 @@ func udpDispatcherClient(g *entities.Gossiper, chanID chan uint32) {
 			if pkt.DataRequest.HopLimit == 0 {
 				// File index
 				if file := g.FileIndex.AddLocalFile(pkt.DataRequest.Origin); file != nil {
+
 					// Broadcast the transaction and publish to the blockchain
-					network.OnReceiveTransaction(g, &messages.TxPublish{
-						File:     file,
-						HopLimit: network.TransactionHopLimit + 1,
-					}, nil)
+					network.OnReceiveTransaction(g, blockchain.FileToNewTx(file, g.Keys).ToTxPublish(network.BlockHopLimit), nil)
 				}
 			} else {
 				// Remote file request
@@ -285,6 +295,9 @@ func main() {
 	// Add myself to the named peer list
 	gossiper.NameIndex.AddName(gossiper.Args.Name)
 
+	// Generate RSA keys
+	gossiper.Keys = crypto_rsa.GeneratePrivateKey()
+
 	// Create 2 communication channels
 	if gossiper.ClientChannel, err = openUDPChannel(gossiper.Args.ClientAddr); err != nil {
 		return
@@ -321,6 +334,20 @@ func main() {
 			go rumorEntropy(gossiper, chanID)
 		}
 	}
+
+	// Initiate block lookup: create a block request and broadcast it
+	go func() {
+
+		time.Sleep(1000 * time.Millisecond)
+
+		var hashes [][32]byte
+		request := &messages.BlockRequest{
+			Origin:    gossiper.Args.Name,
+			BlockHash: hashes,
+			Budget:    20,
+		}
+		gossiper.PeerIndex.BroadcastBlockRequest(gossiper.GossipChannel, request, "")
+	}()
 
 	// blockchain routine
 	// - mining (only when there are transactions)

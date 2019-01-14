@@ -22,6 +22,12 @@ func main() {
 	var pkt messages.GossipPacket
 
 	switch {
+	// Transaction
+	case client.Tx != "":
+		fmt.Printf("%s\n", client.Tx)
+
+		txPublish := messages.TxPublish{}
+		pkt = messages.GossipPacket{TxPublish: &txPublish}
 	// File search
 	case client.Keywords != nil:
 		search := messages.SearchRequest{

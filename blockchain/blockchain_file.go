@@ -1,10 +1,12 @@
 package blockchain
 
 import (
+	"Peerster/crypto_rsa"
 	"Peerster/fail"
 	"Peerster/logger"
 	"Peerster/messages"
 	"Peerster/utils"
+	"crypto/rsa"
 	"fmt"
 	"sync"
 	"time"
@@ -224,4 +226,31 @@ func findMergure(newBlock, oldBlock *FileBlock) (int, string, []*Tx) {
 		return rewind, genesisHashString, rewindTransactions
 	}
 	return rewind, oldChainBlock.id, rewindTransactions
+}
+
+func FileToNewTx(file *messages.File, ownerKey *rsa.PrivateKey) *Tx {
+	signature, err := crypto_rsa.NewSignature(file, ownerKey)
+	if err != nil {
+		fail.HandleError(err)
+		return nil
+	}
+	return &Tx{
+		Signature: signature,
+		File:      file,
+		PublicKey: &ownerKey.PublicKey,
+	}
+}
+
+func TransferFileToTx(prevSignature []byte, file *messages.File, prevOwnerKey, newOwnerKey *rsa.PrivateKey) *Tx {
+	signature, err := crypto_rsa.Sign(prevSignature, prevOwnerKey)
+	fail.HandleError(err)
+	return &Tx{
+		Signature: signature,
+		File:      file,
+		PublicKey: &newOwnerKey.PublicKey,
+	}
+}
+
+func TransferFileFromTxToTx(prevTx *Tx, prevOwnerKey, newOwnerKey *rsa.PrivateKey) *Tx {
+	return TransferFileToTx(prevTx.Signature[:], prevTx.File, prevOwnerKey, newOwnerKey)
 }
