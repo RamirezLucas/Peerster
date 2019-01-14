@@ -6,7 +6,6 @@ import (
 	"Peerster/files"
 	"Peerster/frontend"
 	"Peerster/messages"
-	"Peerster/utils"
 	"crypto/sha256"
 	"net"
 	"time"
@@ -19,9 +18,6 @@ const DataRequestRepeatIntervalSec = 5
 
 // OnSendDataRequest - Sends a data request
 func OnSendDataRequest(g *entities.Gossiper, request *messages.DataRequest, target *net.UDPAddr) error {
-
-	fail.LeveledPrint(1, "OnSendDataRequest", "Sending request for %s to %s",
-		utils.HashToHex(request.HashValue[:]), request.Destination)
 
 	// Create the packet
 	pkt := messages.GossipPacket{DataRequest: request}
@@ -86,9 +82,6 @@ func OnSendDataReply(g *entities.Gossiper, reply *messages.DataReply, target *ne
 
 // OnReceiveDataRequest - Called when a data request is received
 func OnReceiveDataRequest(g *entities.Gossiper, request *messages.DataRequest, sender *net.UDPAddr) {
-
-	fail.LeveledPrint(1, "OnReceiveDataRequest", "Received request %s for %s",
-		utils.HashToHex(request.HashValue[:]), request.Destination)
 
 	// Add the contact to our routing table
 	if g.Args.Name != request.Origin {

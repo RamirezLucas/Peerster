@@ -24,11 +24,9 @@ func OnPublishArtwork(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 
 	if file := gossiper.FileIndex.AddLocalFile(artTx.Artwork.Filename); file != nil {
 		// Broadcast the artwork
-		fail.LeveledPrint(1, "OnPublishArtwork", "Indexed %s", artTx.Artwork.Filename)
 		artTx.Artwork.Metahash = utils.HashToHex(file.MetafileHash[:])
 		OnBroadcastArtTx(gossiper, artTx)
 	} else {
-		fail.LeveledPrint(1, "OnPublishArtwork", "Failed to index %s", artTx.Artwork.Filename)
 	}
 
 }
@@ -49,8 +47,6 @@ func OnBroadcastArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 
 /*OnReceiveArtTx handles a new transaction containing an artist/artwork pair.*/
 func OnReceiveArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx, sender *net.UDPAddr) {
-
-	fail.LeveledPrint(1, "OnReceiveArtTx", "Received artTx for artwork %s", artTx.Artwork.Name)
 
 	// Add the contact to our routing table
 	if gossiper.Args.Name != artTx.Artist.Name {
@@ -87,8 +83,6 @@ func OnInvalidateArtTx(gossiper *entities.Gossiper, artTx *messages.ArtTx) {
 /*OnSubscribe subscribes the user to an artist.*/
 func OnSubscribe(gossiper *entities.Gossiper, signature string) {
 
-	fail.LeveledPrint(1, "OnSubscribe", "Subscribed to %s", signature)
-
 	if toDownload, artist := gossiper.ArtSystem.Subscribe(signature); toDownload != nil {
 		for _, artwork := range toDownload {
 			go OnDownloadArtwork(gossiper, artwork, &messages.ArtTx{
@@ -102,8 +96,6 @@ func OnSubscribe(gossiper *entities.Gossiper, signature string) {
 
 /*OnDownloadArtwork downloads an artwork from the network.*/
 func OnDownloadArtwork(gossiper *entities.Gossiper, artwork *app.Artwork, artTx *messages.ArtTx) {
-
-	fail.LeveledPrint(1, "OnReceiveArtTx", "Downloading %s", artwork.Info.Name)
 
 	// Check that the remote peer exists
 	target := gossiper.Router.GetTarget(artTx.Artist.Name)

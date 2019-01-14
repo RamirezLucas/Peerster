@@ -9,7 +9,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/protobuf"
+	"github.com/dedis/protobuf"
 )
 
 // PeerIndex represents a dictionnary between <ip:port> and peer addresses
